@@ -110,6 +110,6 @@ See the `UNLICENSE` file for more information.
 
 ### 📬 Contact
 
-zaifears - [@your-twitter-handle](https://twitter.com/your-twitter-handle) - your-email@example.com
+zaifears - [@shahoriar](https://shahoriar.me) - shahoriar.connect@gmail.com
 
 Project Link: [https://github.com/zaifears/locreminder](https://github.com/zaifears/locreminder)
