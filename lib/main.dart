@@ -1,13 +1,7 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart'; // Import for debugPrint
 import 'package:flutter/material.dart';
-
-// Import Google Maps - its LatLng will be the default
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-
-// Import Geofencing API with a prefix 'geo' to avoid name conflicts
-import 'package:geofencing_api/geofencing_api.dart' as geo;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibration/vibration.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -16,48 +10,111 @@ import 'package:permission_handler/permission_handler.dart';
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-// This function MUST be a top-level function (not inside a class)
-// to be used for background execution.
-@pragma('vm:entry-point')
-void geofenceEventHandler(
-    geo.Geofence geofence, geo.GeofenceEvent event, geo.Location location) async {
-  // Use debugPrint instead of print for better debugging practices
-  debugPrint(
-      'Geofence event: ${event.toString()} for ID ${geofence.id} at $location');
-
-  if (event == geo.GeofenceEvent.enter) {
-    await showAlarmNotification(geofence.id);
-    // Check if the device has a vibrator
-    if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(duration: 5000); // Vibrate for 5 seconds
-    }
-  }
+// Simple geofence data structure
+class SimpleGeofence {
+  final String id;
+  final double latitude;
+  final double longitude;
+  final double radius;
+  
+  SimpleGeofence({
+    required this.id,
+    required this.latitude,
+    required this.longitude,
+    required this.radius,
+  });
 }
 
-// Function to show the notification
-Future<void> showAlarmNotification(String geofenceId) async {
-  const AndroidNotificationDetails androidPlatformChannelSpecifics =
-      AndroidNotificationDetails(
-    'locreminder_channel_geofence',
-    'Location Alarms',
-    channelDescription: 'Notifications for location-based reminders',
-    importance: Importance.max,
-    priority: Priority.high,
-    playSound: true,
-    enableVibration: true,
-    ticker: 'Approaching Destination',
-  );
-  const NotificationDetails platformChannelSpecifics =
-      NotificationDetails(android: androidPlatformChannelSpecifics);
+// Geofence manager class
+class GeofenceManager {
+  static final GeofenceManager _instance = GeofenceManager._internal();
+  factory GeofenceManager() => _instance;
+  GeofenceManager._internal();
 
-  await flutterLocalNotificationsPlugin.show(
-    geofenceId.hashCode,
-    'Destination Approaching!',
-    'You are near the location set for your alarm.',
-    platformChannelSpecifics,
-    payload: 'location_alarm_$geofenceId',
-  );
-  debugPrint('Notification shown for geofence ID: $geofenceId');
+  final List<SimpleGeofence> _activeGeofences = [];
+  Timer? _locationTimer;
+
+  void addGeofence(SimpleGeofence geofence) {
+    _activeGeofences.add(geofence);
+    _startLocationMonitoring();
+  }
+
+  void removeGeofence(String id) {
+    _activeGeofences.removeWhere((g) => g.id == id);
+    if (_activeGeofences.isEmpty) {
+      _stopLocationMonitoring();
+    }
+  }
+
+  List<SimpleGeofence> getAllGeofences() => List.from(_activeGeofences);
+
+  void _startLocationMonitoring() {
+    _locationTimer?.cancel();
+    _locationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _checkLocation();
+    });
+  }
+
+  void _stopLocationMonitoring() {
+    _locationTimer?.cancel();
+    _locationTimer = null;
+  }
+
+  Future<void> _checkLocation() async {
+    try {
+      Position currentPosition = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10,
+        ),
+      );
+
+      for (SimpleGeofence geofence in _activeGeofences) {
+        double distance = Geolocator.distanceBetween(
+          currentPosition.latitude,
+          currentPosition.longitude,
+          geofence.latitude,
+          geofence.longitude,
+        );
+
+        if (distance <= geofence.radius) {
+          // Entered geofence
+          await _showAlarmNotification(geofence.id);
+          bool hasVibrator = await Vibration.hasVibrator();
+          if (hasVibrator) {
+            Vibration.vibrate(duration: 5000);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking location: $e');
+    }
+  }
+
+  Future<void> _showAlarmNotification(String geofenceId) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'locreminder_channel_geofence',
+      'Location Alarms',
+      channelDescription: 'Notifications for location-based reminders',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      ticker: 'Approaching Destination',
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await flutterLocalNotificationsPlugin.show(
+      geofenceId.hashCode,
+      'Destination Approaching!',
+      'You are near the location set for your alarm.',
+      platformChannelSpecifics,
+      payload: 'location_alarm_$geofenceId',
+    );
+    debugPrint('Notification shown for geofence ID: $geofenceId');
+  }
 }
 
 void main() async {
@@ -71,29 +128,6 @@ void main() async {
   );
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   debugPrint("Notifications Initialized");
-
-  // Initialize Geofencing API
-  // Check permission status before initializing geofencing
-  var locationAlwaysStatus = await Permission.locationAlways.status;
-  if (!locationAlwaysStatus.isGranted) {
-    debugPrint("Background location permission not granted. Geofencing may not work until granted.");
-    // Optionally request permissions here, but it's better done in the UI
-  }
-
-  try {
-     await geo.GeofencingAPI.instance.initialize(
-      eventHandler: geofenceEventHandler,
-      foregroundNotificationChannelId: 'locreminder_foreground_service',
-      foregroundNotificationChannelName: 'LocReminder Background Service',
-      foregroundNotificationContentTitle: 'LocReminder is active',
-      foregroundNotificationContentText: 'Monitoring your location for alarms.',
-    );
-     debugPrint("GeofencingAPI Initialized");
-  } catch (e) {
-     debugPrint("Error initializing GeofencingAPI: $e");
-     // Handle initialization error, maybe show an error message to the user
-  }
-
 
   runApp(const MyApp());
 }
@@ -127,7 +161,7 @@ class MapScreenState extends State<MapScreen> {
   Set<Marker> markers = {};
   LatLng initialPosition = const LatLng(23.8103, 90.4125); // Default to Dhaka
   bool isAlarmSet = false;
-
+  final GeofenceManager _geofenceManager = GeofenceManager();
   final String _geofenceId = 'destination_alarm_01';
 
   @override
@@ -142,57 +176,61 @@ class MapScreenState extends State<MapScreen> {
     await _checkExistingGeofences();
   }
 
-  Future<void> _requestPermissions() async {
-     debugPrint("Requesting permissions...");
-    // Request fine location first
-    PermissionStatus statusFine = await Permission.location.request();
-    if (statusFine.isGranted) {
-       debugPrint("Fine location granted.");
-      // Request background location ONLY if fine location is granted
-      PermissionStatus statusBackground = await Permission.locationAlways.request();
-      if (statusBackground.isGranted) {
-         debugPrint("Background location granted.");
-      } else {
-         debugPrint("Background location denied.");
-         // Optionally explain why background location is needed
+  Future<bool> _requestPermissions() async {
+    debugPrint("Requesting permissions...");
+    
+    // Check if location services are enabled
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enable location services')),
+        );
       }
-    } else {
-       debugPrint("Fine location denied.");
+      return false;
+    }
+
+    // Request location permission
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permissions are permanently denied. Please enable in settings.'),
+          ),
+        );
+      }
+      return false;
+    }
+
+    if (permission == LocationPermission.denied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission is required')),
+        );
+      }
+      return false;
     }
 
     // Request notification permission
-    PermissionStatus statusNotification = await Permission.notification.request();
-     if(statusNotification.isGranted) {
-       debugPrint("Notification permission granted.");
-     } else {
-       debugPrint("Notification permission denied.");
-     }
+    await Permission.notification.request();
+    
+    debugPrint("Permissions granted");
+    return true;
   }
 
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      debugPrint("Location services are disabled.");
-      // Optionally prompt user to enable services
-      return;
-    }
-
-    // Use permission_handler to check status
-    var permission = await Permission.location.status;
-    if (permission.isDenied || permission.isPermanentlyDenied) {
-      debugPrint("Location permissions are denied.");
-      return; // Permissions requested elsewhere
-    }
-
     try {
-      // Updated getCurrentPosition call without deprecated parameter
       Position position = await Geolocator.getCurrentPosition(
-         // Optionally use LocationSettings for accuracy control if needed:
-         // desiredAccuracy: LocationAccuracy.high // Example if needed, but often default is fine
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
-      if (mounted) { // Check if the widget is still in the tree
+      if (mounted) {
         setState(() {
           initialPosition = LatLng(position.latitude, position.longitude);
         });
@@ -205,22 +243,15 @@ class MapScreenState extends State<MapScreen> {
 
   Future<void> _checkExistingGeofences() async {
     try {
-      // Check permission status first
-       var locationAlwaysStatus = await Permission.locationAlways.status;
-       if (!locationAlwaysStatus.isGranted) {
-         debugPrint("Background location permission needed to check geofences.");
-         return;
-       }
-
-      List<geo.Geofence> geofences = await geo.GeofencingAPI.instance.getAllGeofences();
+      List<SimpleGeofence> geofences = _geofenceManager.getAllGeofences();
       bool found = geofences.any((gf) => gf.id == _geofenceId);
 
       if (found && mounted) {
-        geo.Geofence existing = geofences.firstWhere((gf) => gf.id == _geofenceId);
+        SimpleGeofence existing = geofences.firstWhere((gf) => gf.id == _geofenceId);
         debugPrint("Existing geofence found: ${existing.id}");
         setState(() {
           isAlarmSet = true;
-          selectedLocation = LatLng(existing.latitude, existing.longitude); // Use Google Maps LatLng
+          selectedLocation = LatLng(existing.latitude, existing.longitude);
           markers = {
             Marker(
                 markerId: MarkerId(_geofenceId),
@@ -241,7 +272,7 @@ class MapScreenState extends State<MapScreen> {
     mapController?.animateCamera(CameraUpdate.newLatLngZoom(initialPosition, 14));
   }
 
-  void _onMapTap(LatLng position) { // Google Maps LatLng
+  void _onMapTap(LatLng position) {
     if (!isAlarmSet) {
       if (mounted) {
         setState(() {
@@ -264,12 +295,12 @@ class MapScreenState extends State<MapScreen> {
   }
 
   void _toggleAlarm() async {
-    if (!mounted) return; // Check mount status at the beginning
+    if (!mounted) return;
 
     if (isAlarmSet) {
-      // --- Remove Geofence ---
+      // Remove Geofence
       try {
-        await geo.GeofencingAPI.instance.removeGeofence(id: _geofenceId);
+        _geofenceManager.removeGeofence(_geofenceId);
         debugPrint('Geofence removed: $_geofenceId');
         if (mounted) {
           setState(() {
@@ -289,7 +320,7 @@ class MapScreenState extends State<MapScreen> {
         );
       }
     } else {
-      // --- Add Geofence ---
+      // Add Geofence
       if (selectedLocation == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -298,28 +329,20 @@ class MapScreenState extends State<MapScreen> {
         return;
       }
 
-      var status = await Permission.locationAlways.status;
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Location permission "Always Allow" is required! Please grant in settings.')),
-        );
-        openAppSettings(); // Guide user directly to settings
+      bool hasPermissions = await _requestPermissions();
+      if (!hasPermissions) {
         return;
       }
 
-      // Create the geofence object using the prefixed class
-      final geofence = geo.Geofence(
-        id: _geofenceId,
-        latitude: selectedLocation!.latitude,
-        longitude: selectedLocation!.longitude,
-        radius: 500, // meters
-        triggers: [geo.GeofenceEvent.enter], // Use prefixed enum
-      );
-
       try {
-        await geo.GeofencingAPI.instance.addGeofence(geofence);
+        final geofence = SimpleGeofence(
+          id: _geofenceId,
+          latitude: selectedLocation!.latitude,
+          longitude: selectedLocation!.longitude,
+          radius: 500, // meters
+        );
+
+        _geofenceManager.addGeofence(geofence);
         debugPrint(
             'Geofence added for ${selectedLocation!.latitude}, ${selectedLocation!.longitude}');
         if (mounted) {
@@ -391,5 +414,11 @@ class MapScreenState extends State<MapScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    mapController?.dispose();
+    super.dispose();
   }
 }

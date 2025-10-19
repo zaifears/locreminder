@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Required permissions -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -11,14 +12,14 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
 
-
     <application
-        android:label="locreminder"
+        android:label="LocReminder"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
+        <!-- Google Maps API Key - Now references the secure file -->
         <meta-data android:name="com.google.android.geo.API_KEY"
-                   android:value="AIzaSyCnW4xtx6Ao4h6PWSMoC7r4wsIUudsXCZo"/>
+                   android:value="@string/google_maps_api_key"/>
 
         <activity
             android:name=".MainActivity"
@@ -38,6 +39,7 @@
             </intent-filter>
         </activity>
 
+        <!-- Notification receivers -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
@@ -47,12 +49,6 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
-
-        <service
-            android:name="app.getxray.geofencing.GeofencingService"
-            android:foregroundServiceType="location"
-            android:exported="false"/>
-
 
         <meta-data
             android:name="flutterEmbedding"

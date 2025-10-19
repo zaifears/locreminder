@@ -5,35 +5,25 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.3.0 <4.0.0' # Keep updated SDK constraint
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
-  # --- App Dependencies ---
-  google_maps_flutter: ^2.7.0 # Using latest stable
-  geolocator: ^14.0.0          # Using latest stable
-  geofencing_api: ^1.0.0     # ADDED - Current recommended package
-  flutter_local_notifications: ^19.0.0 # Using latest stable
-  vibration: ^3.1.0             # Using latest stable
-  permission_handler: ^12.0.0  # Using latest stable
-  # --- End App Dependencies ---
-
+  # Updated dependencies for better stability
+  google_maps_flutter: ^2.9.0
+  geolocator: ^13.0.1
+  flutter_local_notifications: ^18.0.1
+  vibration: ^2.0.0
+  permission_handler: ^11.3.1
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.0
 
-  flutter_lints: ^6.0.0 # Using latest stable
-
-  # --- Dev Dependency for App Icon ---
-  flutter_launcher_icons: ^0.14.0 # Using latest stable
-  # --- End Dev Dependency ---
-
-# Flutter specific section
 flutter:
   uses-material-design: true
-  # assets:
-  #   - assets/icons/
