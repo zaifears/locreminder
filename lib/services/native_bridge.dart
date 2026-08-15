@@ -43,6 +43,17 @@ class NativeBridge {
     return _channel.invokeMethod<void>('requestIgnoreBatteryOptimizations');
   }
 
+  /// Android 14+ gates full-screen intents separately; without it the alarm
+  /// can ring without ever showing its screen. Always true below 14.
+  Future<bool> canUseFullScreenIntent() async {
+    final result = await _channel.invokeMethod<bool>('canUseFullScreenIntent');
+    return result ?? true;
+  }
+
+  Future<void> requestFullScreenIntentPermission() {
+    return _channel.invokeMethod<void>('requestFullScreenIntentPermission');
+  }
+
   Future<bool> isAlarmRinging() async {
     final result = await _channel.invokeMethod<bool>('isAlarmRinging');
     return result ?? false;

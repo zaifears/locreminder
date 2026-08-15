@@ -2,7 +2,7 @@ name: locreminder
 description: "Never miss your stop. A location-based alarm app built with Flutter."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -16,6 +16,8 @@ dependencies:
   geolocator: ^13.0.1
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.2
+  http: ^1.6.0
+  url_launcher: ^6.3.2
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

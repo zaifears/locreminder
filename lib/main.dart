@@ -3,24 +3,62 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/permission_service.dart';
+import 'services/theme_controller.dart';
 import 'theme/app_theme.dart';
 
-void main() {
-  runApp(const LocReminderApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final themeController = ThemeController();
+  await themeController.load();
+  runApp(LocReminderApp(themeController: themeController));
 }
 
-class LocReminderApp extends StatelessWidget {
-  const LocReminderApp({super.key});
+class LocReminderApp extends StatefulWidget {
+  const LocReminderApp({super.key, required this.themeController});
+
+  final ThemeController themeController;
+
+  /// Lets any screen read the app-wide theme controller without pulling in a
+  /// state-management dependency for a single setting.
+  static ThemeController themeOf(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_ThemeScope>();
+    assert(scope != null, 'No LocReminderApp found in context');
+    return scope!.controller;
+  }
 
   @override
+  State<LocReminderApp> createState() => _LocReminderAppState();
+}
+
+class _LocReminderAppState extends State<LocReminderApp> {
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'LocReminder',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      home: const _StartupGate(),
+    return _ThemeScope(
+      controller: widget.themeController,
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: widget.themeController,
+        builder: (context, mode, _) {
+          return MaterialApp(
+            title: 'LocReminder',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: mode,
+            home: const _StartupGate(),
+          );
+        },
+      ),
     );
   }
+}
+
+class _ThemeScope extends InheritedWidget {
+  const _ThemeScope({required this.controller, required super.child});
+
+  final ThemeController controller;
+
+  @override
+  bool updateShouldNotify(_ThemeScope oldWidget) => controller != oldWidget.controller;
 }
 
 /// Routes to onboarding until every permission LocReminder needs to work

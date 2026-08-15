@@ -1,9 +1,11 @@
 package com.zaifears.locreminder
 
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import com.google.android.gms.location.Geofence
@@ -60,6 +62,34 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     } catch (e: Exception) {
                         result.success(false)
+                    }
+                }
+                // Android 14+ gates full-screen intents behind a separate
+                // capability that is only auto-granted to some app categories,
+                // so the alarm screen can silently fail to appear without it.
+                "canUseFullScreenIntent" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        val manager = getSystemService(NotificationManager::class.java)
+                        result.success(manager?.canUseFullScreenIntent() ?: false)
+                    } else {
+                        result.success(true)
+                    }
+                }
+                "requestFullScreenIntentPermission" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        try {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                                    Uri.parse("package:$packageName"),
+                                ),
+                            )
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    } else {
+                        result.success(true)
                     }
                 }
                 "isAlarmRinging" -> result.success(AlarmForegroundService.isRinging)

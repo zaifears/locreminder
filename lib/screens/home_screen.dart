@@ -7,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 import '../models/location_alarm.dart';
 import '../services/alarm_repository.dart';
 import '../services/native_bridge.dart';
-import 'add_alarm_sheet.dart';
+import '../widgets/app_drawer.dart';
+import '../widgets/map_tiles.dart';
+import 'location_picker_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _defaultPosition = LatLng(23.8103, 90.4125); // Dhaka
-  static const _osmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   final _repository = AlarmRepository();
   final _nativeBridge = NativeBridge();
@@ -60,15 +61,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _locateUser() async {
+  Future<void> _locateUser({bool recenter = false}) async {
     try {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
-      _initialPosition = LatLng(position.latitude, position.longitude);
-      _userLocation = _initialPosition;
+      if (!mounted) return;
+      final located = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _userLocation = located;
+        _initialPosition = located;
+      });
+      if (recenter) _mapController.move(located, 15);
     } catch (_) {
-      // Keep the default position; the user can still pan the map.
+      // Keep the default position; the user can still pan and search.
     }
   }
 
@@ -110,27 +116,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _refreshRingingState();
   }
 
-  Future<void> _onMapTap(TapPosition tapPosition, LatLng point) async {
-    final result = await AddAlarmSheet.show(context);
-    if (result == null) return;
+  Future<void> _addAlarm() async {
+    final picked = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialCenter: _userLocation ?? _initialPosition,
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
 
     final alarm = LocationAlarm(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      label: result.label,
-      latitude: point.latitude,
-      longitude: point.longitude,
-      radiusMeters: result.radiusMeters,
+      label: picked.label,
+      latitude: picked.latitude,
+      longitude: picked.longitude,
+      radiusMeters: picked.radiusMeters,
       isActive: true,
       createdAt: DateTime.now(),
     );
 
     try {
       await _nativeBridge.addGeofence(alarm);
+      if (!mounted) return;
       setState(() => _alarms = [..._alarms, alarm]);
       await _repository.saveAll(_alarms);
+      _mapController.move(LatLng(alarm.latitude, alarm.longitude), 14);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Alarm set at "${alarm.label}"')),
+          SnackBar(content: Text('Alarm set for ${alarm.label}')),
         );
       }
     } on PlatformException catch (e) {
@@ -149,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       } else {
         await _nativeBridge.addGeofence(alarm);
       }
+      if (!mounted) return;
       final updated = alarm.copyWith(isActive: !alarm.isActive);
       setState(() {
         _alarms = _alarms.map((a) => a.id == alarm.id ? updated : a).toList();
@@ -165,8 +180,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _deleteAlarm(LocationAlarm alarm) async {
     await _nativeBridge.removeGeofence(alarm.id);
+    if (!mounted) return;
     setState(() => _alarms = _alarms.where((a) => a.id != alarm.id).toList());
     await _repository.saveAll(_alarms);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Deleted ${alarm.label}')),
+      );
+    }
   }
 
   void _focusAlarm(LocationAlarm alarm) {
@@ -178,12 +199,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         .map(
           (alarm) => Marker(
             point: LatLng(alarm.latitude, alarm.longitude),
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
+            // Puts the pin's tip on the coordinate rather than its middle.
+            alignment: Alignment.bottomCenter,
             child: Icon(
               Icons.location_on,
-              size: 40,
-              color: alarm.isActive ? Colors.green.shade600 : Colors.blueGrey,
+              size: 42,
+              color: alarm.isActive
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outline,
+              shadows: const [Shadow(blurRadius: 6, color: Colors.black38)],
             ),
           ),
         )
@@ -194,13 +220,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       markers.add(
         Marker(
           point: userLocation,
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.blue,
+              color: Colors.blueAccent,
               border: Border.all(color: Colors.white, width: 3),
+              boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
             ),
           ),
         ),
@@ -216,8 +243,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           point: LatLng(alarm.latitude, alarm.longitude),
           radius: alarm.radiusMeters,
           useRadiusInMeter: true,
-          color: Colors.blue.withValues(alpha: 0.12),
-          borderColor: Colors.blue.withValues(alpha: 0.6),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+          borderColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
           borderStrokeWidth: 2,
         ),
       )
@@ -230,105 +257,226 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     return Scaffold(
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _initialPosition,
-              initialZoom: 14,
-              onTap: _onMapTap,
+      drawer: const AppDrawer(),
+      body: Builder(
+        builder: (context) => Stack(
+          children: [
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _initialPosition,
+                initialZoom: 14,
+              ),
+              children: [
+                buildTileLayer(context),
+                CircleLayer(circles: _circles),
+                MarkerLayer(markers: _markers),
+                buildAttribution(),
+              ],
             ),
+            _buildTopBar(context),
+            if (_alarmRinging) _buildRingingBanner(context),
+            _buildAlarmSheet(context),
+          ],
+        ),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 120),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton.small(
+              heroTag: 'locate',
+              onPressed: () => _locateUser(recenter: true),
+              child: const Icon(Icons.my_location),
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'add',
+              onPressed: _addAlarm,
+              icon: const Icon(Icons.add_location_alt),
+              label: const Text('Add alarm'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            _CircleButton(
+              icon: Icons.menu,
+              tooltip: 'Menu',
+              onTap: () => Scaffold.of(context).openDrawer(),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Material(
+                elevation: 3,
+                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(context).colorScheme.surface,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: _addAlarm,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Search for a destination',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRingingBanner(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 76, 12, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: scheme.errorContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
             children: [
-              TileLayer(
-                urlTemplate: _osmTileUrl,
-                userAgentPackageName: 'com.zaifears.locreminder',
+              Icon(Icons.alarm, color: scheme.onErrorContainer),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Alarm ringing',
+                  style: TextStyle(
+                    color: scheme.onErrorContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              CircleLayer(circles: _circles),
-              MarkerLayer(markers: _markers),
-              RichAttributionWidget(
-                attributions: [TextSourceAttribution('OpenStreetMap contributors')],
-              ),
+              FilledButton(onPressed: _stopAlarm, child: const Text('Stop')),
             ],
           ),
-          if (_alarmRinging)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlarmSheet(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.14,
+      minChildSize: 0.14,
+      maxChildSize: 0.62,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black26)],
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              Center(
                 child: Container(
-                  margin: const EdgeInsets.all(12),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.alarm, color: Theme.of(context).colorScheme.onErrorContainer),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Alarm ringing',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onErrorContainer,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      FilledButton(onPressed: _stopAlarm, child: const Text('Stop')),
-                    ],
+                    color: scheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ),
-            ),
-          DraggableScrollableSheet(
-            initialChildSize: 0.16,
-            minChildSize: 0.1,
-            maxChildSize: 0.6,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: const [BoxShadow(blurRadius: 12, color: Colors.black26)],
-                ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+              if (_alarms.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 4, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No alarms yet',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    ),
-                    Text(
-                      _alarms.isEmpty
-                          ? 'Tap anywhere on the map to set a destination alarm'
-                          : '${_alarms.length} ${_alarms.length == 1 ? 'alarm' : 'alarms'}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    for (final alarm in _alarms) _AlarmCard(
-                      alarm: alarm,
-                      onTap: () => _focusAlarm(alarm),
-                      onToggle: () => _toggleAlarm(alarm),
-                      onDelete: () => _deleteAlarm(alarm),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 6),
+                      Text(
+                        'Tap "Add alarm" to search for where you\'re heading, '
+                        'then choose how close you want to be before it rings.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    '${_alarms.length} ${_alarms.length == 1 ? 'alarm' : 'alarms'}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
-              );
-            },
+                const SizedBox(height: 8),
+                for (final alarm in _alarms)
+                  _AlarmCard(
+                    alarm: alarm,
+                    onTap: () => _focusAlarm(alarm),
+                    onToggle: () => _toggleAlarm(alarm),
+                    onDelete: () => _deleteAlarm(alarm),
+                  ),
+                const SizedBox(height: 24),
+              ],
+            ],
           ),
-        ],
+        );
+      },
+    );
+  }
+}
+
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({required this.icon, required this.onTap, this.tooltip});
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 3,
+      color: Theme.of(context).colorScheme.surface,
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon),
+        onPressed: onTap,
       ),
     );
   }
@@ -349,23 +497,33 @@ class _AlarmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final radiusLabel = alarm.radiusMeters >= 1000
+        ? '${(alarm.radiusMeters / 1000).toStringAsFixed(1)} km'
+        : '${alarm.radiusMeters.round()} m';
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ListTile(
         onTap: onTap,
         leading: CircleAvatar(
-          backgroundColor: alarm.isActive
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: const Icon(Icons.location_on),
+          backgroundColor:
+              alarm.isActive ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+          child: Icon(
+            alarm.isActive ? Icons.notifications_active : Icons.notifications_off,
+            color: alarm.isActive ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+          ),
         ),
-        title: Text(alarm.label),
-        subtitle: Text('Radius ${alarm.radiusMeters.round()} m'),
+        title: Text(alarm.label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          alarm.isActive ? 'Rings within $radiusLabel' : 'Paused · $radiusLabel',
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Switch(value: alarm.isActive, onChanged: (_) => onToggle()),
             IconButton(
+              tooltip: 'Delete',
               icon: const Icon(Icons.delete_outline),
               onPressed: onDelete,
             ),

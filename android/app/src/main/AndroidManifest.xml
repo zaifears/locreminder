@@ -55,10 +55,14 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- Triggered via an explicit PendingIntent we create ourselves, which
+             Play Services fires under *our* app's identity. It therefore needs
+             no export, and must NOT declare android:permission — that would
+             require the sender (effectively us) to hold a permission we don't
+             declare, silently dropping every geofence broadcast. -->
         <receiver
             android:name=".GeofenceBroadcastReceiver"
-            android:exported="true"
-            android:permission="com.google.android.gms.permission.GEOFENCE" />
+            android:exported="false" />
 
         <receiver
             android:name=".BootReceiver"
