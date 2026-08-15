@@ -40,16 +40,22 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Decode release keystore
-        if: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+      - name: Prepare release keystore
+        id: keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-        run: echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/locreminder-release.jks"
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/locreminder-release.jks"
+            echo "path=$GITHUB_WORKSPACE/android/locreminder-release.jks" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build release APK
         env:
           MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
-          RELEASE_STORE_FILE: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' && format('{0}/android/locreminder-release.jks', github.workspace) || '' }}
+          RELEASE_STORE_FILE: ${{ steps.keystore.outputs.path }}
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
