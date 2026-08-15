@@ -1,0 +1,4 @@
+# Built APKs are dropped here for convenience.
+# They are deliberately NOT committed — each is ~55MB and would bloat git
+# history permanently. Download them from GitHub Actions artifacts instead.
+*.apk

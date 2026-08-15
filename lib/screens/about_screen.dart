@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class AboutScreen extends StatelessWidget {
+import '../services/app_version.dart';
+
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  String? _version;
+
+  @override
+  void initState() {
+    super.initState();
+    AppVersion.get().then((value) {
+      if (mounted) setState(() => _version = value);
+    });
+  }
 
   static final _website = Uri.parse('https://shahoriar.bd/');
   static final _github = Uri.parse('https://github.com/zaifears/locreminder');
@@ -47,7 +64,7 @@ class AboutScreen extends StatelessWidget {
                 Text('LocReminder', style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 4),
                 Text(
-                  'Version 1.1.0',
+                  _version == null ? 'Version…' : 'Version $_version',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

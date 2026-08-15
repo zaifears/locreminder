@@ -20,14 +20,19 @@ class PermissionStatusSummary {
   final bool fullScreenIntentAllowed;
   final bool batteryOptimizationDisabled;
 
-  /// Everything the alarm strictly needs in order to fire in the background.
-  /// Battery optimization is strongly recommended but not technically
-  /// required, so it is surfaced separately rather than blocking startup.
+  /// Everything the alarm needs in order to fire on time in the background.
+  ///
+  /// Battery optimization is included deliberately. With it left on, Android
+  /// puts the app in App Standby and defers location work until the app is
+  /// next opened — which in testing meant the alarm stayed silent during the
+  /// whole journey and then rang the moment the app was launched. That makes
+  /// it a functional requirement, not a nice-to-have.
   bool get isFullyReady =>
       locationServiceEnabled &&
       foregroundLocationGranted &&
       backgroundLocationGranted &&
-      notificationsGranted;
+      notificationsGranted &&
+      batteryOptimizationDisabled;
 }
 
 /// Wraps permission_handler + geolocator into the sequence Android actually

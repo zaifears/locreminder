@@ -3,11 +3,16 @@ package com.zaifears.locreminder
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
+import androidx.core.app.NotificationCompat
 
 object NotificationHelper {
     const val ALARM_CHANNEL_ID = "locreminder_alarm_channel"
+    const val WATCH_CHANNEL_ID = "locreminder_watch_channel"
+    const val FALLBACK_NOTIFICATION_ID = 4202
 
     fun ensureAlarmChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -29,5 +34,74 @@ object NotificationHelper {
             setBypassDnd(true)
         }
         manager.createNotificationChannel(channel)
+    }
+
+    /**
+     * Channel for the always-on watch notification. Deliberately low
+     * importance and silent — it is a status indicator, not an alert.
+     */
+    fun ensureWatchChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        if (manager.getNotificationChannel(WATCH_CHANNEL_ID) != null) return
+
+        val channel = NotificationChannel(
+            WATCH_CHANNEL_ID,
+            "Watching for destinations",
+            NotificationManager.IMPORTANCE_LOW,
+        ).apply {
+            description = "Shows while LocReminder is watching for your destination"
+            setSound(null, null)
+            enableVibration(false)
+            setShowBadge(false)
+        }
+        manager.createNotificationChannel(channel)
+    }
+
+    /**
+     * Last-resort alert used when the alarm service cannot be started at all.
+     * Posting a notification is always permitted from the background, so this
+     * guarantees the user is told they arrived even if the ringing service was
+     * blocked — far better than failing silently.
+     */
+    fun postFallbackAlarmNotification(context: Context, label: String) {
+        ensureAlarmChannel(context)
+
+        val intent = Intent(context, AlarmActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra(AlarmForegroundService.EXTRA_LABEL, label)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
+            .setContentTitle("You're near $label")
+            .setContentText("Tap to open your alarm.")
+            .setSmallIcon(R.drawable.ic_notification_alarm)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setFullScreenIntent(pendingIntent, true)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompatShim.notify(context, FALLBACK_NOTIFICATION_ID, notification)
+    }
+}
+
+/** Keeps the POST_NOTIFICATIONS permission check in one place. */
+private object NotificationManagerCompatShim {
+    fun notify(context: Context, id: Int, notification: Notification) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        try {
+            manager.notify(id, notification)
+        } catch (_: SecurityException) {
+            // Notification permission revoked; nothing further we can do.
+        }
     }
 }

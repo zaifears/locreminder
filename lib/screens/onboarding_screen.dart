@@ -138,16 +138,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
         icon: Icons.battery_saver_outlined,
         title: "Don't let Android doze off",
         headline: 'Turn off battery optimization for LocReminder.',
-        body: 'Android aggressively suspends background apps to save power. '
-            'For most apps that is fine. For an alarm it means the ring can '
-            'arrive several minutes late — long past your stop.\n\n'
-            'This costs very little battery: LocReminder uses the system\'s '
-            'built-in geofencing, so it is not running or polling GPS in the '
-            'background. It stays asleep until Android itself wakes it.',
+        body: 'This one is not optional, and it is the reason most location '
+            'alarms fail.\n\n'
+            'With battery optimization on, Android puts the app to sleep once '
+            'your screen is off and postpones its location work. The alarm '
+            'then stays silent for the entire journey and only goes off when '
+            'you next unlock and open the app — by which point you have '
+            'already gone past your stop.\n\n'
+            'On the next screen choose LocReminder, then "Don\'t optimize" or '
+            '"Unrestricted".',
         granted: status.batteryOptimizationDisabled,
         grantedLabel: 'Battery optimization disabled',
         actionLabel: 'Open battery settings',
-        optional: true,
         onRequest: () async {
           await _permissionService.requestDisableBatteryOptimization();
           await _refresh();

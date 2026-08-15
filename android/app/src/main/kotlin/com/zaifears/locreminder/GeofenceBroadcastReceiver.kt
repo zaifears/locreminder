@@ -44,14 +44,16 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                 putExtra(AlarmForegroundService.EXTRA_GEOFENCE_ID, geofence.requestId)
                 putExtra(AlarmForegroundService.EXTRA_LABEL, label)
             }
-            // Android 12+ blocks most background foreground-service starts.
-            // Geofence transitions are an explicitly exempted case, but a
-            // thrown exception here would crash the receiver and lose the
-            // alarm entirely, so fail loudly in logs rather than fatally.
+            // Geofence transitions are exempt from Android 12+'s background
+            // foreground-service restriction, but OEM power managers still
+            // block this in practice. Never let that fail silently: fall back
+            // to a full-screen notification, which is always allowed from the
+            // background, so the user is told they arrived either way.
             try {
                 ContextCompat.startForegroundService(context, serviceIntent)
             } catch (e: Exception) {
-                Log.e(TAG, "Could not start alarm service for ${geofence.requestId}", e)
+                Log.e(TAG, "Alarm service blocked for ${geofence.requestId}; using notification", e)
+                NotificationHelper.postFallbackAlarmNotification(context, label)
             }
         }
     }

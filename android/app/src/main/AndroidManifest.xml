@@ -14,10 +14,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- The alarm-ringing service plays looping audio, so it is typed as
-         mediaPlayback for Android 14+ foreground service restrictions. -->
+    <!-- Two foreground services: one watches location while alarms are armed,
+         the other plays the looping alarm audio. Android 14+ requires the
+         matching typed permission for each. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <application
         android:label="LocReminder"
@@ -54,6 +56,11 @@
             android:name=".AlarmForegroundService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+
+        <service
+            android:name=".LocationWatchService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <!-- Triggered via an explicit PendingIntent we create ourselves, which
              Play Services fires under *our* app's identity. It therefore needs

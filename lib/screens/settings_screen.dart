@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../services/app_version.dart';
 import '../services/permission_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -13,12 +14,16 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
   final _permissionService = PermissionService();
   PermissionStatusSummary? _status;
+  String? _version;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _refresh();
+    AppVersion.get().then((value) {
+      if (mounted) setState(() => _version = value);
+    });
   }
 
   @override
@@ -154,7 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                   const Divider(height: 1),
                   _PermissionRow(
                     title: 'Battery optimization off',
-                    subtitle: 'Stops Android delaying the alarm',
+                    subtitle: 'Required — Android delays alarms without it',
                     granted: status.batteryOptimizationDisabled,
                     onFix: () async {
                       await _permissionService.requestDisableBatteryOptimization();
@@ -182,6 +187,16 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             icon: const Icon(Icons.open_in_new),
             label: const Text('Open system app settings'),
           ),
+          const SizedBox(height: 24),
+          const _SectionHeader(label: 'About this build'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('Version'),
+              subtitle: Text(_version ?? '…'),
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

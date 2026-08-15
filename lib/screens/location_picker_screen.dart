@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/place_result.dart';
 import '../services/geocoding_service.dart';
+import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
 
 class PickedLocation {
@@ -177,15 +178,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           IgnorePointer(
             child: Center(
               child: Padding(
-                // Lifts the icon by its own height so the pin's tip — not its
-                // middle — rests exactly on the map centre.
-                padding: const EdgeInsets.only(bottom: 48),
-                child: Icon(
-                  Icons.location_on,
-                  size: 48,
-                  color: scheme.primary,
-                  shadows: const [Shadow(blurRadius: 8, color: Colors.black45)],
-                ),
+                // Lifts the pin by its own height so its tip — not its middle
+                // — rests exactly on the map centre, matching the circle.
+                padding: const EdgeInsets.only(bottom: 52),
+                child: MapPin(size: 52, color: scheme.primary, borderColor: scheme.surface),
               ),
             ),
           ),

@@ -9,6 +9,7 @@ import '../services/alarm_repository.dart';
 import '../services/native_bridge.dart';
 import '../services/permission_service.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
 import 'location_picker_screen.dart';
 import 'settings_screen.dart';
@@ -80,6 +81,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) setState(() => _permissions = status);
   }
 
+  /// Keeps the native watch service running exactly while something is armed.
+  /// Called after every change to the alarm list so the service never lingers
+  /// with nothing to watch, and never stops while an alarm still needs it.
+  Future<void> _syncLocationWatch() async {
+    final shouldWatch = _alarms.any((a) => a.isActive);
+    try {
+      if (shouldWatch) {
+        await _nativeBridge.startLocationWatch();
+      } else {
+        await _nativeBridge.stopLocationWatch();
+      }
+    } on PlatformException catch (e) {
+      if (mounted && shouldWatch) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Background tracking could not start (${e.code}). Alarms may be '
+              'delayed — check permissions in Settings.',
+            ),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _locateUser({bool recenter = false}) async {
     try {
       final position = await Geolocator.getCurrentPosition(
@@ -116,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (triggeredLabels.isNotEmpty && mounted) {
       setState(() => _alarms = reconciled);
       await _repository.saveAll(_alarms);
+      await _syncLocationWatch();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Already rang: ${triggeredLabels.join(', ')}')),
@@ -160,6 +188,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     setState(() => _alarms = [..._alarms, alarm]);
     await _repository.saveAll(_alarms);
+    await _syncLocationWatch();
     _mapController.move(LatLng(alarm.latitude, alarm.longitude), 14);
     if (!mounted) return;
 
@@ -224,6 +253,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _alarms = _alarms.map((a) => a.id == alarm.id ? updated : a).toList();
     });
     await _repository.saveAll(_alarms);
+    await _syncLocationWatch();
   }
 
   Future<void> _deleteAlarm(LocationAlarm alarm) async {
@@ -233,6 +263,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     setState(() => _alarms = _alarms.where((a) => a.id != alarm.id).toList());
     await _repository.saveAll(_alarms);
+    await _syncLocationWatch();
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -259,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _alarms = restored;
     });
     await _repository.saveAll(_alarms);
+    await _syncLocationWatch();
   }
 
   void _focusAlarm(LocationAlarm alarm) {
@@ -290,13 +322,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             rotate: true,
             child: GestureDetector(
               onTap: () => _showAlarmPreview(alarm),
-              child: Icon(
-                Icons.location_on,
-                size: 42,
+              child: MapPin(
+                size: 44,
                 color: alarm.isActive
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(context).colorScheme.outline,
-                shadows: const [Shadow(blurRadius: 6, color: Colors.black38)],
+                borderColor: Theme.of(context).colorScheme.surface,
               ),
             ),
           ),

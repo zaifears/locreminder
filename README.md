@@ -39,10 +39,21 @@ Your PC                                    Phone
                                         🔊 ALARM RINGS
 ```
 
-* Destinations are registered with Android's **native Geofencing API**
-  (`GeofencingClient`), not a Dart timer — the OS itself watches your
-  location efficiently and wakes your app's receiver on arrival, whether or
-  not the app is running.
+* Arrival is detected two independent ways, because one is not enough:
+  1. A **foreground location service** (`LocationWatchService`) runs while
+     any alarm is armed. This is the path that actually fires on time. It
+     polls adaptively — every two minutes when you're across the city, every
+     ten seconds once you're within 500 m — and shows a quiet ongoing
+     notification so you can see it working.
+  2. Android's **native Geofencing API** (`GeofencingClient`) as a low-power
+     backup.
+
+  Geofencing alone was tried first and is not dependable for an alarm: once
+  the app goes idle, Doze and App Standby defer the transition broadcast, and
+  it can arrive minutes late — or not until you next open the app, long after
+  your stop. Holding a foreground service keeps the process out of that idle
+  state, which is the difference between an alarm that works and one that
+  doesn't.
 * The alarm — sound, vibration, full-screen lock-screen UI, "Stop" button —
   is entirely native Kotlin (`AlarmForegroundService` + `AlarmActivity`).
   It works even if the Flutter engine isn't currently loaded.
@@ -168,10 +179,19 @@ debug-signed APK, still fully installable by sideloading.
 1. Download `app-release.apk` from a GitHub Actions run (or a Release, if
    you pushed a tag) onto your phone.
 2. Open it — Android will prompt to allow installs from that source once.
-3. Install, open the app, and complete the permission setup screen. Make
-   sure to choose **"Allow all the time"** for location when prompted, and
-   disable battery optimization for LocReminder when asked — both are
-   required for the alarm to reliably fire in the background.
+3. Install, open the app, and complete the permission setup screen. Two of
+   the four steps are non-negotiable:
+   * **"Allow all the time"** for location — with "only while using the app"
+     the alarm can never fire once your screen is off.
+   * **Battery optimization off** — with it on, Android postpones the app's
+     location work until you next open it, so the alarm stays silent for the
+     whole journey and then goes off the moment you unlock your phone.
+
+   On Xiaomi, Samsung, Oppo, Vivo and OnePlus devices there is usually an
+   *additional* vendor setting beyond stock Android — look for "Autostart",
+   "Allow background activity", or set the battery profile to
+   "Unrestricted". These vendor power managers are the most common reason a
+   correctly-built location alarm still fails.
 
 ---
 

@@ -54,6 +54,22 @@ class NativeBridge {
     return _channel.invokeMethod<void>('requestFullScreenIntentPermission');
   }
 
+  /// Starts the foreground service that actively watches location. This is
+  /// what makes arrival detection dependable — geofence broadcasts alone get
+  /// deferred by Doze once the app goes idle.
+  Future<void> startLocationWatch() {
+    return _channel.invokeMethod<void>('startLocationWatch');
+  }
+
+  Future<void> stopLocationWatch() {
+    return _channel.invokeMethod<void>('stopLocationWatch');
+  }
+
+  Future<bool> isLocationWatchRunning() async {
+    final result = await _channel.invokeMethod<bool>('isLocationWatchRunning');
+    return result ?? false;
+  }
+
   Future<bool> isAlarmRinging() async {
     final result = await _channel.invokeMethod<bool>('isAlarmRinging');
     return result ?? false;

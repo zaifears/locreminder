@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
@@ -92,6 +93,28 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
                 }
+                // The watch service is what makes triggering dependable; the
+                // Dart layer keeps it running exactly while alarms are armed.
+                "startLocationWatch" -> {
+                    try {
+                        ContextCompat.startForegroundService(
+                            this,
+                            Intent(this, LocationWatchService::class.java),
+                        )
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("WATCH_START_FAILED", e.message, null)
+                    }
+                }
+                "stopLocationWatch" -> {
+                    startService(
+                        Intent(this, LocationWatchService::class.java).apply {
+                            action = LocationWatchService.ACTION_STOP
+                        },
+                    )
+                    result.success(true)
+                }
+                "isLocationWatchRunning" -> result.success(LocationWatchService.isWatching)
                 "isAlarmRinging" -> result.success(AlarmForegroundService.isRinging)
                 "stopAlarm" -> {
                     startService(
