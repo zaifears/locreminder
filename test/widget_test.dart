@@ -1,30 +1,45 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:locreminder/main.dart';
+import 'package:locreminder/models/location_alarm.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('LocationAlarm round-trips through JSON', () {
+    final alarm = LocationAlarm(
+      id: 'abc123',
+      label: 'Bus stop',
+      latitude: 23.8103,
+      longitude: 90.4125,
+      radiusMeters: 500,
+      isActive: true,
+      createdAt: DateTime.utc(2026, 1, 1, 8, 30),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final restored = LocationAlarm.fromJson(alarm.toJson());
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(restored.id, alarm.id);
+    expect(restored.label, alarm.label);
+    expect(restored.latitude, alarm.latitude);
+    expect(restored.longitude, alarm.longitude);
+    expect(restored.radiusMeters, alarm.radiusMeters);
+    expect(restored.isActive, alarm.isActive);
+    expect(restored.createdAt, alarm.createdAt);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('copyWith only changes the requested fields', () {
+    final alarm = LocationAlarm(
+      id: 'abc123',
+      label: 'Bus stop',
+      latitude: 23.8103,
+      longitude: 90.4125,
+      radiusMeters: 500,
+      isActive: true,
+      createdAt: DateTime.utc(2026, 1, 1),
+    );
+
+    final toggled = alarm.copyWith(isActive: false);
+
+    expect(toggled.isActive, isFalse);
+    expect(toggled.label, alarm.label);
+    expect(toggled.latitude, alarm.latitude);
+    expect(toggled.radiusMeters, alarm.radiusMeters);
   });
 }

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/alarmBackground"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <ImageView
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_marginBottom="24dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_notification_alarm"
+        android:tint="@color/alarmAccent" />
+
+    <TextView
+        android:id="@+id/alarmLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="48dp"
+        android:gravity="center"
+        android:text="@string/alarm_arrived_default"
+        android:textColor="@color/alarmTextPrimary"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/stopButton"
+        android:layout_width="220dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_stop_button"
+        android:elevation="4dp"
+        android:letterSpacing="0.05"
+        android:text="@string/alarm_stop_button"
+        android:textAllCaps="true"
+        android:textColor="@color/alarmTextPrimary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

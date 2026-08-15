@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarm_arrived_default">You\'ve arrived!</string>
+    <string name="alarm_arrived_message">You\'re near\n%1$s</string>
+    <string name="alarm_stop_button">Stop alarm</string>
+</resources>

@@ -45,6 +45,10 @@ app.*.map.json
 
 # API Keys and sensitive configuration files
 android/app/src/main/res/values/secrets.xml
+android/secrets.properties
+android/key.properties
+android/*.jks
+android/*.keystore
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 .env

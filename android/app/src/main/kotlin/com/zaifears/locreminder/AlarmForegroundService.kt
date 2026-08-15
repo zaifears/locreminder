@@ -1,0 +1,199 @@
+package com.zaifears.locreminder
+
+import android.app.Notification
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.os.Build
+import android.os.IBinder
+import android.os.PowerManager
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import com.google.android.gms.location.LocationServices
+
+/**
+ * Rings the alarm. Runs as a foreground service so Android won't kill it
+ * mid-ring, plays audio on STREAM_ALARM (separate from the ringer/media
+ * volume, so it sounds even if the phone is on silent/vibrate), and shows a
+ * full-screen notification that pulls [AlarmActivity] on top of the lock
+ * screen. Entirely native: it starts from [GeofenceBroadcastReceiver]
+ * whether or not the Flutter engine is running.
+ */
+class AlarmForegroundService : Service() {
+
+    private var mediaPlayer: MediaPlayer? = null
+    private var vibrator: Vibrator? = null
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_STOP -> {
+                stopAlarm()
+                return START_NOT_STICKY
+            }
+            else -> {
+                val label = intent?.getStringExtra(EXTRA_LABEL) ?: "your destination"
+                val geofenceId = intent?.getStringExtra(EXTRA_GEOFENCE_ID) ?: ""
+                startAlarm(geofenceId, label)
+            }
+        }
+        return START_STICKY
+    }
+
+    private fun startAlarm(geofenceId: String, label: String) {
+        if (isRinging) return
+        isRinging = true
+
+        NotificationHelper.ensureAlarmChannel(this)
+        startForeground(NOTIFICATION_ID, buildNotification(label, geofenceId))
+        acquireWakeLock()
+        launchAlarmActivity(label, geofenceId)
+        playAlarmSound()
+        startVibration()
+        deactivateGeofence(geofenceId)
+    }
+
+    /** A geofence alarm is one-shot: consume it so re-entering doesn't re-fire it. */
+    private fun deactivateGeofence(geofenceId: String) {
+        if (geofenceId.isEmpty()) return
+        LocationServices.getGeofencingClient(this).removeGeofences(listOf(geofenceId))
+        GeofenceStore(this).remove(geofenceId)
+    }
+
+    private fun stopAlarm() {
+        try {
+            mediaPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "MediaPlayer already stopped", e)
+        }
+        mediaPlayer = null
+
+        vibrator?.cancel()
+        vibrator = null
+
+        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock = null
+
+        isRinging = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        if (isRinging) stopAlarm()
+        super.onDestroy()
+    }
+
+    private fun acquireWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "locreminder:AlarmWakeLock",
+        ).apply { acquire(10 * 60 * 1000L) }
+    }
+
+    private fun playAlarmSound() {
+        try {
+            val alarmUri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build(),
+                )
+                setDataSource(this@AlarmForegroundService, alarmUri)
+                isLooping = true
+                setVolume(1f, 1f)
+                prepare()
+                start()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to play alarm sound", e)
+        }
+    }
+
+    private fun startVibration() {
+        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        val pattern = longArrayOf(0, 800, 400)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(pattern, 0)
+        }
+    }
+
+    private fun launchAlarmActivity(label: String, geofenceId: String) {
+        val activityIntent = Intent(this, AlarmActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra(EXTRA_LABEL, label)
+            putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+        }
+        startActivity(activityIntent)
+    }
+
+    private fun buildNotification(label: String, geofenceId: String): Notification {
+        val fullScreenIntent = Intent(this, AlarmActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra(EXTRA_LABEL, label)
+            putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+        }
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val stopIntent = Intent(this, AlarmForegroundService::class.java).apply { action = ACTION_STOP }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            0,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        return NotificationCompat.Builder(this, NotificationHelper.ALARM_CHANNEL_ID)
+            .setContentTitle("You're near $label")
+            .setContentText("Tap to open the alarm, or stop it below.")
+            .setSmallIcon(R.drawable.ic_notification_alarm)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setContentIntent(fullScreenPendingIntent)
+            .addAction(R.drawable.ic_stop, "Stop alarm", stopPendingIntent)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .build()
+    }
+
+    companion object {
+        private const val TAG = "AlarmForegroundService"
+        const val ACTION_START = "com.zaifears.locreminder.action.START_ALARM"
+        const val ACTION_STOP = "com.zaifears.locreminder.action.STOP_ALARM"
+        const val EXTRA_GEOFENCE_ID = "extra_geofence_id"
+        const val EXTRA_LABEL = "extra_label"
+        private const val NOTIFICATION_ID = 4201
+
+        var isRinging: Boolean = false
+            private set
+    }
+}

@@ -1,110 +1,204 @@
 # 📍 LocReminder
 
-A simple, open-source location-based alarm app built with Flutter. Never miss your bus stop again.
+Never miss your stop. Set an alarm on a destination and LocReminder rings —
+a real, looping, full-screen alarm — when you get close, even if the app is
+closed or your phone has been sitting untouched for hours.
 
 ---
 
-### Overview
+### How it actually works
 
-LocReminder is an Android app designed for one simple purpose: to wake you up when you're approaching your destination.
+Most "background location" tutorials use a `Timer` that polls GPS every few
+seconds from Dart. That only runs while the app process is alive, which
+Android will kill the moment you swipe the app away or the screen has been
+off for a while — so the alarm silently stops working. LocReminder doesn't
+do that.
 
-Have you ever wanted to sleep on a bus or train but were too afraid of missing your stop? With LocReminder, you can set an alarm for a specific location. The app will track your device's GPS in the background and trigger a loud alarm when you get near, so you can rest peacefully.
+```
+Your PC                                    Phone
+  │                                          │
+  ├── VS Code / Flutter                      ├── Android's native Geofencing API
+  ├── GitHub Actions (CI build)               │      (Play Services, OS-managed)
+  └── location-alarm.apk ────────────────────►      │
+                                              ▼
+                                     Phone moves normally
+                                              │
+                                     Entered the radius?
+                                              │ yes
+                                              ▼
+                                  BroadcastReceiver (native, no
+                                  Flutter engine required)
+                                              │
+                                              ▼
+                                  Foreground alarm service:
+                                  loops sound on STREAM_ALARM,
+                                  vibrates, wakes the screen,
+                                  shows a full-screen "Stop" UI
+                                              │
+                                              ▼
+                                        🔊 ALARM RINGS
+```
 
-This project is open-source and perfect for beginners looking to understand how Flutter integrates with native device features like GPS and background services.
+* Destinations are registered with Android's **native Geofencing API**
+  (`GeofencingClient`), not a Dart timer — the OS itself watches your
+  location efficiently and wakes your app's receiver on arrival, whether or
+  not the app is running.
+* The alarm — sound, vibration, full-screen lock-screen UI, "Stop" button —
+  is entirely native Kotlin (`AlarmForegroundService` + `AlarmActivity`).
+  It works even if the Flutter engine isn't currently loaded.
+* Geofences are re-registered automatically after a device reboot
+  (`BootReceiver`), since Android drops them on restart.
+* Flutter is only used for the setup UI: picking a destination on the map,
+  naming it, choosing a radius, and managing your list of alarms.
 
 ---
 
 ### ✨ Features
 
-* **Set Pin on Map:** Easily drop a pin on a map to set your destination.
-* **Background Geofencing:** The app monitors your location even when it's closed or your phone is locked.
-* **Loud Alarm & Vibration:** Triggers your phone's default alarm sound and vibrates to ensure you wake up.
-* **Simple & Clean UI:** No clutter. Just a map, a button, and peace of mind.
-* **Zero-Cost & Open-Source:** 100% free and open for contributions.
+* Drop a pin (or several) on the map with a custom label and radius.
+* Real background geofencing via Android's own Geofencing API — efficient,
+  no polling, no foreground service required just to "watch".
+* A loud, looping alarm on the dedicated alarm audio stream (rings even on
+  silent/vibrate), full-screen lock-screen alert, and vibration.
+* Multiple independent alarms, each toggleable or deletable.
+* Guided permission onboarding (location, background location,
+  notifications, battery-optimization exemption).
+* Signed, installable release APK built automatically by GitHub Actions.
 
 ---
 
-### 🛠️ Built With
+### 🛠️ Built with
 
-* **Flutter:** For the cross-platform UI and business logic.
-* **Dart:** The language of Flutter.
-* **Google Maps API:** To display the map and allow location selection.
-* **Geofencing:** To create a virtual perimeter around the destination.
-* **Background Services:** To run location checks when the app is not active.
+* **Flutter / Dart** — map UI, alarm list, permission onboarding.
+* **Kotlin** — geofence registration, the alarm foreground service, and the
+  full-screen alarm activity (`android/app/src/main/kotlin/...`).
+* **Google Maps SDK** (`google_maps_flutter`) — destination picking.
+* **Play Services Geofencing API** (`com.google.android.gms:play-services-location`).
 
 ---
 
-### 🚀 Getting Started
-
-To get a local copy up and running, follow these simple steps.
+### 🚀 Getting started
 
 #### Prerequisites
 
-Before you begin, ensure you have the following installed on your system:
-* [Flutter SDK](https://flutter.dev/docs/get-started/install)
-* [Android Studio](https://developer.android.com/studio) (for the Android SDK and emulators)
-* [VS Code](https://code.visualstudio.com/) (or your preferred editor)
-* [Git](https://git-scm.com/downloads)
+* [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel)
+* [Android SDK](https://developer.android.com/studio) + a JDK 17
+* A [Google Maps API key](https://console.cloud.google.com/google/maps-apis)
+  with **Maps SDK for Android** enabled
 
-#### Installation & Setup
+#### 1. Clone and install dependencies
 
-1.  **Clone the repository:**
-    ```sh
-    git clone [https://github.com/zaifears/locreminder.git](https://github.com/zaifears/locreminder.git)
-    ```
+```sh
+git clone https://github.com/zaifears/locreminder.git
+cd locreminder
+flutter pub get
+```
 
-2.  **Navigate to the project directory:**
-    ```sh
-    cd locreminder
-    ```
+#### 2. Add your Google Maps API key (local builds)
 
-3.  **Install dependencies:**
-    This command downloads all the necessary Flutter packages.
-    ```sh
-    flutter pub get
-    ```
+```sh
+cp android/secrets.properties.example android/secrets.properties
+```
 
-4.  **Add your Google Maps API Key:**
-    This app requires a Google Maps API key to function.
-    * Go to the Google Cloud Console and create a key.
-    * Enable the "Maps SDK for Android".
-    * Open the file `android/app/src/main/AndroidManifest.xml`.
-    * Find the line that says `"YOUR_API_KEY_HERE"` and replace it with your actual key:
-        ```xml
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_API_KEY_HERE" />
-        ```
+Edit `android/secrets.properties` and set `MAPS_API_KEY` to your key.
+This file is git-ignored — it never gets committed.
 
-5.  **Run the app:**
-    Make sure you have an emulator running or a physical Android device connected.
-    ```sh
-    flutter run
-    ```
+#### 3. Generate the launcher icon
+
+```sh
+dart run flutter_launcher_icons
+```
+
+#### 4. Run it
+
+```sh
+flutter run --release
+```
+
+(`--release` is recommended even for testing, since geofencing/background
+location behaves closest to real-world conditions in a release build.)
 
 ---
 
-### 🤝 How to Contribute
+### 📦 Building a signed release APK
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+By default, release builds fall back to Android's debug signing key, so
+`flutter build apk --release` always works out of the box and produces an
+APK you can sideload. For a real production signature (recommended before
+distributing the app):
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+```sh
+keytool -genkey -v -keystore locreminder-release.jks -keyalg RSA \
+  -keysize 2048 -validity 10000 -alias locreminder
+```
 
-1.  **Fork the Project**
-2.  **Create your Feature Branch** (`git checkout -b feature/AmazingFeature`)
-3.  **Commit your Changes** (`git commit -m 'Add some AmazingFeature'`)
-4.  **Push to the Branch** (`git push origin feature/AmazingFeature`)
-5.  **Open a Pull Request**
+```sh
+cp android/key.properties.example android/key.properties
+```
 
-Don't forget to give the project a star! ⭐
+Fill in `android/key.properties` with your keystore path and passwords
+(also git-ignored). Then:
+
+```sh
+flutter build apk --release
+```
+
+The APK is written to `build/app/outputs/flutter-apk/app-release.apk`.
+
+---
+
+### 🤖 CI: GitHub Actions builds the APK for you
+
+`.github/workflows/build.yml` builds a release APK on every push to `main`
+and on version tags (`v1.0.0`, etc.), then uploads it as a workflow artifact
+— and attaches it to a GitHub Release when you push a tag. This mirrors the
+exact pipeline used during development: **push → GitHub Actions → Flutter
+build → Android SDK/Gradle → `location-alarm.apk`**.
+
+To let CI produce a properly signed, working build, add these repository
+secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Required for |
+|---|---|
+| `MAPS_API_KEY` | The map actually rendering tiles |
+| `RELEASE_KEYSTORE_BASE64` | Signing with your real release key (`base64 -w0 locreminder-release.jks`) |
+| `RELEASE_STORE_PASSWORD` | ″ |
+| `RELEASE_KEY_ALIAS` | ″ |
+| `RELEASE_KEY_PASSWORD` | ″ |
+
+None of these are required for CI to *build* — omitted secrets just mean an
+unsigned-looking (debug-signed) APK with a blank map, still fully installable.
+
+---
+
+### 📱 Installing on your phone
+
+1. Download `app-release.apk` from a GitHub Actions run (or a Release, if
+   you pushed a tag) onto your phone.
+2. Open it — Android will prompt to allow installs from that source once.
+3. Install, open the app, and complete the permission setup screen. Make
+   sure to choose **"Allow all the time"** for location when prompted, and
+   disable battery optimization for LocReminder when asked — both are
+   required for the alarm to reliably fire in the background.
+
+---
+
+### 🤝 Contributing
+
+Contributions are welcome — fork, branch, commit, and open a pull request.
+
+1. **Fork the project**
+2. **Create your feature branch** (`git checkout -b feature/AmazingFeature`)
+3. **Commit your changes** (`git commit -m 'Add some AmazingFeature'`)
+4. **Push to the branch** (`git push origin feature/AmazingFeature`)
+5. **Open a pull request**
 
 ---
 
 ### 📜 License
 
-This project is unlicensed and free to the public. It is distributed as public domain. You are free to use, modify, and distribute the code for any purpose, commercial or non-commercial, without any restrictions.
-
-See the `UNLICENSE` file for more information.
+This project is unlicensed and free to the public — public domain. Use,
+modify, and distribute it for any purpose without restriction.
 
 ---
 

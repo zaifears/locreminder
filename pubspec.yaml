@@ -1,5 +1,5 @@
 name: locreminder
-description: "A location-based alarm app built with Flutter."
+description: "Never miss your stop. A location-based alarm app built with Flutter."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -11,12 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Updated dependencies for better stability
   google_maps_flutter: ^2.9.0
   geolocator: ^13.0.1
-  flutter_local_notifications: ^18.0.1
-  vibration: ^2.0.0
   permission_handler: ^11.3.1
+  shared_preferences: ^2.3.2
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -27,3 +25,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0F172A"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  min_sdk_android: 23

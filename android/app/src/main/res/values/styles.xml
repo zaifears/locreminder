@@ -15,4 +15,10 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- Full-screen alarm activity theme: no action bar, dark background so
+         it reads clearly over the lock screen day or night. -->
+    <style name="AlarmTheme" parent="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+        <item name="android:windowBackground">@color/alarmBackground</item>
+        <item name="android:colorBackground">@color/alarmBackground</item>
+    </style>
 </resources>

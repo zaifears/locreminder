@@ -1,0 +1,13 @@
+# Copy this file to key.properties (same folder) to sign release builds with
+# your own upload keystore instead of the debug key. key.properties is
+# git-ignored.
+#
+# Generate a keystore first, e.g.:
+#   keytool -genkey -v -keystore locreminder-release.jks -keyalg RSA \
+#     -keysize 2048 -validity 10000 -alias locreminder
+#
+# storeFile is resolved relative to the android/ folder.
+storeFile=../locreminder-release.jks
+storePassword=CHANGE_ME
+keyAlias=locreminder
+keyPassword=CHANGE_ME
