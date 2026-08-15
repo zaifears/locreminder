@@ -152,8 +152,9 @@ class _AboutScreenState extends State<AboutScreen> {
               child: Text(
                 'Map data and search © OpenStreetMap contributors, available '
                 'under the Open Database License.\n\n'
-                'This project is released into the public domain — free to '
-                'use, modify and share.',
+                'LocReminder\'s source code is open source under the MIT '
+                'licence. The app icon, logo and name remain © Shahoriar '
+                'Hossain, all rights reserved.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                       height: 1.5,
