@@ -256,7 +256,6 @@ class _PermissionPage extends StatelessWidget {
     required this.actionLabel,
     required this.onRequest,
     this.secondaryNote,
-    this.optional = false,
   });
 
   final IconData icon;
@@ -268,7 +267,6 @@ class _PermissionPage extends StatelessWidget {
   final String actionLabel;
   final VoidCallback onRequest;
   final String? secondaryNote;
-  final bool optional;
 
   @override
   Widget build(BuildContext context) {
@@ -292,23 +290,6 @@ class _PermissionPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          if (optional)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Recommended',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                ),
-              ),
-            ),
           Text(title, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 12),
           Text(
