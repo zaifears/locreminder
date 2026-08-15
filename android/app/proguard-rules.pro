@@ -11,3 +11,10 @@
 -keep class io.flutter.view.**  { *; }
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
+
+# Flutter's embedding optionally references Play Store "deferred
+# components" (dynamic feature delivery) classes even when the app doesn't
+# use that feature and doesn't depend on the play-core library. R8 fails
+# the build over these unresolved references unless told they're fine to
+# leave unresolved: https://docs.flutter.dev/reference/android-r8
+-dontwarn com.google.android.play.core.**
