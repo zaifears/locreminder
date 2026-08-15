@@ -4,26 +4,25 @@
 
   <h1>LocReminder</h1>
 
-  <h3>Sleep on the bus. We'll wake you at your stop.</h3>
+  <h3>A location alarm that rings when you reach your destination</h3>
 
   <br/>
 
   <a href="https://github.com/zaifears/locreminder/releases"><img src="https://img.shields.io/badge/📱_Download-APK-34D399?style=for-the-badge" alt="Download APK"/></a>
-  <a href="https://github.com/zaifears/locreminder/actions/workflows/build.yml"><img src="https://img.shields.io/badge/🤖_CI-GitHub_Actions-2563EB?style=for-the-badge" alt="CI"/></a>
+  <a href="#-how-to-use-it"><img src="https://img.shields.io/badge/📖_How_to-Use_it-2563EB?style=for-the-badge" alt="How to use"/></a>
 
   <br/><br/>
 
-  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"/>
-  <img src="https://img.shields.io/badge/Dart-3-0175C2?style=flat-square&logo=dart&logoColor=white" alt="Dart"/>
-  <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin"/>
   <img src="https://img.shields.io/badge/Android-6.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android"/>
-  <img src="https://img.shields.io/badge/OpenStreetMap-No_API_Key-7EBC6F?style=flat-square&logo=openstreetmap&logoColor=white" alt="OpenStreetMap"/>
-  <img src="https://img.shields.io/badge/License-Unlicense-green?style=flat-square" alt="License"/>
-  <img src="https://github.com/zaifears/locreminder/actions/workflows/build.yml/badge.svg" alt="Build status"/>
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"/>
+  <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Maps-OpenStreetMap-7EBC6F?style=flat-square&logo=openstreetmap&logoColor=white" alt="OpenStreetMap"/>
+  <img src="https://img.shields.io/badge/No_Ads-No_Tracking-blueviolet?style=flat-square" alt="No ads"/>
+  <img src="https://img.shields.io/badge/Code-MIT-green?style=flat-square" alt="License"/>
 
   <br/><br/>
 
-  <em>A location alarm that actually rings — even with the app closed and the screen off.</em>
+  <em>Sleep on the bus. Read your book. We'll wake you at your stop.</em>
 
 </div>
 
@@ -33,9 +32,33 @@
 
 <br/>
 
-LocReminder is a **location-based alarm** for Android. Drop a pin on your destination, pick how close you want to get, then put your phone away and rest. When you arrive, it rings a **real alarm** — looping sound on the alarm audio stream, vibration, and a full-screen alert over your lock screen.
+## 🚏 What is LocReminder?
 
-No account. No server. No API keys. Your locations never leave your phone.
+**LocReminder is an alarm clock that goes off at a place instead of a time.**
+
+You know roughly *where* you're going, but not exactly *when* you'll get there — traffic, delays, and unfamiliar routes make that impossible to predict. So you can't set a normal alarm. Instead you spend the whole journey glancing out of the window, unable to properly rest or focus.
+
+LocReminder fixes that. Drop a pin on your destination, choose how close you want to get, and put your phone away. When you arrive, it **rings a real alarm** — a looping sound that plays even on silent, vibration, and a full-screen alert over your lock screen. Exactly like a morning alarm, except triggered by arriving somewhere.
+
+<br/>
+
+### Who it's for
+
+| | |
+|---|---|
+| 😴 **Long bus or train rides** | Actually sleep, instead of half-watching for your stop. |
+| 🌏 **An unfamiliar city** | You don't know what your stop looks like — so let the phone know for you. |
+| 📚 **Commuters** | Read, work, or listen to something without keeping one eye on the route. |
+| 🚗 **Passengers on road trips** | Get woken before the turn-off instead of 20 km past it. |
+| 📦 **Pickups and errands** | A nudge when you're near the shop, the post office, or a friend's place. |
+
+<br/>
+
+> **The one thing it must do is ring.** An alarm that only works when you happen to be looking at your phone is useless — so most of the engineering here went into making it fire reliably with the app closed and the screen off. See [Making sure it rings](#️-making-sure-it-rings).
+
+<br/>
+
+---
 
 <br/>
 
@@ -51,12 +74,12 @@ No account. No server. No API keys. Your locations never leave your phone.
 
 | | |
 |---|---|
-| **Latest Release** | `v1.4.0` |
-| **Requirements** | Android 6.0+ (API 23) |
+| **Latest release** | `v1.4.0` |
+| **Requirements** | Android 6.0 or newer |
 | **Size** | ~55 MB |
-| **Signing** | Debug-signed by default — see [Release builds](#-building-a-signed-release-apk) |
+| **Price** | Free. No ads, no accounts, no in-app purchases. |
 
-> Every push to `main` builds an APK you can grab from the [Actions tab](https://github.com/zaifears/locreminder/actions). Pushing a `v*` tag publishes it as a Release.
+> Builds from every push are also available in the [Actions tab](https://github.com/zaifears/locreminder/actions).
 
 <br/>
 
@@ -64,17 +87,117 @@ No account. No server. No API keys. Your locations never leave your phone.
 
 <br/>
 
-## 🎯 Why this exists
+## 📖 How to use it
 
-Most "location alarm" tutorials poll GPS from a Dart `Timer`. That works in the emulator and fails on a real journey: Android kills the app the moment you lock your screen, and the alarm silently never fires.
+<table>
+  <tr>
+    <td width="70" align="center"><h2>1</h2></td>
+    <td><strong>Search for where you're going</strong><br/><sub>Type a place name, or drag the map under the pin. No account needed.</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><h2>2</h2></td>
+    <td><strong>Choose how early to be woken</strong><br/><sub>Anywhere from 100 m to 3 km out. A bigger radius gives you more time to gather your things.</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><h2>3</h2></td>
+    <td><strong>Put your phone away and rest</strong><br/><sub>A quiet notification shows how far you have left. When you arrive, the alarm rings.</sub></td>
+  </tr>
+</table>
 
-The second attempt — Android's native geofencing alone — also failed field testing. A geofence was set 150 m away with a 100 m radius; the phone walked into it and stayed 30 seconds. **Nothing.** The alarm rang the instant the app was reopened, because Doze and App Standby had deferred the geofence broadcast until the app became active again.
-
-That is the real problem this project solves.
+**Before your first real journey**, open **Menu → Alarm reliability** and tap **Run alarm test**. It rings the alarm after 15 seconds so you can lock your phone and confirm it gets through. Better to find out at home than on a train.
 
 <br/>
 
-## ⚙️ How it works
+---
+
+<br/>
+
+## ✨ Features
+
+<table>
+  <tr>
+    <td width="60"><strong>⏰</strong></td>
+    <td><strong>A real alarm, not a notification</strong></td>
+    <td>Loops on the alarm audio stream, so it sounds even when your phone is on silent — with a full-screen alert over your lock screen and a big Stop button.</td>
+  </tr>
+  <tr>
+    <td><strong>🔍</strong></td>
+    <td><strong>Search by name</strong></td>
+    <td>Type "Kamalapur Railway Station" instead of hunting across the map for it.</td>
+  </tr>
+  <tr>
+    <td><strong>📍</strong></td>
+    <td><strong>As many alarms as you like</strong></td>
+    <td>Each with its own label and radius. Pause one without deleting it, and see live distance to each.</td>
+  </tr>
+  <tr>
+    <td><strong>🔋</strong></td>
+    <td><strong>Easy on the battery</strong></td>
+    <td>Checks rarely when you're far away and often as you get close, so a three-hour journey doesn't flatten your phone.</td>
+  </tr>
+  <tr>
+    <td><strong>🛡️</strong></td>
+    <td><strong>Reliability check</strong></td>
+    <td>Detects your phone's brand and shows the exact settings it needs, plus a test that proves the alarm gets through.</td>
+  </tr>
+  <tr>
+    <td><strong>🌙</strong></td>
+    <td><strong>Light and dark themes</strong></td>
+    <td>Material 3 throughout, with map tiles tuned so dark mode isn't a white rectangle at night.</td>
+  </tr>
+  <tr>
+    <td><strong>🔒</strong></td>
+    <td><strong>Genuinely private</strong></td>
+    <td>No account, no analytics, no server. There's nowhere for your locations to go — they stay on your phone.</td>
+  </tr>
+</table>
+
+<br/>
+
+---
+
+<br/>
+
+## 🛡️ Making sure it rings
+
+> **Please read this once.** It's the difference between an alarm that works and one that doesn't.
+
+Android lets apps ask for permission to run in the background — but **phone manufacturers overrule it.** Xiaomi, Samsung, Oppo, Vivo, OnePlus and Huawei each add their own app-killer, and no app can switch those off by itself. You have to allow it by hand, once.
+
+**Menu → Alarm reliability** detects your phone and walks you through it. For reference:
+
+| Your phone | What to allow |
+|---|---|
+| **Xiaomi / Redmi / Poco** | Autostart **and** Battery saver → No restrictions |
+| **Samsung** | Battery → Background usage limits → **Never sleeping apps** |
+| **Oppo / Realme** | Allow Auto-startup + Allow background running |
+| **Vivo / iQOO** | High background power consumption + Autostart |
+| **OnePlus** | Don't optimise + Auto-launch + turn off Advanced optimisation |
+| **Huawei / Honor** | App launch → Manage manually → enable all three |
+
+And on every phone, regardless of brand:
+
+- **Location → "Allow all the time".** With *"only while using the app"*, the alarm can never fire once your screen is off.
+- **Battery optimisation → off.** With it on, Android postpones the app's work until you next open it — the alarm stays silent all journey, then goes off the moment you unlock your phone.
+
+<br/>
+
+---
+
+<br/>
+
+## 🔧 Under the hood
+
+<details>
+<summary><strong>How the alarm actually survives a locked screen</strong> (click to expand)</summary>
+
+<br/>
+
+The usual approach — polling GPS from a Dart `Timer` — works in an emulator and fails on a real trip, because Android kills the app as soon as you lock the screen.
+
+Android's native geofencing alone also failed field testing. An alarm was set 150 m away with a 100 m radius; the phone walked in and waited 30 seconds. Nothing. It rang the instant the app was reopened, because Doze had **deferred** the geofence broadcast until the app became active.
+
+So arrival is detected two independent ways, and the alarm itself is entirely native Kotlin — the Flutter engine can be completely dead and it still rings.
 
 ```
                      ┌──────────────────┐
@@ -103,97 +226,22 @@ That is the real problem this project solves.
           ▼              ▼              ▼
     alarm-stream     vibration     full-screen UI
        audio                       over lock screen
-
-    watchdog ──► every 15 min, restarts the watcher if an OEM killed it
-    boot     ──► restores alarms, geofences and the watcher
 ```
-
-**Everything that matters is native Kotlin.** The Flutter engine can be completely dead and the app will still detect arrival and ring — that is the design benchmark.
 
 | Layer | Role |
 |---|---|
-| **Foreground watcher** | Primary trigger. Polls adaptively — 5 min beyond 10 km, 10 s within 500 m. Holding a foreground service is what keeps the process out of the idle state that defers everything. |
-| **Approach geofence** | Wide outer ring (8× radius, min 2 km) that wakes the watcher for the final approach — so far-field polling can stay lazy without losing precision. |
+| **Foreground watcher** | Primary trigger. Polls adaptively — 5 min beyond 10 km, 10 s within 500 m. Holding a foreground service keeps the process out of the idle state that defers everything else. |
+| **Approach geofence** | Wide outer ring (8× radius, min 2 km) that wakes the watcher for the final approach. Being kilometres across, it tolerates the Doze delay that is fatal to a 100 m ring. |
 | **Inner geofence** | Low-power backup trigger. |
-| **Alarm service** | Looping audio on `USAGE_ALARM` (rings on silent), vibration, wake lock, full-screen activity. Auto-stops after 10 minutes. |
-| **Watchdog** | Inexact allow-while-idle alarm that restarts the watcher if a vendor power manager killed it. |
+| **Alarm service** | Looping `USAGE_ALARM` audio, vibration, wake lock, full-screen activity. Auto-stops after 10 minutes. |
+| **Watchdog** | Inexact allow-while-idle alarm, restarts the watcher if a vendor power manager killed it. |
+| **Boot receiver** | Restores alarms, geofences and the watcher after a restart. |
+
+</details>
 
 <br/>
 
----
-
-<br/>
-
-## ✨ Features
-
-<table>
-  <tr>
-    <td width="60"><strong>🔍</strong></td>
-    <td><strong>Search, don't hunt</strong></td>
-    <td>Type "Kamalapur Railway Station" instead of squinting at a map. Keyless OpenStreetMap geocoding.</td>
-  </tr>
-  <tr>
-    <td><strong>⏰</strong></td>
-    <td><strong>A real alarm</strong></td>
-    <td>Loops on the alarm audio stream — sounds even on silent — with a full-screen alert over your lock screen.</td>
-  </tr>
-  <tr>
-    <td><strong>📍</strong></td>
-    <td><strong>Multiple alarms</strong></td>
-    <td>Arm as many destinations as you like, each with its own label and radius. Live distance to each.</td>
-  </tr>
-  <tr>
-    <td><strong>🛡️</strong></td>
-    <td><strong>Reliability screen</strong></td>
-    <td>Detects your phone's manufacturer and gives the exact settings path for that model, plus a test that proves alarms get through.</td>
-  </tr>
-  <tr>
-    <td><strong>🌙</strong></td>
-    <td><strong>Light & dark</strong></td>
-    <td>Material 3 throughout, with map tiles tone-mapped for dark mode.</td>
-  </tr>
-  <tr>
-    <td><strong>🔒</strong></td>
-    <td><strong>Private by design</strong></td>
-    <td>No account, no analytics, no backend. Locations are stored only on your device.</td>
-  </tr>
-</table>
-
-<br/>
-
----
-
-<br/>
-
-## 🛡️ Making it reliable on your phone
-
-> **This is the part most location alarms get wrong.** Read it before trusting the app with a real journey.
-
-Android grants the permissions, but **phone manufacturers overrule them.** Xiaomi, Samsung, Oppo, Vivo, OnePlus and Huawei each run their own app-killer on top of Android, and none of them expose an API to opt out — the user has to allow it by hand.
-
-In-app: **Menu → Alarm reliability**. It detects your manufacturer, lists the exact menu path for your model, deep-links to the vendor screen, and offers a **Run alarm test** that rings the real alarm after 15 seconds so you can lock your phone and confirm it breaks through.
-
-| Manufacturer | What to allow |
-|---|---|
-| **Xiaomi / Redmi / Poco** | Autostart **and** Battery saver → No restrictions |
-| **Samsung** | Battery → Background usage limits → **Never sleeping apps** |
-| **Oppo / Realme** | Allow Auto-startup + Allow background running |
-| **Vivo / iQOO** | High background power consumption + Autostart |
-| **OnePlus** | Don't optimise + Auto-launch + disable Advanced optimisation |
-| **Huawei / Honor** | App launch → Manage manually → enable all three |
-
-Also required regardless of manufacturer:
-
-- **Location → "Allow all the time"** — with "only while using the app" the alarm can never fire once the screen is off.
-- **Battery optimisation off** — with it on, Android postpones the app's location work until you next open it.
-
-<br/>
-
----
-
-<br/>
-
-## 🛠️ Tech Stack
+### Built with
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -206,7 +254,7 @@ Also required regardless of manufacturer:
 ├─────────────────────────────────────────────────────────────┤
 │  Storage          SharedPreferences (device-local only)     │
 │  Build            Gradle 9 · AGP 9 · R8 shrinking           │
-│  CI/CD            GitHub Actions → signed release APK       │
+│  CI/CD            GitHub Actions → release APK              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -216,7 +264,7 @@ Also required regardless of manufacturer:
 
 <br/>
 
-## 🚀 Local Development
+## 🚀 Building it yourself
 
 ### Prerequisites
 
@@ -225,65 +273,37 @@ Also required regardless of manufacturer:
 
 No Maps API key, no Google Cloud billing account, no signup — the map is OpenStreetMap.
 
-### Quick Start
-
 ```bash
-# 1. Clone & enter
 git clone https://github.com/zaifears/locreminder.git
 cd locreminder
-
-# 2. Install dependencies
 flutter pub get
-
-# 3. Run it
 flutter run --release
 ```
 
-> `--release` is recommended even for testing — geofencing and background location behave closest to real-world conditions in a release build.
+> `--release` is recommended even for testing — background location behaves closest to real conditions in a release build.
 
-> **App icons** under `android/app/src/main/res/mipmap-*` are hand-authored and committed as-is. Do **not** run `flutter_launcher_icons`; it would regenerate and overwrite them.
+> **App icons** under `android/app/src/main/res/mipmap-*` are hand-authored and committed as-is. Don't run `flutter_launcher_icons`; it would overwrite them.
 
-### Available Scripts
+### Commands
 
 | Command | Description |
 |---|---|
 | `flutter pub get` | Install dependencies |
 | `flutter analyze` | Static analysis (CI treats warnings as failures) |
 | `flutter test` | Run unit tests |
-| `flutter run --release` | Run on a connected device |
-| `flutter build apk --release` | Build release APK |
+| `flutter build apk --release` | Build a release APK |
 
-<br/>
+### Signing a release build
 
----
-
-<br/>
-
-## 📦 Building a signed release APK
-
-Release builds fall back to Android's debug key, so `flutter build apk --release` always produces an installable APK. For a real production signature:
+Release builds fall back to Android's debug key, so `flutter build apk --release` always produces an installable APK. For a production signature:
 
 ```bash
 keytool -genkey -v -keystore locreminder-release.jks -keyalg RSA \
   -keysize 2048 -validity 10000 -alias locreminder
-```
-
-```bash
 cp android/key.properties.example android/key.properties
 ```
 
-Fill in your keystore path and passwords (git-ignored), then build. The APK lands in `build/app/outputs/flutter-apk/app-release.apk`.
-
-### CI secrets
-
-| Secret | Required for |
-|---|---|
-| `RELEASE_KEYSTORE_BASE64` | Signing with your real key (`base64 -w0 locreminder-release.jks`) |
-| `RELEASE_STORE_PASSWORD` | ″ |
-| `RELEASE_KEY_ALIAS` | ″ |
-| `RELEASE_KEY_PASSWORD` | ″ |
-
-None are required for CI to build — omitted secrets simply produce a debug-signed APK.
+Fill in your keystore path and passwords (git-ignored). For CI, add `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` as repository secrets — none are required to build, they only change the signature.
 
 <br/>
 
@@ -305,9 +325,14 @@ Contributions are welcome — fork, branch, commit, and open a pull request.
 
 ## 📄 License
 
-Released into the **public domain** under the [Unlicense](UNLICENSE) — use, modify and distribute it for any purpose, without restriction.
+| | |
+|---|---|
+| **Source code** | [MIT](LICENSE) — free to use, modify, and distribute, commercially or otherwise |
+| **Logo, app icon & the name "LocReminder"** | © Shahoriar Hossain — all rights reserved |
 
-Map data and search © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the Open Database License.
+Fork the code freely. Please use your own name and artwork when publishing a derivative.
+
+Map data and search © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, under the Open Database License.
 
 <br/>
 
@@ -321,7 +346,7 @@ Map data and search © [OpenStreetMap](https://www.openstreetmap.org/copyright) 
 
   <br/><br/>
 
-  <a href="https://github.com/zaifears/locreminder/releases">Download</a> &nbsp;·&nbsp; <a href="https://github.com/zaifears/locreminder/issues">Report Issue</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/">Website</a> &nbsp;·&nbsp; <a href="mailto:shahoriar.connect@gmail.com">Contact</a>
+  <a href="https://github.com/zaifears/locreminder/releases">Download</a> &nbsp;·&nbsp; <a href="https://github.com/zaifears/locreminder/issues">Report an issue</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/">Website</a> &nbsp;·&nbsp; <a href="mailto:shahoriar.connect@gmail.com">Contact</a>
 
   <br/><br/>
 

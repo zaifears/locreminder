@@ -4,8 +4,24 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    # Documentation and store-asset changes can't affect the APK, so skip the
+    # ~5 minute build for them. GitHub skips path filters entirely for tag
+    # pushes, so release builds on v* tags are unaffected by this list.
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - 'store/**'
+      - 'apk/**'
+      - '.gitignore'
+      - '.github/**.md'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - 'store/**'
+      - 'apk/**'
+      - '.gitignore'
   workflow_dispatch:
 
 jobs:

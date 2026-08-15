@@ -1,0 +1,6 @@
+The app icon, logo and the name "LocReminder" are the property of
+Shahoriar Hossain and are NOT covered by the MIT licence that applies to
+the source code.
+
+You are welcome to fork and build on the code, but please replace these
+assets and the app name with your own before publishing a derivative.
