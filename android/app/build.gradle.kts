@@ -3,23 +3,10 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
+    // Kotlin is applied automatically by AGP's built-in Kotlin support.
     id("dev.flutter.flutter-gradle-plugin")
 }
-
-// Google Maps API key: read from a local, git-ignored secrets.properties for
-// dev builds, or from the MAPS_API_KEY environment variable (set as a GitHub
-// Actions secret) for CI builds. Falls back to a placeholder so the project
-// always compiles even before a key has been configured.
-val secretsPropertiesFile = rootProject.file("secrets.properties")
-val secretsProperties = Properties()
-if (secretsPropertiesFile.exists()) {
-    FileInputStream(secretsPropertiesFile).use { secretsProperties.load(it) }
-}
-val mapsApiKey: String =
-    secretsProperties.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
-        ?: System.getenv("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
-        ?: "YOUR_API_KEY_HERE"
 
 // Release signing: read from a local, git-ignored key.properties, or from
 // individual RELEASE_* environment variables (set as GitHub Actions secrets)
@@ -41,26 +28,20 @@ val hasReleaseSigning = releaseStoreFilePath != null
 
 android {
     namespace = "com.zaifears.locreminder"
-    compileSdk = 35
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     defaultConfig {
         applicationId = "com.zaifears.locreminder"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["mapsApiKey"] = mapsApiKey
     }
 
     signingConfigs {
@@ -88,12 +69,17 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
 flutter {
     source = "../.."
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("androidx.core:core-ktx:1.13.1")
 }

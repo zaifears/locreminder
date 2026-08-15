@@ -11,7 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  google_maps_flutter: ^2.9.0
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
   geolocator: ^13.0.1
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.2

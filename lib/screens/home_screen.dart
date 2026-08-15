@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong2.dart';
 
 import '../models/location_alarm.dart';
 import '../services/alarm_repository.dart';
@@ -17,13 +18,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _defaultPosition = LatLng(23.8103, 90.4125); // Dhaka
+  static const _osmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   final _repository = AlarmRepository();
   final _nativeBridge = NativeBridge();
+  final _mapController = MapController();
 
-  GoogleMapController? _mapController;
   List<LocationAlarm> _alarms = [];
   LatLng _initialPosition = _defaultPosition;
+  LatLng? _userLocation;
   bool _loading = true;
   bool _alarmRinging = false;
 
@@ -37,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _mapController?.dispose();
     super.dispose();
   }
 
@@ -64,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       _initialPosition = LatLng(position.latitude, position.longitude);
-      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(_initialPosition, 14));
+      _userLocation = _initialPosition;
     } catch (_) {
       // Keep the default position; the user can still pan the map.
     }
@@ -108,15 +110,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _refreshRingingState();
   }
 
-  Future<void> _onMapTap(LatLng position) async {
+  Future<void> _onMapTap(TapPosition tapPosition, LatLng point) async {
     final result = await AddAlarmSheet.show(context);
     if (result == null) return;
 
     final alarm = LocationAlarm(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       label: result.label,
-      latitude: position.latitude,
-      longitude: position.longitude,
+      latitude: point.latitude,
+      longitude: point.longitude,
       radiusMeters: result.radiusMeters,
       isActive: true,
       createdAt: DateTime.now(),
@@ -168,37 +170,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _focusAlarm(LocationAlarm alarm) {
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(alarm.latitude, alarm.longitude), 15),
-    );
+    _mapController.move(LatLng(alarm.latitude, alarm.longitude), 15);
   }
 
-  Set<Marker> get _markers => _alarms
-      .map(
-        (alarm) => Marker(
-          markerId: MarkerId(alarm.id),
-          position: LatLng(alarm.latitude, alarm.longitude),
-          infoWindow: InfoWindow(title: alarm.label),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            alarm.isActive ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueAzure,
+  List<Marker> get _markers {
+    final markers = _alarms
+        .map(
+          (alarm) => Marker(
+            point: LatLng(alarm.latitude, alarm.longitude),
+            width: 40,
+            height: 40,
+            child: Icon(
+              Icons.location_on,
+              size: 40,
+              color: alarm.isActive ? Colors.green.shade600 : Colors.blueGrey,
+            ),
+          ),
+        )
+        .toList();
+
+    final userLocation = _userLocation;
+    if (userLocation != null) {
+      markers.add(
+        Marker(
+          point: userLocation,
+          width: 20,
+          height: 20,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue,
+              border: Border.all(color: Colors.white, width: 3),
+            ),
           ),
         ),
-      )
-      .toSet();
+      );
+    }
+    return markers;
+  }
 
-  Set<Circle> get _circles => _alarms
+  List<CircleMarker> get _circles => _alarms
       .where((a) => a.isActive)
       .map(
-        (alarm) => Circle(
-          circleId: CircleId(alarm.id),
-          center: LatLng(alarm.latitude, alarm.longitude),
+        (alarm) => CircleMarker(
+          point: LatLng(alarm.latitude, alarm.longitude),
           radius: alarm.radiusMeters,
-          fillColor: Colors.blue.withValues(alpha: 0.12),
-          strokeColor: Colors.blue.withValues(alpha: 0.6),
-          strokeWidth: 2,
+          useRadiusInMeter: true,
+          color: Colors.blue.withValues(alpha: 0.12),
+          borderColor: Colors.blue.withValues(alpha: 0.6),
+          borderStrokeWidth: 2,
         ),
       )
-      .toSet();
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -209,15 +232,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Scaffold(
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(target: _initialPosition, zoom: 14),
-            onMapCreated: (controller) => _mapController = controller,
-            onTap: _onMapTap,
-            markers: _markers,
-            circles: _circles,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            padding: const EdgeInsets.only(bottom: 120),
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _initialPosition,
+              initialZoom: 14,
+              onTap: _onMapTap,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: _osmTileUrl,
+                userAgentPackageName: 'com.zaifears.locreminder',
+              ),
+              CircleLayer(circles: _circles),
+              MarkerLayer(markers: _markers),
+              RichAttributionWidget(
+                attributions: [TextSourceAttribution('OpenStreetMap contributors')],
+              ),
+            ],
           ),
           if (_alarmRinging)
             Positioned(

@@ -43,9 +43,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# API Keys and sensitive configuration files
-android/app/src/main/res/values/secrets.xml
-android/secrets.properties
+# Sensitive configuration files
 android/key.properties
 android/*.jks
 android/*.keystore

@@ -72,8 +72,10 @@ Your PC                                    Phone
 * **Flutter / Dart** — map UI, alarm list, permission onboarding.
 * **Kotlin** — geofence registration, the alarm foreground service, and the
   full-screen alarm activity (`android/app/src/main/kotlin/...`).
-* **Google Maps SDK** (`google_maps_flutter`) — destination picking.
-* **Play Services Geofencing API** (`com.google.android.gms:play-services-location`).
+* **OpenStreetMap via `flutter_map`** — destination picking. No API key, no
+  billing account, no Google Cloud project required.
+* **Play Services Geofencing API** (`com.google.android.gms:play-services-location`)
+  — free, no API key needed (this is a device-side location API, not Maps).
 
 ---
 
@@ -83,8 +85,9 @@ Your PC                                    Phone
 
 * [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel)
 * [Android SDK](https://developer.android.com/studio) + a JDK 17
-* A [Google Maps API key](https://console.cloud.google.com/google/maps-apis)
-  with **Maps SDK for Android** enabled
+
+No Maps API key, no Google Cloud billing account, no signup of any kind —
+the map is OpenStreetMap tiles, free and keyless.
 
 #### 1. Clone and install dependencies
 
@@ -94,22 +97,13 @@ cd locreminder
 flutter pub get
 ```
 
-#### 2. Add your Google Maps API key (local builds)
-
-```sh
-cp android/secrets.properties.example android/secrets.properties
-```
-
-Edit `android/secrets.properties` and set `MAPS_API_KEY` to your key.
-This file is git-ignored — it never gets committed.
-
-#### 3. Generate the launcher icon
+#### 2. Generate the launcher icon
 
 ```sh
 dart run flutter_launcher_icons
 ```
 
-#### 4. Run it
+#### 3. Run it
 
 ```sh
 flutter run --release
@@ -155,19 +149,19 @@ and on version tags (`v1.0.0`, etc.), then uploads it as a workflow artifact
 exact pipeline used during development: **push → GitHub Actions → Flutter
 build → Android SDK/Gradle → `location-alarm.apk`**.
 
-To let CI produce a properly signed, working build, add these repository
-secrets (Settings → Secrets and variables → Actions):
+To have CI sign the APK with your real release key rather than the debug
+key, add these repository secrets (Settings → Secrets and variables →
+Actions):
 
 | Secret | Required for |
 |---|---|
-| `MAPS_API_KEY` | The map actually rendering tiles |
 | `RELEASE_KEYSTORE_BASE64` | Signing with your real release key (`base64 -w0 locreminder-release.jks`) |
 | `RELEASE_STORE_PASSWORD` | ″ |
 | `RELEASE_KEY_ALIAS` | ″ |
 | `RELEASE_KEY_PASSWORD` | ″ |
 
-None of these are required for CI to *build* — omitted secrets just mean an
-unsigned-looking (debug-signed) APK with a blank map, still fully installable.
+None of these are required for CI to *build* — omitted secrets just mean a
+debug-signed APK, still fully installable by sideloading.
 
 ---
 

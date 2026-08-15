@@ -28,16 +28,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Probe Flutter's current Android template (diagnostic)
-        run: |
-          flutter create --platforms=android /tmp/probe_app
-          echo "--- gradle-wrapper.properties ---"
-          cat /tmp/probe_app/android/gradle/wrapper/gradle-wrapper.properties
-          echo "--- settings.gradle.kts ---"
-          cat /tmp/probe_app/android/settings.gradle.kts
-          echo "--- app/build.gradle.kts ---"
-          cat /tmp/probe_app/android/app/build.gradle.kts
-
       - name: Install dependencies
         run: flutter pub get
 
@@ -64,7 +54,6 @@ jobs:
 
       - name: Build release APK
         env:
-          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
           RELEASE_STORE_FILE: ${{ steps.keystore.outputs.path }}
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
