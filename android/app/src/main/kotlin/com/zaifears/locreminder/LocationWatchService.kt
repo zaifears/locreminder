@@ -53,6 +53,7 @@ class LocationWatchService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            WatchdogReceiver.cancel(this)
             stopWatching()
             return START_NOT_STICKY
         }
@@ -65,8 +66,15 @@ class LocationWatchService : Service() {
         }
 
         startForeground(NOTIFICATION_ID, buildNotification())
-        requestUpdates(currentIntervalMillis)
+
+        // The approach geofence fired, meaning the destination is close even
+        // if the last slow-tier fix still said otherwise. Go straight to
+        // high frequency rather than waiting for the next lazy poll.
+        val interval = if (intent?.action == ACTION_BOOST) NEAR_INTERVAL_MILLIS else currentIntervalMillis
+        requestUpdates(interval)
+
         isWatching = true
+        WatchdogReceiver.schedule(this)
         return START_STICKY
     }
 
@@ -136,14 +144,18 @@ class LocationWatchService : Service() {
     }
 
     /**
-     * Polls harder the closer the user gets. Checking every ten seconds from
-     * across the city would waste battery for no benefit; checking every two
-     * minutes when a stop is 200m away would miss it.
+     * Polls harder the closer the user gets. Ten-second fixes from across the
+     * country would flatten the battery on a long journey for no benefit,
+     * while two-minute fixes 200m out would sail past the stop. The far tier
+     * is deliberately lazy because the approach geofence (see
+     * [ACTION_BOOST]) wakes this straight to high frequency on arrival in the
+     * neighbourhood, so precision does not depend on the slow tier noticing.
      */
     private fun adaptIntervalTo(distanceMetres: Double) {
         val target = when {
-            distanceMetres > 5000 -> FAR_INTERVAL_MILLIS
-            distanceMetres > 1500 -> 60_000L
+            distanceMetres > 10_000 -> VERY_FAR_INTERVAL_MILLIS
+            distanceMetres > 5_000 -> FAR_INTERVAL_MILLIS
+            distanceMetres > 1_500 -> 60_000L
             distanceMetres > 500 -> 20_000L
             else -> NEAR_INTERVAL_MILLIS
         }
@@ -235,7 +247,9 @@ class LocationWatchService : Service() {
     companion object {
         private const val TAG = "LocationWatchService"
         const val ACTION_STOP = "com.zaifears.locreminder.action.STOP_WATCH"
+        const val ACTION_BOOST = "com.zaifears.locreminder.action.BOOST_WATCH"
         private const val NOTIFICATION_ID = 4203
+        private const val VERY_FAR_INTERVAL_MILLIS = 300_000L
         private const val FAR_INTERVAL_MILLIS = 120_000L
         private const val NEAR_INTERVAL_MILLIS = 10_000L
 

@@ -72,6 +72,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".WatchdogReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>

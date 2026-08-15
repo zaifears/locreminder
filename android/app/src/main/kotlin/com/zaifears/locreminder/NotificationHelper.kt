@@ -13,6 +13,7 @@ object NotificationHelper {
     const val ALARM_CHANNEL_ID = "locreminder_alarm_channel"
     const val WATCH_CHANNEL_ID = "locreminder_watch_channel"
     const val FALLBACK_NOTIFICATION_ID = 4202
+    const val WATCH_STOPPED_NOTIFICATION_ID = 4204
 
     fun ensureAlarmChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -91,6 +92,37 @@ object NotificationHelper {
             .build()
 
         NotificationManagerCompatShim.notify(context, FALLBACK_NOTIFICATION_ID, notification)
+    }
+
+    /**
+     * Tells the user that background tracking has stopped and could not be
+     * restarted — almost always a vendor power manager. Silent failure here
+     * would leave them trusting an alarm that is no longer watching.
+     */
+    fun postWatchStoppedNotification(context: Context) {
+        ensureAlarmChannel(context)
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            2,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
+            .setContentTitle("Your alarm stopped watching")
+            .setContentText("Tap to reopen LocReminder and re-arm it.")
+            .setSmallIcon(R.drawable.ic_notification_alarm)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompatShim.notify(context, WATCH_STOPPED_NOTIFICATION_ID, notification)
     }
 }
 

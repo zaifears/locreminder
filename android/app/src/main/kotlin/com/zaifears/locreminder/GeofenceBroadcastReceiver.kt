@@ -36,6 +36,23 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         val store = GeofenceStore(context)
 
         for (geofence in triggeringGeofences) {
+            // Outer "you're getting close" ring: don't ring the alarm, just
+            // wake the watcher to high-frequency polling for the final
+            // approach. Lets the far-field tier stay lazy on long journeys.
+            if (geofence.requestId.endsWith(APPROACH_SUFFIX)) {
+                try {
+                    ContextCompat.startForegroundService(
+                        context,
+                        Intent(context, LocationWatchService::class.java).apply {
+                            action = LocationWatchService.ACTION_BOOST
+                        },
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Could not boost watcher on approach", e)
+                }
+                continue
+            }
+
             val entry = store.getById(geofence.requestId)
             val label = entry?.label ?: "your destination"
 
@@ -61,5 +78,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "GeofenceReceiver"
         const val ACTION_GEOFENCE_EVENT = "com.zaifears.locreminder.action.GEOFENCE_EVENT"
+        const val APPROACH_SUFFIX = "__approach"
     }
 }

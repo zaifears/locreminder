@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/permission_service.dart';
 import 'home_screen.dart';
+import 'reliability_screen.dart';
 
 /// Four full-screen pages, one per permission, each explaining *why* the
 /// permission is needed before asking for it. Android only ever shows its
@@ -59,6 +60,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
+  }
+
+  Future<void> _openReliability() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ReliabilityScreen()),
+    );
+    await _refresh();
   }
 
   @override
@@ -150,10 +158,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
         granted: status.batteryOptimizationDisabled,
         grantedLabel: 'Battery optimization disabled',
         actionLabel: 'Open battery settings',
+        secondaryNote: 'Phone makers like Xiaomi, Samsung, Oppo, Vivo and '
+            'OnePlus add their own app-killer on top of this one. After '
+            'finishing setup, open Alarm reliability from the menu — it shows '
+            'the exact steps for your model and lets you test the alarm.',
         onRequest: () async {
           await _permissionService.requestDisableBatteryOptimization();
           await _refresh();
         },
+        extraAction: _openReliability,
+        extraActionLabel: 'Device-specific setup',
       ),
     ];
 
@@ -256,6 +270,8 @@ class _PermissionPage extends StatelessWidget {
     required this.actionLabel,
     required this.onRequest,
     this.secondaryNote,
+    this.extraAction,
+    this.extraActionLabel,
   });
 
   final IconData icon;
@@ -267,6 +283,8 @@ class _PermissionPage extends StatelessWidget {
   final String actionLabel;
   final VoidCallback onRequest;
   final String? secondaryNote;
+  final VoidCallback? extraAction;
+  final String? extraActionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -343,6 +361,17 @@ class _PermissionPage extends StatelessWidget {
                   )
                 : FilledButton(onPressed: onRequest, child: Text(actionLabel)),
           ),
+          if (extraAction != null && extraActionLabel != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: extraAction,
+                icon: const Icon(Icons.smartphone),
+                label: Text(extraActionLabel!),
+              ),
+            ),
+          ],
         ],
       ),
     );

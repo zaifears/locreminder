@@ -21,6 +21,10 @@ class MainActivity : FlutterActivity() {
     private val channelName = "com.zaifears.locreminder/geofence"
     private lateinit var geofencingClient: GeofencingClient
 
+    private companion object {
+        const val MIN_APPROACH_RADIUS_METRES = 2000f
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         geofencingClient = LocationServices.getGeofencingClient(this)
@@ -115,6 +119,35 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
                 "isLocationWatchRunning" -> result.success(LocationWatchService.isWatching)
+                "getDeviceInfo" -> result.success(
+                    mapOf(
+                        "manufacturer" to (android.os.Build.MANUFACTURER ?: ""),
+                        "model" to (android.os.Build.MODEL ?: ""),
+                        "sdkInt" to android.os.Build.VERSION.SDK_INT,
+                        "needsExtraSetup" to OemHelper.needsExtraSetup(),
+                    ),
+                )
+                "openAutoStartSettings" -> result.success(OemHelper.openAutoStartSettings(this))
+                "openAppSettings" -> result.success(OemHelper.openAppSettings(this))
+                // Fires the real alarm path after a delay so the user can lock
+                // the screen and confirm it breaks through from a locked,
+                // idle state — the condition that actually matters.
+                "triggerTestAlarm" -> {
+                    val delaySeconds = call.argument<Int>("delaySeconds") ?: 10
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        val testIntent = Intent(this, AlarmForegroundService::class.java).apply {
+                            action = AlarmForegroundService.ACTION_START
+                            putExtra(AlarmForegroundService.EXTRA_LABEL, "Test alarm")
+                            putExtra(AlarmForegroundService.EXTRA_GEOFENCE_ID, "")
+                        }
+                        try {
+                            ContextCompat.startForegroundService(this, testIntent)
+                        } catch (e: Exception) {
+                            NotificationHelper.postFallbackAlarmNotification(this, "Test alarm")
+                        }
+                    }, delaySeconds * 1000L)
+                    result.success(true)
+                }
                 "isAlarmRinging" -> result.success(AlarmForegroundService.isRinging)
                 "stopAlarm" -> {
                     startService(
@@ -158,8 +191,21 @@ class MainActivity : FlutterActivity() {
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
             .build()
 
+        // A much larger outer ring whose only job is to wake the watcher for
+        // the final approach. Because it is kilometres wide, even a Doze-
+        // deferred delivery still lands with plenty of distance to spare —
+        // the same deferral would be fatal on the inner ring.
+        val approachRadius = maxOf(radius * 8f, MIN_APPROACH_RADIUS_METRES)
+        val approachFence = Geofence.Builder()
+            .setRequestId(id + GeofenceBroadcastReceiver.APPROACH_SUFFIX)
+            .setCircularRegion(latitude, longitude, approachRadius)
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+            .build()
+
         val request = GeofencingRequest.Builder()
             .addGeofence(geofence)
+            .addGeofence(approachFence)
             // Without this, Play Services fires ENTER immediately if the user
             // is already inside the radius — so setting an alarm for a place
             // you are currently near would ring the moment you saved it.
@@ -181,7 +227,10 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun removeGeofence(id: String, result: MethodChannel.Result) {
-        geofencingClient.removeGeofences(listOf(id))
+        // The approach ring is registered alongside every alarm, so it has to
+        // be torn down with it or it would linger and keep waking the watcher.
+        val ids = listOf(id, id + GeofenceBroadcastReceiver.APPROACH_SUFFIX)
+        geofencingClient.removeGeofences(ids)
             .addOnCompleteListener {
                 GeofenceStore(this).remove(id)
                 result.success(true)

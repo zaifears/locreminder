@@ -12,7 +12,7 @@ import '../widgets/app_drawer.dart';
 import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
 import 'location_picker_screen.dart';
-import 'settings_screen.dart';
+import 'reliability_screen.dart';
 
 /// Formats a metre distance the way a person would say it.
 String formatDistance(double metres) {
@@ -557,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           const SizedBox(width: 8),
           FilledButton(
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              MaterialPageRoute(builder: (_) => const ReliabilityScreen()),
             ),
             child: const Text('Fix'),
           ),

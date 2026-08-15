@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../services/app_version.dart';
 import '../services/permission_service.dart';
+import 'reliability_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -170,15 +171,21 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
               ),
             ),
           const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              'If an alarm ever fails to ring, check this list first — Android '
-              'silently revokes background permissions for apps you have not '
-              'opened in a while.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+          Card(
+            color: Theme.of(context).colorScheme.secondaryContainer,
+            child: ListTile(
+              leading: Icon(
+                Icons.health_and_safety_outlined,
+                color: Theme.of(context).colorScheme.onSecondaryContainer,
+              ),
+              title: const Text('Alarm reliability'),
+              subtitle: const Text(
+                'Device-specific setup and a test that proves alarms get through',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ReliabilityScreen()),
+              ),
             ),
           ),
           const SizedBox(height: 16),

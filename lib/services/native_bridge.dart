@@ -70,6 +70,31 @@ class NativeBridge {
     return result ?? false;
   }
 
+  Future<Map<Object?, Object?>> getDeviceInfo() async {
+    final result = await _channel.invokeMethod<Map<Object?, Object?>>('getDeviceInfo');
+    return result ?? const {};
+  }
+
+  /// Opens the vendor's autostart screen. Returns false when this device has
+  /// no such screen, so the caller can fall back to standard app settings.
+  Future<bool> openAutoStartSettings() async {
+    final result = await _channel.invokeMethod<bool>('openAutoStartSettings');
+    return result ?? false;
+  }
+
+  Future<bool> openAppSettings() async {
+    final result = await _channel.invokeMethod<bool>('openAppSettings');
+    return result ?? false;
+  }
+
+  /// Fires the real alarm after [delaySeconds] so the user can lock their
+  /// screen and verify it breaks through from an idle, locked state.
+  Future<void> triggerTestAlarm({int delaySeconds = 10}) {
+    return _channel.invokeMethod<void>('triggerTestAlarm', {
+      'delaySeconds': delaySeconds,
+    });
+  }
+
   Future<bool> isAlarmRinging() async {
     final result = await _channel.invokeMethod<bool>('isAlarmRinging');
     return result ?? false;

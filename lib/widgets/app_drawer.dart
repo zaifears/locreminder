@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/about_screen.dart';
+import '../screens/reliability_screen.dart';
 import '../screens/settings_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -48,6 +49,20 @@ class AppDrawer extends StatelessWidget {
             ),
             const Divider(height: 1),
             const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: ListTile(
+                leading: const Icon(Icons.health_and_safety_outlined),
+                title: const Text('Alarm reliability'),
+                subtitle: const Text('Make sure it will ring'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ReliabilityScreen()),
+                  );
+                },
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListTile(
