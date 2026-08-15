@@ -3,4 +3,9 @@
     <color name="alarmBackground">#0F172A</color>
     <color name="alarmAccent">#F87171</color>
     <color name="alarmTextPrimary">#FFFFFF</color>
+
+    <!-- Adaptive launcher icon background. Matched to the pale blue fill at
+         the edges of ic_launcher_foreground so the artwork reads as one
+         continuous icon whatever mask shape the launcher applies. -->
+    <color name="ic_launcher_background">#E6EFFC</color>
 </resources>

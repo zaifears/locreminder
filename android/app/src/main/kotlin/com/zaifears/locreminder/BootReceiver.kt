@@ -32,6 +32,9 @@ class BootReceiver : BroadcastReceiver() {
 
         val request = GeofencingRequest.Builder()
             .addGeofences(geofences)
+            // Matches the registration in MainActivity: never fire just
+            // because the device booted inside one of the saved radii.
+            .setInitialTrigger(0)
             .build()
 
         val pendingIntent = PendingIntent.getBroadcast(

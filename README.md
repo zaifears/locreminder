@@ -97,13 +97,11 @@ cd locreminder
 flutter pub get
 ```
 
-#### 2. Generate the launcher icon
+> **Note on app icons:** the launcher artwork under
+> `android/app/src/main/res/mipmap-*` is hand-authored and committed as-is.
+> Do not run `flutter_launcher_icons` — it would regenerate and overwrite it.
 
-```sh
-dart run flutter_launcher_icons
-```
-
-#### 3. Run it
+#### 2. Run it
 
 ```sh
 flutter run --release
@@ -198,6 +196,6 @@ modify, and distribute it for any purpose without restriction.
 
 ### 📬 Contact
 
-zaifears - [@shahoriar](https://shahoriar.me) - shahoriar.connect@gmail.com
+Shahoriar Hossain (zaifears) — [shahoriar.bd](https://shahoriar.bd/) — shahoriar.connect@gmail.com
 
 Project Link: [https://github.com/zaifears/locreminder](https://github.com/zaifears/locreminder)

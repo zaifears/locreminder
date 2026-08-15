@@ -9,7 +9,9 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -30,22 +32,32 @@ class AlarmForegroundService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var autoStopRunnable: Runnable? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP -> {
-                stopAlarm()
-                return START_NOT_STICKY
-            }
-            else -> {
-                val label = intent?.getStringExtra(EXTRA_LABEL) ?: "your destination"
-                val geofenceId = intent?.getStringExtra(EXTRA_GEOFENCE_ID) ?: ""
-                startAlarm(geofenceId, label)
-            }
+        // A null intent means the system restarted this service on its own.
+        // There is no alarm to resume in that case, and ringing with default
+        // values would be a phantom alarm the user never set, so bail out.
+        if (intent == null) {
+            stopSelf()
+            return START_NOT_STICKY
         }
-        return START_STICKY
+
+        if (intent.action == ACTION_STOP) {
+            stopAlarm()
+            return START_NOT_STICKY
+        }
+
+        val label = intent.getStringExtra(EXTRA_LABEL) ?: "your destination"
+        val geofenceId = intent.getStringExtra(EXTRA_GEOFENCE_ID) ?: ""
+        startAlarm(geofenceId, label)
+
+        // If the system kills us mid-ring it redelivers this same intent, so
+        // the alarm resumes with the right destination instead of defaults.
+        return START_REDELIVER_INTENT
     }
 
     private fun startAlarm(geofenceId: String, label: String) {
@@ -58,7 +70,20 @@ class AlarmForegroundService : Service() {
         launchAlarmActivity(label, geofenceId)
         playAlarmSound()
         startVibration()
+        scheduleAutoStop()
         deactivateGeofence(geofenceId)
+    }
+
+    /**
+     * An unattended alarm must not ring forever — if the user misses it
+     * entirely it would drain the battery flat. Ten minutes matches the
+     * wake lock's own timeout.
+     */
+    private fun scheduleAutoStop() {
+        autoStopRunnable = Runnable {
+            Log.i(TAG, "Auto-stopping alarm after $AUTO_STOP_MILLIS ms")
+            stopAlarm()
+        }.also { handler.postDelayed(it, AUTO_STOP_MILLIS) }
     }
 
     /** A geofence alarm is one-shot: consume it so re-entering doesn't re-fire it. */
@@ -69,6 +94,9 @@ class AlarmForegroundService : Service() {
     }
 
     private fun stopAlarm() {
+        autoStopRunnable?.let { handler.removeCallbacks(it) }
+        autoStopRunnable = null
+
         try {
             mediaPlayer?.apply {
                 if (isPlaying) stop()
@@ -192,6 +220,7 @@ class AlarmForegroundService : Service() {
         const val EXTRA_GEOFENCE_ID = "extra_geofence_id"
         const val EXTRA_LABEL = "extra_label"
         private const val NOTIFICATION_ID = 4201
+        private const val AUTO_STOP_MILLIS = 10 * 60 * 1000L
 
         var isRinging: Boolean = false
             private set

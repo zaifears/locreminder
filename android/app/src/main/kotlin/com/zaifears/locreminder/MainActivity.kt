@@ -137,6 +137,10 @@ class MainActivity : FlutterActivity() {
 
         val request = GeofencingRequest.Builder()
             .addGeofence(geofence)
+            // Without this, Play Services fires ENTER immediately if the user
+            // is already inside the radius — so setting an alarm for a place
+            // you are currently near would ring the moment you saved it.
+            .setInitialTrigger(0)
             .build()
 
         try {

@@ -44,6 +44,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   List<PlaceResult> _results = const [];
   bool _searching = false;
   bool _showResults = false;
+  bool _searchFailed = false;
   Timer? _searchDebounce;
 
   String? _address;
@@ -80,10 +81,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     setState(() => _showResults = true);
     _searchDebounce = Timer(const Duration(milliseconds: 600), () async {
       setState(() => _searching = true);
-      final results = await _geocoder.search(query);
+      final outcome = await _geocoder.search(query);
       if (!mounted) return;
       setState(() {
-        _results = results;
+        _results = outcome.results;
+        _searchFailed = !outcome.reachedService;
         _searching = false;
       });
     });
@@ -167,7 +169,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   ),
                 ],
               ),
-              buildAttribution(),
             ],
           ),
 
@@ -188,6 +189,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               ),
             ),
           ),
+
+          // Kept clear of the bottom panel so the required OSM credit stays
+          // visible while picking.
+          const Positioned(left: 8, bottom: 232, child: MapAttribution()),
 
           _buildSearchBar(context),
           if (_showResults) _buildResultsOverlay(context),
@@ -279,9 +284,26 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 : _results.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text('No places found. Try a different search.'),
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _searchFailed ? Icons.wifi_off : Icons.search_off,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _searchFailed
+                                    ? "Couldn't reach the search service. Check "
+                                        'your connection, or drag the map to '
+                                        'pick the spot manually.'
+                                    : 'No places found. Try a different search.',
+                              ),
+                            ),
+                          ],
+                        ),
                       )
                     : ListView.separated(
                         shrinkWrap: true,

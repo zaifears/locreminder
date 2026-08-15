@@ -4,6 +4,18 @@ import 'package:http/http.dart' as http;
 
 import '../models/place_result.dart';
 
+/// Result of a place search: either matches (possibly none) or an outright
+/// failure to reach the service, which the UI must word differently.
+class SearchOutcome {
+  const SearchOutcome.success(this.results) : reachedService = true;
+  const SearchOutcome.failure()
+      : results = const [],
+        reachedService = false;
+
+  final List<PlaceResult> results;
+  final bool reachedService;
+}
+
 /// Place search and reverse geocoding via OpenStreetMap's Nominatim.
 ///
 /// Free and keyless, but the usage policy requires an identifying
@@ -27,10 +39,11 @@ class GeocodingService {
     _lastRequest = DateTime.now();
   }
 
-  /// Searches for places matching [query]. Returns an empty list rather than
-  /// throwing when offline or rate-limited, so the UI can stay usable.
-  Future<List<PlaceResult>> search(String query) async {
-    if (query.trim().isEmpty) return const [];
+  /// Searches for places matching [query]. Never throws — the outcome
+  /// distinguishes "nothing matched" from "couldn't reach the service", so
+  /// the UI can tell the user which of the two actually happened.
+  Future<SearchOutcome> search(String query) async {
+    if (query.trim().isEmpty) return const SearchOutcome.success([]);
     await _throttle();
 
     final uri = Uri.https(_host, '/search', {
@@ -44,13 +57,15 @@ class GeocodingService {
       final response = await http
           .get(uri, headers: {'User-Agent': _userAgent})
           .timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) return const [];
+      if (response.statusCode != 200) return const SearchOutcome.failure();
       final decoded = jsonDecode(response.body) as List<dynamic>;
-      return decoded
-          .map((e) => PlaceResult.fromNominatimJson(e as Map<String, dynamic>))
-          .toList();
+      return SearchOutcome.success(
+        decoded
+            .map((e) => PlaceResult.fromNominatimJson(e as Map<String, dynamic>))
+            .toList(),
+      );
     } catch (_) {
-      return const [];
+      return const SearchOutcome.failure();
     }
   }
 

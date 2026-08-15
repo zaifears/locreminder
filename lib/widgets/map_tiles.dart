@@ -29,8 +29,29 @@ TileLayer buildTileLayer(BuildContext context) {
 }
 
 /// OpenStreetMap's licence requires visible attribution wherever tiles show.
-Widget buildAttribution() {
-  return RichAttributionWidget(
-    attributions: [TextSourceAttribution('OpenStreetMap contributors')],
-  );
+///
+/// Deliberately a plain overlay rather than flutter_map's own attribution
+/// layer: both map screens have a panel pinned to the bottom of the stack,
+/// which would sit on top of the built-in bottom-right attribution and hide
+/// it entirely. The caller positions this where it stays visible.
+class MapAttribution extends StatelessWidget {
+  const MapAttribution({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Text(
+          '© OpenStreetMap',
+          style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
 }

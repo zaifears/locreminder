@@ -2,7 +2,7 @@ name: locreminder
 description: "Never miss your stop. A location-based alarm app built with Flutter."
 publish_to: 'none'
 
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -24,15 +24,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: ^0.14.0
 
+# The launcher icons under android/app/src/main/res are hand-authored and
+# committed directly. flutter_launcher_icons is deliberately NOT used: running
+# it would regenerate and overwrite that artwork on every build.
 flutter:
   uses-material-design: true
-
-flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#0F172A"
-  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
-  min_sdk_android: 23
+  assets:
+    - assets/images/

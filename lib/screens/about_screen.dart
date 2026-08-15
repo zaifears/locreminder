@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  static final _website = Uri.parse('https://shahoriar.me');
+  static final _website = Uri.parse('https://shahoriar.bd/');
   static final _github = Uri.parse('https://github.com/zaifears/locreminder');
   static final _email = Uri.parse('mailto:shahoriar.connect@gmail.com');
 
@@ -85,18 +85,18 @@ class AboutScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: scheme.primaryContainer,
-                    child: Icon(Icons.person, color: scheme.onPrimaryContainer),
+                  leading: const CircleAvatar(
+                    radius: 24,
+                    backgroundImage: AssetImage('assets/images/shahoriar.png'),
                   ),
-                  title: const Text('Shahoriar'),
+                  title: const Text('Shahoriar Hossain'),
                   subtitle: const Text('zaifears'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.language),
                   title: const Text('Website'),
-                  subtitle: const Text('shahoriar.me'),
+                  subtitle: const Text('shahoriar.bd'),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _open(context, _website),
                 ),

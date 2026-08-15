@@ -44,7 +44,15 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                 putExtra(AlarmForegroundService.EXTRA_GEOFENCE_ID, geofence.requestId)
                 putExtra(AlarmForegroundService.EXTRA_LABEL, label)
             }
-            ContextCompat.startForegroundService(context, serviceIntent)
+            // Android 12+ blocks most background foreground-service starts.
+            // Geofence transitions are an explicitly exempted case, but a
+            // thrown exception here would crash the receiver and lose the
+            // alarm entirely, so fail loudly in logs rather than fatally.
+            try {
+                ContextCompat.startForegroundService(context, serviceIntent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Could not start alarm service for ${geofence.requestId}", e)
+            }
         }
     }
 
