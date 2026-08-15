@@ -28,6 +28,16 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Probe Flutter's current Android template (diagnostic)
+        run: |
+          flutter create --platforms=android /tmp/probe_app
+          echo "--- gradle-wrapper.properties ---"
+          cat /tmp/probe_app/android/gradle/wrapper/gradle-wrapper.properties
+          echo "--- settings.gradle.kts ---"
+          cat /tmp/probe_app/android/settings.gradle.kts
+          echo "--- app/build.gradle.kts ---"
+          cat /tmp/probe_app/android/app/build.gradle.kts
+
       - name: Install dependencies
         run: flutter pub get
 
