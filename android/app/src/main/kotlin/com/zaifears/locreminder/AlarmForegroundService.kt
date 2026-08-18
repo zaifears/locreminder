@@ -137,9 +137,22 @@ class AlarmForegroundService : Service() {
     }
 
     private fun playAlarmSound() {
-        try {
-            val alarmUri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val settings = AlarmSettings(this)
+        // resolvePlayableUri already falls back to the system alarm tone if
+        // the user's chosen file has become unreadable.
+        if (!startPlayer(settings.resolvePlayableUri())) {
+            // Even the resolved URI failed. Try the stock alarm tone outright
+            // rather than leaving the user with a silent "alarm".
+            val fallback = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            if (!startPlayer(fallback)) {
+                Log.e(TAG, "No alarm sound could be played at all")
+            }
+        }
+    }
+
+    private fun startPlayer(uri: android.net.Uri?): Boolean {
+        if (uri == null) return false
+        return try {
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -147,18 +160,27 @@ class AlarmForegroundService : Service() {
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build(),
                 )
-                setDataSource(this@AlarmForegroundService, alarmUri)
+                setDataSource(this@AlarmForegroundService, uri)
                 isLooping = true
                 setVolume(1f, 1f)
                 prepare()
                 start()
             }
+            true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to play alarm sound", e)
+            Log.e(TAG, "Failed to play alarm sound from $uri", e)
+            try {
+                mediaPlayer?.release()
+            } catch (_: Exception) {
+                // Already torn down.
+            }
+            mediaPlayer = null
+            false
         }
     }
 
     private fun startVibration() {
+        if (!AlarmSettings(this).vibrationEnabled()) return
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         val pattern = longArrayOf(0, 800, 400)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

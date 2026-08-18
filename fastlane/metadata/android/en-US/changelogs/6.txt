@@ -1,0 +1,6 @@
+Choose your own alarm sound: pick any system ringtone, or an audio file
+of your own (mp3, m4a, ogg, wav, flac). Preview it before you rely on it,
+and turn vibration on or off separately.
+
+If a chosen file is later deleted or becomes unreadable, LocReminder falls
+back to the default alarm tone rather than going silent.

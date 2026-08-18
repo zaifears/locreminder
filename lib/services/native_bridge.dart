@@ -95,6 +95,41 @@ class NativeBridge {
     });
   }
 
+  // -------------------------------------------------------------- alarm sound
+
+  /// Returns `{uri, name, vibrate}`. A null `uri` means the system default.
+  Future<Map<Object?, Object?>> getAlarmSound() async {
+    final result = await _channel.invokeMethod<Map<Object?, Object?>>('getAlarmSound');
+    return result ?? const {};
+  }
+
+  /// Opens the system ringtone picker. Returns `{uri, name}`, or null when
+  /// the user cancelled or chose the default.
+  Future<Map<Object?, Object?>?> pickAlarmRingtone() {
+    return _channel.invokeMapMethod<Object?, Object?>('pickAlarmRingtone');
+  }
+
+  /// Opens the document picker for an audio file (mp3, m4a, ogg, wav, flac).
+  Future<Map<Object?, Object?>?> pickAlarmAudioFile() {
+    return _channel.invokeMapMethod<Object?, Object?>('pickAlarmAudioFile');
+  }
+
+  Future<void> resetAlarmSound() {
+    return _channel.invokeMethod<void>('resetAlarmSound');
+  }
+
+  Future<void> setAlarmVibration(bool enabled) {
+    return _channel.invokeMethod<void>('setAlarmVibration', {'enabled': enabled});
+  }
+
+  Future<void> previewAlarmSound() {
+    return _channel.invokeMethod<void>('previewAlarmSound');
+  }
+
+  Future<void> stopAlarmSoundPreview() {
+    return _channel.invokeMethod<void>('stopAlarmSoundPreview');
+  }
+
   Future<bool> isAlarmRinging() async {
     final result = await _channel.invokeMethod<bool>('isAlarmRinging');
     return result ?? false;

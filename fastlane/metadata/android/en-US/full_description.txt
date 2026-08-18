@@ -1,0 +1,32 @@
+LocReminder is an alarm clock that goes off at a place instead of a time.
+
+You know roughly where you are going, but not exactly when you will get there. Traffic, delays and unfamiliar routes make that impossible to predict, so a normal alarm is no use. Instead you spend the whole journey glancing out of the window, unable to properly rest or focus.
+
+Drop a pin on your destination, choose how close you want to get, and put your phone away. When you arrive, LocReminder rings a real alarm: a looping sound that plays even on silent, vibration, and a full-screen alert over your lock screen.
+
+<b>What it is good for</b>
+
+* Long bus or train rides, so you can actually sleep
+* Arriving somewhere unfamiliar, where you would not recognise your stop
+* Commuting, so you can read or work without watching the route
+* Road trips as a passenger, to be woken before the turn-off
+* Errands, as a nudge when you are near the shop or post office
+
+<b>Features</b>
+
+* A real alarm, not a quiet notification: loops on the alarm audio channel so it sounds even on silent
+* Choose your own alarm sound: any system ringtone, or an audio file of your own
+* Search for a destination by name, or drag the map to place the pin exactly
+* Multiple alarms, each with its own label and trigger radius, and live distance to each
+* Adjustable radius from 100 m to 3 km, so you get as much warning as you need
+* Light and dark themes
+* Battery-aware: checks rarely when you are far away, more often as you approach
+* Reliability screen that detects your phone's manufacturer and shows the exact settings needed, plus a test that proves the alarm gets through a locked screen
+
+<b>Privacy</b>
+
+LocReminder has no account, no analytics, no advertising and no server. Your saved destinations never leave your device. Maps and place search come from OpenStreetMap.
+
+<b>Important: background restrictions</b>
+
+Many manufacturers (Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei) run their own battery managers that stop background apps, which will prevent the alarm from ringing. No app can change those settings on your behalf. After installing, open Menu, then Alarm reliability, and follow the steps shown for your device. It takes a minute and is the difference between an alarm that works and one that does not.

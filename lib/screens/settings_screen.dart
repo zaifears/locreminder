@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../services/app_version.dart';
 import '../services/permission_service.dart';
+import '../widgets/alarm_sound_section.dart';
 import 'reliability_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -106,6 +107,9 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
               ),
             ),
           ),
+          const SizedBox(height: 24),
+          const _SectionHeader(label: 'Alarm sound'),
+          const AlarmSoundSection(),
           const SizedBox(height: 24),
           const _SectionHeader(label: 'Alarm reliability'),
           if (status == null)
