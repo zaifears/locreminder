@@ -8,7 +8,7 @@
 
   <br/>
 
-  <a href="https://github.com/zaifears/locreminder/releases"><img src="https://img.shields.io/badge/📱_Download-APK-34D399?style=for-the-badge" alt="Download APK"/></a>
+  <a href="#-download"><img src="https://img.shields.io/badge/📱_Get_it_on-F--Droid-1976D2?style=for-the-badge&logo=fdroid&logoColor=white" alt="Get it on F-Droid"/></a>
   <a href="#-how-to-use-it"><img src="https://img.shields.io/badge/📖_How_to-Use_it-2563EB?style=for-the-badge" alt="How to use"/></a>
 
   <br/><br/>
@@ -65,10 +65,14 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
 
 ## 📱 Download
 
+**LocReminder is published through F-Droid**, the free and open-source
+Android app store. Installing from there means signed, reproducible builds
+and automatic updates.
+
 <div align="center">
   <br/>
-  <a href="https://github.com/zaifears/locreminder/releases">
-    <img src="https://img.shields.io/badge/📥_Download_LocReminder-APK-2563EB?style=for-the-badge&logoColor=white" alt="Download APK" />
+  <a href="https://f-droid.org/packages/com.zaifears.locreminder/">
+    <img src="https://img.shields.io/badge/📥_Get_LocReminder_on-F--Droid-1976D2?style=for-the-badge&logo=fdroid&logoColor=white" alt="Get it on F-Droid" />
   </a>
   <br/><br/>
 </div>
@@ -77,10 +81,13 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
 |---|---|
 | **Latest release** | `v1.6.0` |
 | **Requirements** | Android 6.0 or newer |
-| **Size** | ~55 MB |
-| **Price** | Free. No ads, no accounts, no in-app purchases. |
+| **Price** | Free. No ads, no accounts, no in-app purchases, no tracking. |
 
-> Builds from every push are also available in the [Actions tab](https://github.com/zaifears/locreminder/actions).
+> ⚠️ **APKs in [GitHub Releases](https://github.com/zaifears/locreminder/releases) are test builds only.**
+> They are signed with a different key from the F-Droid version, so Android
+> treats them as a separate app — you would have to uninstall one (losing
+> your saved alarms) to move to the other. Unless you are testing a change,
+> install from F-Droid.
 
 <br/>
 

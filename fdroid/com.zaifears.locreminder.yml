@@ -1,0 +1,45 @@
+Categories:
+  - Navigation
+  - Time
+License: MIT
+AuthorName: Shahoriar Hossain
+AuthorEmail: shahoriar.connect@gmail.com
+AuthorWebSite: https://shahoriar.bd/
+WebSite: https://shahoriar.bd/
+SourceCode: https://github.com/zaifears/locreminder
+IssueTracker: https://github.com/zaifears/locreminder/issues
+Changelog: https://github.com/zaifears/locreminder/blob/main/CHANGELOG.md
+
+AutoName: LocReminder
+
+RepoType: git
+Repo: https://github.com/zaifears/locreminder.git
+
+Builds:
+  - versionName: 1.6.0
+    versionCode: 7
+    commit: v1.6.0
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - linux
+      - macos
+      - web
+      - windows
+    prebuild:
+      - sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
+    scanignore:
+      - android/app/build.gradle.kts
+    scandelete:
+      - .pub-cache
+    build:
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+      - $$flutter$$/bin/flutter build apk --release
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.6.0
+CurrentVersionCode: 7

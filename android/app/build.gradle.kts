@@ -57,11 +57,10 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // Kept on one greppable line on purpose: F-Droid's build recipe
+            // deletes it so its own builds come out unsigned, ready for
+            // F-Droid to sign with the repository key.
+            signingConfig = if (hasReleaseSigning) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
