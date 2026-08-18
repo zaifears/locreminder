@@ -1,4 +1,3 @@
-import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
 import 'native_bridge.dart';
@@ -35,10 +34,15 @@ class PermissionStatusSummary {
       batteryOptimizationDisabled;
 }
 
-/// Wraps permission_handler + geolocator into the sequence Android actually
-/// requires: foreground location must be granted before background ("Allow
-/// all the time") can be requested, notifications are a separate runtime
-/// prompt on Android 13+, and full-screen intents are gated again on 14+.
+/// Wraps permission_handler and the native location checks into the sequence
+/// Android actually requires: foreground location must be granted before
+/// background ("Allow all the time") can be requested, notifications are a
+/// separate runtime prompt on Android 13+, and full-screen intents are gated
+/// again on 14+.
+///
+/// Location-service checks go through the native bridge rather than the
+/// geolocator plugin, which depends on Google Play Services and would have
+/// made the app ineligible for F-Droid and unusable on de-Googled devices.
 class PermissionService {
   PermissionService({NativeBridge? nativeBridge})
       : _nativeBridge = nativeBridge ?? NativeBridge();
@@ -46,7 +50,7 @@ class PermissionService {
   final NativeBridge _nativeBridge;
 
   Future<PermissionStatusSummary> currentStatus() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final serviceEnabled = await _nativeBridge.isLocationEnabled();
     final foreground = await ph.Permission.locationWhenInUse.status;
     final background = await ph.Permission.locationAlways.status;
     final notifications = await ph.Permission.notification.status;
@@ -64,8 +68,8 @@ class PermissionService {
   }
 
   Future<bool> requestForegroundLocation() async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
-      await Geolocator.openLocationSettings();
+    if (!await _nativeBridge.isLocationEnabled()) {
+      await _nativeBridge.openLocationSettings();
       return false;
     }
     final status = await ph.Permission.locationWhenInUse.request();

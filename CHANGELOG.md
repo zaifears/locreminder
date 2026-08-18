@@ -3,6 +3,22 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] — 2026-08-19
+
+### Changed
+- **Removed all Google Play Services dependencies.** Location now uses the
+  platform `LocationManager`, which on Android 12+ exposes the same fused
+  provider natively. The `geolocator` package was also dropped, since it
+  pulled Play Services in transitively.
+- Play Services geofencing was removed rather than replaced. It was already
+  the least reliable path — deferred by Doze on exactly the devices that
+  need help most — and the foreground watcher was doing the real work.
+
+### Added
+- Works on devices with no Google services at all: post-2019 Huawei/Honor
+  (HMS), and de-Googled ROMs such as LineageOS, /e/OS and GrapheneOS.
+- Eligible for F-Droid, which rejects or flags non-free dependencies.
+
 ## [1.5.0] — 2026-08-15
 
 ### Added
@@ -84,6 +100,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   with looping audio on the alarm channel, full-screen lock-screen alarm,
   and geofence restoration after reboot.
 
+[1.6.0]: https://github.com/zaifears/locreminder/releases/tag/v1.6.0
 [1.5.0]: https://github.com/zaifears/locreminder/releases/tag/v1.5.0
 [1.4.0]: https://github.com/zaifears/locreminder/releases/tag/v1.4.0
 [1.3.0]: https://github.com/zaifears/locreminder/releases/tag/v1.3.0

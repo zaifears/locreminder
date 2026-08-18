@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Location: fine+coarse for foreground use, background for geofence
-         transitions to be delivered while the app isn't running. -->
+    <!-- Location: fine+coarse for positioning, background so arrival is
+         still detected while the app is closed and the screen is off. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
@@ -62,14 +62,6 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <!-- Triggered via an explicit PendingIntent we create ourselves, which
-             Play Services fires under *our* app's identity. It therefore needs
-             no export, and must NOT declare android:permission — that would
-             require the sender (effectively us) to hold a permission we don't
-             declare, silently dropping every geofence broadcast. -->
-        <receiver
-            android:name=".GeofenceBroadcastReceiver"
-            android:exported="false" />
 
         <receiver
             android:name=".WatchdogReceiver"

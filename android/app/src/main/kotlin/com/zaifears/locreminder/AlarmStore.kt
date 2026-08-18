@@ -8,7 +8,7 @@ import org.json.JSONObject
  * A saved destination alarm, mirrored on the native side so the
  * BroadcastReceiver / BootReceiver can act without the Flutter engine running.
  */
-data class GeofenceEntry(
+data class AlarmEntry(
     val id: String,
     val label: String,
     val latitude: Double,
@@ -19,17 +19,17 @@ data class GeofenceEntry(
 /**
  * Plain SharedPreferences-backed store, independent from the
  * shared_preferences Flutter plugin's own storage so native code never
- * depends on the Dart side being alive to read geofence metadata.
+ * depends on the Dart side being alive to read alarm metadata.
  */
-class GeofenceStore(context: Context) {
+class AlarmStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun loadAll(): List<GeofenceEntry> {
+    fun loadAll(): List<AlarmEntry> {
         val raw = prefs.getString(KEY_ENTRIES, null) ?: return emptyList()
         val array = JSONArray(raw)
         return (0 until array.length()).map { i ->
             val obj = array.getJSONObject(i)
-            GeofenceEntry(
+            AlarmEntry(
                 id = obj.getString("id"),
                 label = obj.getString("label"),
                 latitude = obj.getDouble("latitude"),
@@ -39,9 +39,9 @@ class GeofenceStore(context: Context) {
         }
     }
 
-    fun getById(id: String): GeofenceEntry? = loadAll().find { it.id == id }
+    fun getById(id: String): AlarmEntry? = loadAll().find { it.id == id }
 
-    fun save(entry: GeofenceEntry) {
+    fun save(entry: AlarmEntry) {
         val entries = loadAll().filterNot { it.id == entry.id } + entry
         persist(entries)
     }
@@ -54,7 +54,7 @@ class GeofenceStore(context: Context) {
         prefs.edit().remove(KEY_ENTRIES).apply()
     }
 
-    private fun persist(entries: List<GeofenceEntry>) {
+    private fun persist(entries: List<AlarmEntry>) {
         val array = JSONArray()
         entries.forEach { e ->
             val obj = JSONObject()
@@ -69,6 +69,8 @@ class GeofenceStore(context: Context) {
     }
 
     companion object {
+        // Legacy name kept deliberately: renaming it would orphan the
+        // alarms of anyone upgrading from an earlier version.
         private const val PREFS_NAME = "locreminder_geofences"
         private const val KEY_ENTRIES = "entries"
     }

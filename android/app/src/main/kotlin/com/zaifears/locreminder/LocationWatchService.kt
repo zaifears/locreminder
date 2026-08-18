@@ -5,49 +5,60 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 
 /**
- * Actively watches the device's location while any alarm is armed.
+ * Actively watches the device's location while any alarm is armed, and rings
+ * the alarm on arrival.
  *
- * Play Services geofencing alone is not dependable for an alarm: once the app
- * is idle, Doze and App Standby defer the transition broadcast, and it can
- * arrive minutes late or not until the user next opens the app — long after
- * the stop has gone by. A foreground service keeps the process out of that
- * idle state and checks arrival itself, so the alarm fires on time.
+ * This is the whole detection mechanism, deliberately. Play Services
+ * geofencing was tried first and is not dependable for an alarm: once the app
+ * goes idle, Doze and App Standby defer the transition broadcast, so it can
+ * arrive minutes late — or not until the user next opens the app, long after
+ * the stop. Holding a foreground service keeps the process out of that idle
+ * state, which is what makes the alarm land on time.
  *
- * Geofencing is still registered in parallel as a cheap backup path.
+ * Uses the platform [LocationManager] rather than Play Services' fused
+ * client, so the app carries no proprietary dependency and works on devices
+ * with no Google services at all — Huawei's HMS phones and de-Googled ROMs
+ * included. On Android 12+ the platform exposes its own fused provider,
+ * giving the same sensor-blended efficiency without the dependency.
  */
 class LocationWatchService : Service() {
 
-    private lateinit var fusedClient: FusedLocationProviderClient
+    private lateinit var locationManager: LocationManager
     private var currentIntervalMillis: Long = FAR_INTERVAL_MILLIS
     private var nearestLabel: String? = null
     private var nearestDistance: Double? = null
 
-    /** Geofences the user was already inside, which must be exited before they can trigger. */
+    /** Alarms the user was already inside, which must be exited before they can trigger. */
     private val suppressedUntilExit = mutableSetOf<String>()
     private var hadFirstFix = false
 
-    private val locationCallback = object : LocationCallback() {
-        override fun onLocationResult(result: LocationResult) {
-            result.lastLocation?.let { onLocation(it) }
-        }
+    private val locationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) = onLocation(location)
+
+        // Declared explicitly rather than relying on the interface defaults,
+        // which only exist from API 30 — this app supports API 23.
+        @Deprecated("Deprecated in Java")
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
+
+        override fun onProviderEnabled(provider: String) = Unit
+
+        override fun onProviderDisabled(provider: String) = Unit
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        fusedClient = LocationServices.getFusedLocationProviderClient(this)
+        locationManager = getSystemService(LocationManager::class.java)
         NotificationHelper.ensureWatchChannel(this)
     }
 
@@ -60,48 +71,82 @@ class LocationWatchService : Service() {
 
         // Nothing armed means nothing to watch; don't hold a notification for
         // no reason.
-        if (GeofenceStore(this).loadAll().isEmpty()) {
+        if (AlarmStore(this).loadAll().isEmpty()) {
             stopWatching()
             return START_NOT_STICKY
         }
 
         startForeground(NOTIFICATION_ID, buildNotification())
-
-        // The approach geofence fired, meaning the destination is close even
-        // if the last slow-tier fix still said otherwise. Go straight to
-        // high frequency rather than waiting for the next lazy poll.
-        val interval = if (intent?.action == ACTION_BOOST) NEAR_INTERVAL_MILLIS else currentIntervalMillis
-        requestUpdates(interval)
+        requestUpdates(currentIntervalMillis)
 
         isWatching = true
         WatchdogReceiver.schedule(this)
         return START_STICKY
     }
 
+    /**
+     * Providers to listen on, best first.
+     *
+     * Android 12 added a platform fused provider that blends GPS, wifi and
+     * sensors the way Play Services does — preferred where present. Below
+     * that, GPS and network are used together: network gives cheap coarse
+     * fixes indoors, GPS the accuracy needed near the destination.
+     */
+    private fun activeProviders(): List<String> {
+        val available = try {
+            locationManager.allProviders
+        } catch (e: Exception) {
+            emptyList<String>()
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            available.contains(LocationManager.FUSED_PROVIDER)
+        ) {
+            return listOf(LocationManager.FUSED_PROVIDER)
+        }
+
+        return listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+            .filter { provider ->
+                available.contains(provider) &&
+                    runCatching { locationManager.isProviderEnabled(provider) }.getOrDefault(false)
+            }
+    }
+
     private fun requestUpdates(intervalMillis: Long) {
-        val request = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, intervalMillis)
-            .setMinUpdateIntervalMillis(intervalMillis / 2)
-            .setWaitForAccurateLocation(false)
-            .build()
+        val providers = activeProviders()
+        if (providers.isEmpty()) {
+            Log.w(TAG, "No location provider is enabled; cannot watch")
+            return
+        }
 
         try {
-            fusedClient.removeLocationUpdates(locationCallback)
-            fusedClient.requestLocationUpdates(request, locationCallback, mainLooper)
+            locationManager.removeUpdates(locationListener)
+            for (provider in providers) {
+                locationManager.requestLocationUpdates(
+                    provider,
+                    intervalMillis,
+                    0f,
+                    locationListener,
+                    mainLooper,
+                )
+            }
             currentIntervalMillis = intervalMillis
         } catch (e: SecurityException) {
             Log.e(TAG, "Location permission missing; stopping watch", e)
             stopWatching()
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not request location updates", e)
         }
     }
 
     private fun onLocation(location: Location) {
-        val entries = GeofenceStore(this).loadAll()
+        val entries = AlarmStore(this).loadAll()
         if (entries.isEmpty()) {
             stopWatching()
             return
         }
 
-        var closest: Pair<GeofenceEntry, Double>? = null
+        var closest: Pair<AlarmEntry, Double>? = null
 
         for (entry in entries) {
             val results = FloatArray(1)
@@ -115,10 +160,9 @@ class LocationWatchService : Service() {
             val distance = results[0].toDouble()
 
             if (distance <= entry.radius) {
-                // Match geofence ENTER semantics: being inside already when
-                // watching starts is not an arrival. Wait until the user has
-                // actually been outside, so setting an alarm for where you're
-                // currently standing doesn't ring instantly.
+                // Arrival means crossing *into* the radius. Being inside
+                // already when watching starts is not an arrival, so an alarm
+                // set for where you're currently standing doesn't ring at once.
                 if (!hadFirstFix || entry.id in suppressedUntilExit) {
                     suppressedUntilExit.add(entry.id)
                 } else {
@@ -146,10 +190,7 @@ class LocationWatchService : Service() {
     /**
      * Polls harder the closer the user gets. Ten-second fixes from across the
      * country would flatten the battery on a long journey for no benefit,
-     * while two-minute fixes 200m out would sail past the stop. The far tier
-     * is deliberately lazy because the approach geofence (see
-     * [ACTION_BOOST]) wakes this straight to high frequency on arrival in the
-     * neighbourhood, so precision does not depend on the slow tier noticing.
+     * while two-minute fixes 200m out would sail past the stop.
      */
     private fun adaptIntervalTo(distanceMetres: Double) {
         val target = when {
@@ -162,21 +203,20 @@ class LocationWatchService : Service() {
         if (target != currentIntervalMillis) requestUpdates(target)
     }
 
-    private fun triggerAlarm(entry: GeofenceEntry) {
+    private fun triggerAlarm(entry: AlarmEntry) {
         Log.i(TAG, "Arrived at ${entry.label}; starting alarm")
         // We are already a foreground service, so starting the alarm service
-        // here is always permitted — this is the path that works when a
-        // deferred geofence broadcast would not have arrived in time.
+        // from here is always permitted.
         val alarmIntent = Intent(this, AlarmForegroundService::class.java).apply {
             action = AlarmForegroundService.ACTION_START
-            putExtra(AlarmForegroundService.EXTRA_GEOFENCE_ID, entry.id)
+            putExtra(AlarmForegroundService.EXTRA_ALARM_ID, entry.id)
             putExtra(AlarmForegroundService.EXTRA_LABEL, entry.label)
         }
         startService(alarmIntent)
 
-        // The alarm service consumes the geofence itself; if that leaves
-        // nothing armed, this watch has no further work.
-        if (GeofenceStore(this).loadAll().none { it.id != entry.id }) {
+        // The alarm service consumes the entry itself; if that leaves nothing
+        // armed, this watch has no further work.
+        if (AlarmStore(this).loadAll().none { it.id != entry.id }) {
             stopWatching()
         }
     }
@@ -184,11 +224,11 @@ class LocationWatchService : Service() {
     private fun stopWatching() {
         isWatching = false
         try {
-            fusedClient.removeLocationUpdates(locationCallback)
+            locationManager.removeUpdates(locationListener)
         } catch (_: Exception) {
-            // Client may already be torn down.
+            // Manager may already be torn down.
         }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
             @Suppress("DEPRECATION")
@@ -200,7 +240,7 @@ class LocationWatchService : Service() {
     override fun onDestroy() {
         isWatching = false
         try {
-            fusedClient.removeLocationUpdates(locationCallback)
+            locationManager.removeUpdates(locationListener)
         } catch (_: Exception) {
             // Ignored.
         }
@@ -208,11 +248,16 @@ class LocationWatchService : Service() {
     }
 
     private fun updateNotification() {
-        NotificationManagerShim.notify(this, NOTIFICATION_ID, buildNotification())
+        val manager = getSystemService(android.app.NotificationManager::class.java) ?: return
+        try {
+            manager.notify(NOTIFICATION_ID, buildNotification())
+        } catch (_: SecurityException) {
+            // Notification permission revoked.
+        }
     }
 
     private fun buildNotification(): Notification {
-        val armedCount = GeofenceStore(this).loadAll().size
+        val armedCount = AlarmStore(this).loadAll().size
         val openIntent = PendingIntent.getActivity(
             this,
             0,
@@ -247,7 +292,6 @@ class LocationWatchService : Service() {
     companion object {
         private const val TAG = "LocationWatchService"
         const val ACTION_STOP = "com.zaifears.locreminder.action.STOP_WATCH"
-        const val ACTION_BOOST = "com.zaifears.locreminder.action.BOOST_WATCH"
         private const val NOTIFICATION_ID = 4203
         private const val VERY_FAR_INTERVAL_MILLIS = 300_000L
         private const val FAR_INTERVAL_MILLIS = 120_000L
@@ -255,16 +299,5 @@ class LocationWatchService : Service() {
 
         var isWatching: Boolean = false
             private set
-    }
-}
-
-private object NotificationManagerShim {
-    fun notify(service: Service, id: Int, notification: Notification) {
-        val manager = service.getSystemService(android.app.NotificationManager::class.java) ?: return
-        try {
-            manager.notify(id, notification)
-        } catch (_: SecurityException) {
-            // Notification permission revoked.
-        }
     }
 }

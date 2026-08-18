@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/location_alarm.dart';
@@ -109,11 +108,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _locateUser({bool recenter = false}) async {
     try {
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      if (!mounted) return;
-      final located = LatLng(position.latitude, position.longitude);
+      final fix = await _nativeBridge.getLastKnownLocation();
+      final latitude = fix?['latitude'] as double?;
+      final longitude = fix?['longitude'] as double?;
+      if (latitude == null || longitude == null || !mounted) return;
+
+      final located = LatLng(latitude, longitude);
       setState(() {
         _userLocation = located;
         _initialPosition = located;
@@ -124,13 +124,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// If a geofence fired while the app wasn't running, the native side
-  /// already removed it from Play Services and its own store. Reflect that
-  /// here so the list doesn't show a "still active" alarm that has already
-  /// rung and been consumed.
+  /// If an alarm fired while the app wasn't running, the native side already
+  /// consumed it from its own store. Reflect that here so the list doesn't
+  /// show a "still active" alarm that has already rung.
   Future<void> _reconcileTriggeredAlarms() async {
     if (_alarms.isEmpty) return;
-    final activeIds = (await _nativeBridge.getActiveGeofenceIds()).toSet();
+    final activeIds = (await _nativeBridge.getActiveAlarmIds()).toSet();
     final triggeredLabels = <String>[];
     final reconciled = _alarms.map((alarm) {
       if (alarm.isActive && !activeIds.contains(alarm.id)) {
@@ -192,17 +191,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _mapController.move(LatLng(alarm.latitude, alarm.longitude), 14);
     if (!mounted) return;
 
-    // Geofences only fire on entry, so an alarm set for somewhere you are
-    // already standing stays silent until you leave and come back. Say so
-    // rather than letting it look broken.
+    // Arrival means crossing into the radius, so an alarm set for somewhere
+    // you are already standing stays silent until you leave and come back.
+    // Say so rather than letting it look broken.
     final here = _userLocation;
     final alreadyInside = here != null &&
-        Geolocator.distanceBetween(
-              here.latitude,
-              here.longitude,
-              alarm.latitude,
-              alarm.longitude,
-            ) <=
+        const Distance()(here, LatLng(alarm.latitude, alarm.longitude)) <=
             alarm.radiusMeters;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -218,11 +212,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Registers a geofence natively, surfacing failures instead of leaving an
-  /// alarm that looks armed in the list but was never handed to the OS.
+  /// Registers the alarm natively, surfacing failures instead of leaving an
+  /// alarm that looks armed in the list but the watcher never learned about.
   Future<bool> _register(LocationAlarm alarm) async {
     try {
-      await _nativeBridge.addGeofence(alarm);
+      await _nativeBridge.addAlarm(alarm);
       return true;
     } on PlatformException catch (e) {
       if (mounted) {
@@ -237,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _toggleAlarm(LocationAlarm alarm) async {
     if (alarm.isActive) {
       try {
-        await _nativeBridge.removeGeofence(alarm.id);
+        await _nativeBridge.removeAlarm(alarm.id);
       } on PlatformException catch (_) {
         // Removal failing still leaves the alarm paused in the UI; the
         // native store is reconciled on the next resume anyway.
@@ -258,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _deleteAlarm(LocationAlarm alarm) async {
     final index = _alarms.indexWhere((a) => a.id == alarm.id);
-    await _nativeBridge.removeGeofence(alarm.id);
+    await _nativeBridge.removeAlarm(alarm.id);
     if (!mounted) return;
 
     setState(() => _alarms = _alarms.where((a) => a.id != alarm.id).toList());
@@ -300,12 +294,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   double? _distanceTo(LocationAlarm alarm) {
     final here = _userLocation;
     if (here == null) return null;
-    return Geolocator.distanceBetween(
-      here.latitude,
-      here.longitude,
-      alarm.latitude,
-      alarm.longitude,
-    );
+    // latlong2's Distance is a pure-Dart haversine, so this needs no plugin.
+    return const Distance()(here, LatLng(alarm.latitude, alarm.longitude));
   }
 
   List<Marker> get _markers {

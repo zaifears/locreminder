@@ -2,17 +2,18 @@ import 'package:flutter/services.dart';
 
 import '../models/location_alarm.dart';
 
-/// Talks to the native Android geofencing + alarm engine
-/// (MainActivity.kt / AlarmForegroundService.kt) over a MethodChannel.
+/// Talks to the native Android alarm engine (MainActivity.kt,
+/// LocationWatchService.kt, AlarmForegroundService.kt) over a MethodChannel.
 ///
-/// The actual geofence monitoring and alarm ringing happen entirely on the
-/// native side via Play Services' GeofencingClient and a foreground service,
-/// so they keep working even if this Flutter engine instance is not running.
+/// Arrival detection and ringing happen entirely on the native side, so they
+/// keep working even when this Flutter engine is not running. Everything here
+/// uses the platform APIs only — no Google Play Services — so the app also
+/// works on devices with no Google services at all.
 class NativeBridge {
-  static const _channel = MethodChannel('com.zaifears.locreminder/geofence');
+  static const _channel = MethodChannel('com.zaifears.locreminder/alarms');
 
-  Future<void> addGeofence(LocationAlarm alarm) {
-    return _channel.invokeMethod<void>('addGeofence', {
+  Future<void> addAlarm(LocationAlarm alarm) {
+    return _channel.invokeMethod<void>('addAlarm', {
       'id': alarm.id,
       'latitude': alarm.latitude,
       'longitude': alarm.longitude,
@@ -21,16 +22,16 @@ class NativeBridge {
     });
   }
 
-  Future<void> removeGeofence(String id) {
-    return _channel.invokeMethod<void>('removeGeofence', {'id': id});
+  Future<void> removeAlarm(String id) {
+    return _channel.invokeMethod<void>('removeAlarm', {'id': id});
   }
 
-  Future<void> removeAllGeofences() {
-    return _channel.invokeMethod<void>('removeAllGeofences');
+  Future<void> removeAllAlarms() {
+    return _channel.invokeMethod<void>('removeAllAlarms');
   }
 
-  Future<List<String>> getActiveGeofenceIds() async {
-    final result = await _channel.invokeMethod<List<Object?>>('getActiveGeofenceIds');
+  Future<List<String>> getActiveAlarmIds() async {
+    final result = await _channel.invokeMethod<List<Object?>>('getActiveAlarmIds');
     return result?.map((e) => e.toString()).toList() ?? const [];
   }
 
@@ -54,9 +55,9 @@ class NativeBridge {
     return _channel.invokeMethod<void>('requestFullScreenIntentPermission');
   }
 
-  /// Starts the foreground service that actively watches location. This is
-  /// what makes arrival detection dependable — geofence broadcasts alone get
-  /// deferred by Doze once the app goes idle.
+  /// Starts the foreground service that actively watches location. Holding a
+  /// foreground service is what makes detection dependable: it keeps the
+  /// process out of the idle state where Doze defers background work.
   Future<void> startLocationWatch() {
     return _channel.invokeMethod<void>('startLocationWatch');
   }
@@ -128,6 +129,24 @@ class NativeBridge {
 
   Future<void> stopAlarmSoundPreview() {
     return _channel.invokeMethod<void>('stopAlarmSoundPreview');
+  }
+
+  // ----------------------------------------------------------- location
+
+  /// Whether any location provider is switched on at the OS level.
+  Future<bool> isLocationEnabled() async {
+    final result = await _channel.invokeMethod<bool>('isLocationEnabled');
+    return result ?? false;
+  }
+
+  Future<void> openLocationSettings() {
+    return _channel.invokeMethod<void>('openLocationSettings');
+  }
+
+  /// Latest fix the platform already holds, used to centre the map. Returns
+  /// null when nothing is cached rather than blocking on a fresh fix.
+  Future<Map<Object?, Object?>?> getLastKnownLocation() {
+    return _channel.invokeMapMethod<Object?, Object?>('getLastKnownLocation');
   }
 
   Future<bool> isAlarmRinging() async {

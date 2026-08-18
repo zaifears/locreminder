@@ -17,6 +17,7 @@
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"/>
   <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin"/>
   <img src="https://img.shields.io/badge/Maps-OpenStreetMap-7EBC6F?style=flat-square&logo=openstreetmap&logoColor=white" alt="OpenStreetMap"/>
+  <img src="https://img.shields.io/badge/100%25-FOSS-blue?style=flat-square" alt="FOSS"/>
   <img src="https://img.shields.io/badge/No_Ads-No_Tracking-blueviolet?style=flat-square" alt="No ads"/>
   <img src="https://img.shields.io/badge/Code-MIT-green?style=flat-square" alt="License"/>
 
@@ -74,7 +75,7 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
 
 | | |
 |---|---|
-| **Latest release** | `v1.4.0` |
+| **Latest release** | `v1.6.0` |
 | **Requirements** | Android 6.0 or newer |
 | **Size** | ~55 MB |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
@@ -197,7 +198,7 @@ The usual approach — polling GPS from a Dart `Timer` — works in an emulator 
 
 Android's native geofencing alone also failed field testing. An alarm was set 150 m away with a 100 m radius; the phone walked in and waited 30 seconds. Nothing. It rang the instant the app was reopened, because Doze had **deferred** the geofence broadcast until the app became active.
 
-So arrival is detected two independent ways, and the alarm itself is entirely native Kotlin — the Flutter engine can be completely dead and it still rings.
+Geofencing was therefore dropped entirely in favour of a foreground service that watches location itself. The alarm is native Kotlin — the Flutter engine can be completely dead and it still rings — and the app uses only platform APIs, so it needs no Google Play Services and works on de-Googled and HMS-only devices.
 
 ```
                      ┌──────────────────┐
@@ -207,12 +208,10 @@ So arrival is detected two independent ways, and the alarm itself is entirely na
                               │  arms alarm
               ┌───────────────┴───────────────┐
               ▼                               ▼
-   ┌────────────────────┐         ┌──────────────────────┐
-   │ Foreground watcher │         │  Play Services       │
-   │  PRIMARY           │         │  geofence  BACKUP    │
-   │  adaptive polling  │         │  + approach ring     │
-   └──────────┬─────────┘         └──────────┬───────────┘
-              │                              │
+              ┌──────────────────────────────┐
+              │  Foreground location watcher │
+              │  platform LocationManager    │
+              │  adaptive polling            │
               └──────────────┬───────────────┘
                              ▼
                     ARRIVAL DETECTED
@@ -230,9 +229,7 @@ So arrival is detected two independent ways, and the alarm itself is entirely na
 
 | Layer | Role |
 |---|---|
-| **Foreground watcher** | Primary trigger. Polls adaptively — 5 min beyond 10 km, 10 s within 500 m. Holding a foreground service keeps the process out of the idle state that defers everything else. |
-| **Approach geofence** | Wide outer ring (8× radius, min 2 km) that wakes the watcher for the final approach. Being kilometres across, it tolerates the Doze delay that is fatal to a 100 m ring. |
-| **Inner geofence** | Low-power backup trigger. |
+| **Foreground watcher** | The whole detection mechanism. Polls adaptively — 5 min beyond 10 km, 10 s within 500 m. Holding a foreground service keeps the process out of the idle state that defers everything else. |
 | **Alarm service** | Looping `USAGE_ALARM` audio, vibration, wake lock, full-screen activity. Auto-stops after 10 minutes. |
 | **Watchdog** | Inexact allow-while-idle alarm, restarts the watcher if a vendor power manager killed it. |
 | **Boot receiver** | Restores alarms, geofences and the watcher after a restart. |
@@ -250,7 +247,7 @@ So arrival is detected two independent ways, and the alarm itself is entirely na
 ├─────────────────────────────────────────────────────────────┤
 │  Maps             OpenStreetMap via flutter_map — no key    │
 │  Search           Nominatim geocoding — no key              │
-│  Location         Play Services Geofencing + Fused Location │
+│  Location         Platform LocationManager — no Play Services│
 ├─────────────────────────────────────────────────────────────┤
 │  Storage          SharedPreferences (device-local only)     │
 │  Build            Gradle 9 · AGP 9 · R8 shrinking           │

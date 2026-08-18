@@ -17,14 +17,14 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.google.android.gms.location.LocationServices
+
 
 /**
  * Rings the alarm. Runs as a foreground service so Android won't kill it
  * mid-ring, plays audio on STREAM_ALARM (separate from the ringer/media
  * volume, so it sounds even if the phone is on silent/vibrate), and shows a
  * full-screen notification that pulls [AlarmActivity] on top of the lock
- * screen. Entirely native: it starts from [GeofenceBroadcastReceiver]
+ * screen. Entirely native: it is started by [LocationWatchService]
  * whether or not the Flutter engine is running.
  */
 class AlarmForegroundService : Service() {
@@ -52,26 +52,26 @@ class AlarmForegroundService : Service() {
         }
 
         val label = intent.getStringExtra(EXTRA_LABEL) ?: "your destination"
-        val geofenceId = intent.getStringExtra(EXTRA_GEOFENCE_ID) ?: ""
-        startAlarm(geofenceId, label)
+        val alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: ""
+        startAlarm(alarmId, label)
 
         // If the system kills us mid-ring it redelivers this same intent, so
         // the alarm resumes with the right destination instead of defaults.
         return START_REDELIVER_INTENT
     }
 
-    private fun startAlarm(geofenceId: String, label: String) {
+    private fun startAlarm(alarmId: String, label: String) {
         if (isRinging) return
         isRinging = true
 
         NotificationHelper.ensureAlarmChannel(this)
-        startForeground(NOTIFICATION_ID, buildNotification(label, geofenceId))
+        startForeground(NOTIFICATION_ID, buildNotification(label, alarmId))
         acquireWakeLock()
-        launchAlarmActivity(label, geofenceId)
+        launchAlarmActivity(label, alarmId)
         playAlarmSound()
         startVibration()
         scheduleAutoStop()
-        deactivateGeofence(geofenceId)
+        consumeAlarm(alarmId)
     }
 
     /**
@@ -86,11 +86,10 @@ class AlarmForegroundService : Service() {
         }.also { handler.postDelayed(it, AUTO_STOP_MILLIS) }
     }
 
-    /** A geofence alarm is one-shot: consume it so re-entering doesn't re-fire it. */
-    private fun deactivateGeofence(geofenceId: String) {
-        if (geofenceId.isEmpty()) return
-        LocationServices.getGeofencingClient(this).removeGeofences(listOf(geofenceId))
-        GeofenceStore(this).remove(geofenceId)
+    /** An arrival alarm is one-shot: consume it so re-entering doesn't re-fire it. */
+    private fun consumeAlarm(alarmId: String) {
+        if (alarmId.isEmpty()) return
+        AlarmStore(this).remove(alarmId)
     }
 
     private fun stopAlarm() {
@@ -191,20 +190,20 @@ class AlarmForegroundService : Service() {
         }
     }
 
-    private fun launchAlarmActivity(label: String, geofenceId: String) {
+    private fun launchAlarmActivity(label: String, alarmId: String) {
         val activityIntent = Intent(this, AlarmActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             putExtra(EXTRA_LABEL, label)
-            putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+            putExtra(EXTRA_ALARM_ID, alarmId)
         }
         startActivity(activityIntent)
     }
 
-    private fun buildNotification(label: String, geofenceId: String): Notification {
+    private fun buildNotification(label: String, alarmId: String): Notification {
         val fullScreenIntent = Intent(this, AlarmActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             putExtra(EXTRA_LABEL, label)
-            putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+            putExtra(EXTRA_ALARM_ID, alarmId)
         }
         val fullScreenPendingIntent = PendingIntent.getActivity(
             this,
@@ -239,7 +238,7 @@ class AlarmForegroundService : Service() {
         private const val TAG = "AlarmForegroundService"
         const val ACTION_START = "com.zaifears.locreminder.action.START_ALARM"
         const val ACTION_STOP = "com.zaifears.locreminder.action.STOP_ALARM"
-        const val EXTRA_GEOFENCE_ID = "extra_geofence_id"
+        const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_LABEL = "extra_label"
         private const val NOTIFICATION_ID = 4201
         private const val AUTO_STOP_MILLIS = 10 * 60 * 1000L

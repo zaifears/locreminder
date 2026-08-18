@@ -1,0 +1,10 @@
+LocReminder no longer uses Google Play Services at all. Location now runs
+on Android's own platform APIs.
+
+This means the app works on phones with no Google services: post-2019
+Huawei and Honor devices, and de-Googled ROMs like LineageOS, /e/OS and
+GrapheneOS. It also makes the app fully free software.
+
+Detection is unchanged in practice — the foreground watcher was already
+doing the work, and the geofencing that was removed had proved unreliable
+on the very devices that need it most.

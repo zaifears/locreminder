@@ -1,7 +1,5 @@
-# Play Services geofencing / location classes are referenced via
-# reflection-free public API, but keep them to be safe against shrinking
-# aggressive enough to strip callback interfaces.
--keep class com.google.android.gms.location.** { *; }
+# Services and receivers are instantiated by the system by name, so they
+# must survive shrinking even though nothing in the app calls them directly.
 -keep class com.zaifears.locreminder.** { *; }
 
 # Flutter's own embedding classes must not be stripped.

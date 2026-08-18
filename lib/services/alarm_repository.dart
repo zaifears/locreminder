@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/location_alarm.dart';
 
 /// Persists the user's saved alarms on the Dart side (for the UI list).
-/// The native side keeps its own independent copy (see GeofenceStore.kt) so
-/// it can react to geofence triggers without needing the Flutter engine.
+/// The native side keeps its own independent copy (see AlarmStore.kt) so
+/// it can ring on arrival without needing the Flutter engine.
 class AlarmRepository {
   static const _prefsKey = 'location_alarms';
 

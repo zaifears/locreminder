@@ -9,36 +9,30 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import android.location.LocationManager
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.Geofence
-import com.google.android.gms.location.GeofencingClient
-import com.google.android.gms.location.GeofencingRequest
-import com.google.android.gms.location.LocationServices
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val channelName = "com.zaifears.locreminder/geofence"
-    private lateinit var geofencingClient: GeofencingClient
+    private val channelName = "com.zaifears.locreminder/alarms"
 
     /** Held across the sound-picker activity result, then completed. */
     private var pendingSoundResult: MethodChannel.Result? = null
     private var previewPlayer: android.media.MediaPlayer? = null
 
     private companion object {
-        const val MIN_APPROACH_RADIUS_METRES = 2000f
         const val REQUEST_PICK_RINGTONE = 8101
         const val REQUEST_PICK_AUDIO_FILE = 8102
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        geofencingClient = LocationServices.getGeofencingClient(this)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
             when (call.method) {
-                "addGeofence" -> {
+                "addAlarm" -> {
                     val id = call.argument<String>("id")
                     val lat = call.argument<Double>("latitude")
                     val lng = call.argument<Double>("longitude")
@@ -47,19 +41,46 @@ class MainActivity : FlutterActivity() {
                     if (id == null || lat == null || lng == null || radius == null) {
                         result.error("INVALID_ARGS", "id, latitude, longitude and radius are required", null)
                     } else {
-                        addGeofence(id, lat, lng, radius.toFloat(), label, result)
+                        AlarmStore(this).save(AlarmEntry(id, label, lat, lng, radius))
+                        result.success(true)
                     }
                 }
-                "removeGeofence" -> {
+                "removeAlarm" -> {
                     val id = call.argument<String>("id")
                     if (id == null) {
                         result.error("INVALID_ARGS", "id is required", null)
                     } else {
-                        removeGeofence(id, result)
+                        AlarmStore(this).remove(id)
+                        result.success(true)
                     }
                 }
-                "removeAllGeofences" -> removeAllGeofences(result)
-                "getActiveGeofenceIds" -> result.success(GeofenceStore(this).loadAll().map { it.id })
+                "removeAllAlarms" -> {
+                    AlarmStore(this).clear()
+                    result.success(true)
+                }
+                "getActiveAlarmIds" -> result.success(AlarmStore(this).loadAll().map { it.id })
+                // Replaces the geolocator plugin, which pulled in Play
+                // Services transitively.
+                "isLocationEnabled" -> {
+                    val manager = getSystemService(LocationManager::class.java)
+                    val enabled = manager != null && (
+                        runCatching { manager.isProviderEnabled(LocationManager.GPS_PROVIDER) }.getOrDefault(false) ||
+                            runCatching { manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) }.getOrDefault(false)
+                        )
+                    result.success(enabled)
+                }
+                "openLocationSettings" -> {
+                    try {
+                        startActivity(
+                            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                "getLastKnownLocation" -> result.success(lastKnownLocation())
                 "isIgnoringBatteryOptimizations" -> {
                     val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
                     result.success(powerManager.isIgnoringBatteryOptimizations(packageName))
@@ -145,7 +166,7 @@ class MainActivity : FlutterActivity() {
                         val testIntent = Intent(this, AlarmForegroundService::class.java).apply {
                             action = AlarmForegroundService.ACTION_START
                             putExtra(AlarmForegroundService.EXTRA_LABEL, "Test alarm")
-                            putExtra(AlarmForegroundService.EXTRA_GEOFENCE_ID, "")
+                            putExtra(AlarmForegroundService.EXTRA_ALARM_ID, "")
                         }
                         try {
                             ContextCompat.startForegroundService(this, testIntent)
@@ -327,86 +348,41 @@ class MainActivity : FlutterActivity() {
         super.onStop()
     }
 
-    private fun geofencePendingIntent(): PendingIntent {
-        val intent = Intent(this, GeofenceBroadcastReceiver::class.java).apply {
-            action = GeofenceBroadcastReceiver.ACTION_GEOFENCE_EVENT
+    // ------------------------------------------------------------- location
+
+    /**
+     * Most recent fix known to the platform, used to centre the map. Returns
+     * null rather than waiting for a fresh fix — the map has a sensible
+     * default, and blocking the UI on GPS would be worse than showing it.
+     */
+    private fun lastKnownLocation(): Map<String, Any>? {
+        val manager = getSystemService(LocationManager::class.java) ?: return null
+
+        val providers = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
+            add(LocationManager.GPS_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+            add(LocationManager.PASSIVE_PROVIDER)
         }
-        // Geofencing requires a MUTABLE PendingIntent on Android 12+ since the
-        // system fills in the triggering-geofence extras before broadcasting it.
-        return PendingIntent.getBroadcast(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+
+        var best: android.location.Location? = null
+        for (provider in providers) {
+            val location = try {
+                manager.getLastKnownLocation(provider)
+            } catch (e: SecurityException) {
+                return null
+            } catch (e: Exception) {
+                null
+            } ?: continue
+
+            if (best == null || location.time > best.time) best = location
+        }
+
+        val found = best ?: return null
+        return mapOf(
+            "latitude" to found.latitude,
+            "longitude" to found.longitude,
+            "accuracy" to found.accuracy.toDouble(),
         )
-    }
-
-    private fun addGeofence(
-        id: String,
-        latitude: Double,
-        longitude: Double,
-        radius: Float,
-        label: String,
-        result: MethodChannel.Result,
-    ) {
-        val geofence = Geofence.Builder()
-            .setRequestId(id)
-            .setCircularRegion(latitude, longitude, radius)
-            .setExpirationDuration(Geofence.NEVER_EXPIRE)
-            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-            .build()
-
-        // A much larger outer ring whose only job is to wake the watcher for
-        // the final approach. Because it is kilometres wide, even a Doze-
-        // deferred delivery still lands with plenty of distance to spare —
-        // the same deferral would be fatal on the inner ring.
-        val approachRadius = maxOf(radius * 8f, MIN_APPROACH_RADIUS_METRES)
-        val approachFence = Geofence.Builder()
-            .setRequestId(id + GeofenceBroadcastReceiver.APPROACH_SUFFIX)
-            .setCircularRegion(latitude, longitude, approachRadius)
-            .setExpirationDuration(Geofence.NEVER_EXPIRE)
-            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-            .build()
-
-        val request = GeofencingRequest.Builder()
-            .addGeofence(geofence)
-            .addGeofence(approachFence)
-            // Without this, Play Services fires ENTER immediately if the user
-            // is already inside the radius — so setting an alarm for a place
-            // you are currently near would ring the moment you saved it.
-            .setInitialTrigger(0)
-            .build()
-
-        try {
-            geofencingClient.addGeofences(request, geofencePendingIntent())
-                .addOnSuccessListener {
-                    GeofenceStore(this).save(GeofenceEntry(id, label, latitude, longitude, radius.toDouble()))
-                    result.success(true)
-                }
-                .addOnFailureListener { e ->
-                    result.error("GEOFENCE_ADD_FAILED", e.message, null)
-                }
-        } catch (e: SecurityException) {
-            result.error("PERMISSION_DENIED", e.message, null)
-        }
-    }
-
-    private fun removeGeofence(id: String, result: MethodChannel.Result) {
-        // The approach ring is registered alongside every alarm, so it has to
-        // be torn down with it or it would linger and keep waking the watcher.
-        val ids = listOf(id, id + GeofenceBroadcastReceiver.APPROACH_SUFFIX)
-        geofencingClient.removeGeofences(ids)
-            .addOnCompleteListener {
-                GeofenceStore(this).remove(id)
-                result.success(true)
-            }
-    }
-
-    private fun removeAllGeofences(result: MethodChannel.Result) {
-        geofencingClient.removeGeofences(geofencePendingIntent())
-            .addOnCompleteListener {
-                GeofenceStore(this).clear()
-                result.success(true)
-            }
     }
 }

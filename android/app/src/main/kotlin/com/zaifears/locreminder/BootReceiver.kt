@@ -1,66 +1,38 @@
 package com.zaifears.locreminder
 
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.Geofence
-import com.google.android.gms.location.GeofencingRequest
-import com.google.android.gms.location.LocationServices
 
 /**
- * The OS drops all registered geofences on reboot, so every saved alarm
- * that was still active must be re-registered with Play Services once the
- * device comes back up.
+ * Restores watching after a restart.
+ *
+ * Saved alarms live in [AlarmStore], which survives a reboot, but the
+ * foreground service that watches for arrival does not — so without this the
+ * app would look armed while nothing was actually running.
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-
-        val entries = GeofenceStore(context).loadAll()
-        if (entries.isEmpty()) return
-
-        val geofences = entries.map { entry ->
-            Geofence.Builder()
-                .setRequestId(entry.id)
-                .setCircularRegion(entry.latitude, entry.longitude, entry.radius.toFloat())
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-                .build()
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
+            intent.action != "android.intent.action.QUICKBOOT_POWERON"
+        ) {
+            return
         }
 
-        val request = GeofencingRequest.Builder()
-            .addGeofences(geofences)
-            // Matches the registration in MainActivity: never fire just
-            // because the device booted inside one of the saved radii.
-            .setInitialTrigger(0)
-            .build()
+        if (AlarmStore(context).loadAll().isEmpty()) return
 
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            Intent(context, GeofenceBroadcastReceiver::class.java)
-                .setAction(GeofenceBroadcastReceiver.ACTION_GEOFENCE_EVENT),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
-        )
-
-        try {
-            LocationServices.getGeofencingClient(context).addGeofences(request, pendingIntent)
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Missing background location permission, cannot restore geofences on boot", e)
-        }
-
-        // Restart the active watch too, otherwise alarms set before a reboot
-        // would silently fall back to geofencing alone.
         try {
             ContextCompat.startForegroundService(
                 context,
                 Intent(context, LocationWatchService::class.java),
             )
         } catch (e: Exception) {
+            // Some vendors block service starts immediately after boot. The
+            // watchdog retries later, so this is not fatal.
             Log.e(TAG, "Could not restart location watch after boot", e)
+            WatchdogReceiver.schedule(context)
         }
     }
 

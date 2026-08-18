@@ -26,7 +26,7 @@ import androidx.core.content.ContextCompat
 class WatchdogReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val armed = GeofenceStore(context).loadAll()
+        val armed = AlarmStore(context).loadAll()
         if (armed.isEmpty()) {
             cancel(context)
             return

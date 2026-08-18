@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 ///
 /// Material's `Icons.location_on` glyph carries a few pixels of internal
 /// padding below its tip, so anchoring that icon leaves the pin visibly
-/// floating above the geofence circle it is supposed to mark. Painting the
+/// floating above the radius circle it is supposed to mark. Painting the
 /// shape directly makes the tip and the circle's centre line up exactly.
 class MapPin extends StatelessWidget {
   const MapPin({
