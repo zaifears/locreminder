@@ -1,6 +1,7 @@
-# Built APKs are dropped here for convenience during local testing and are
-# NOT committed by default — each is ~55MB and would bloat git history.
-# The single exception is locreminder.apk: the one file the README links
-# to for direct download, replaced (not added alongside) on every release.
+# Built APKs are dropped here for convenience during local testing.
+#
+# They are deliberately NOT committed — each is ~53MB, and git keeps every
+# version forever, so tracking one would grow the clone by that much per
+# release. The README links to the GitHub Release asset instead, which costs
+# the repository nothing and is the only form GitHub counts downloads for.
 *.apk
-!locreminder.apk

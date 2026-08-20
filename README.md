@@ -71,7 +71,7 @@ the APK directly below.
 
 <div align="center">
   <br/>
-  <a href="https://github.com/zaifears/locreminder/raw/main/apk/locreminder.apk">
+  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
     <img src="https://img.shields.io/badge/⬇️_Download-APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" />
   </a>
   &nbsp;
@@ -81,7 +81,7 @@ the APK directly below.
 
 | | |
 |---|---|
-| **Latest release** | `v1.6.4` |
+| **Latest release** | `v1.6.5` |
 | **Requirements** | Android 6.0 or newer |
 | **Price** | Free. No ads, no accounts, no in-app purchases, no tracking. |
 
