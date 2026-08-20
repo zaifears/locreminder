@@ -28,6 +28,10 @@ jobs:
   build:
     name: Build release APK
     runs-on: ubuntu-latest
+    # The default workflow token is read-only, which makes creating a release
+    # on a tag push fail with a 403. Only the release step needs more.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
