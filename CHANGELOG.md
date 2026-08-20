@@ -3,6 +3,18 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.4] — 2026-08-20
+
+### Fixed
+- 1.6.3 narrowed the keep rule for Flutter's deferred-components manager,
+  which dropped 1 of the 6 flagged Play Core classes but missed 5:
+  `FlutterPlayStoreSplitApplication` — a separate Flutter class that
+  extends Play Core's `SplitCompatApplication` and directly constructs
+  a `PlayStoreDeferredComponentManager` in its startup code — was still
+  matched by the general keep rule, which kept it and everything it
+  reaches. This app's manifest never uses that class, so it's now
+  excluded too.
+
 ## [1.6.3] — 2026-08-20
 
 ### Fixed

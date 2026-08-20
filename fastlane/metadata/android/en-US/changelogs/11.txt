@@ -1,0 +1,5 @@
+The last of the leftover Google Play code is now gone.
+
+1.6.3 removed most of it but missed one path: a Flutter helper class
+that directly builds a Play Store component manager in its startup
+code. That class is never used here, so it's now excluded too.
