@@ -78,6 +78,16 @@ flutter {
     source = "../.."
 }
 
+// Flutter's own embedding artifact pulls this in transitively to support
+// optional dynamic-feature delivery, which this app doesn't use. Left
+// resolvable, it rides along into every release APK as real, scannable
+// non-free bytecode (F-Droid's scanner flags it) even though nothing calls
+// it. -dontwarn in proguard-rules.pro only tells R8 the dangling reference
+// is fine; excluding it here is what actually keeps it out of the build.
+configurations.all {
+    exclude(group = "com.google.android.play")
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
 }
