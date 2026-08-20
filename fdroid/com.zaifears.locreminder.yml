@@ -1,6 +1,6 @@
 Categories:
   - Navigation
-  - Time
+  - Alarm Clock
 License: MIT
 AuthorName: Shahoriar Hossain
 AuthorEmail: shahoriar.connect@gmail.com
@@ -28,10 +28,7 @@ Builds:
       - macos
       - web
       - windows
-    prebuild:
-      - sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
-    scandelete:
-      - .pub-cache
+    prebuild: sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
     build:
       - export PUB_CACHE=$PWD/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
@@ -40,5 +37,6 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
+UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
 CurrentVersion: 1.6.1
 CurrentVersionCode: 8
