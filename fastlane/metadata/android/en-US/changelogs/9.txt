@@ -1,0 +1,6 @@
+LocReminder no longer carries any Google Play code in the built app.
+
+A leftover reference to Google's optional "Play Core" library was
+riding along in every release build even though the app never used it.
+It had no effect on how the app behaves, but it kept the app off
+F-Droid, whose review process rejects any non-free code, used or not.

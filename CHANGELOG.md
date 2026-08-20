@@ -3,6 +3,17 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.2] — 2026-08-20
+
+### Fixed
+- The release build carried real, unused Google Play Core classes,
+  pulled in transitively by Flutter's own embedding artifact to support
+  optional dynamic-feature delivery. A `-dontwarn` rule kept R8 from
+  erroring on the dangling reference but never stopped Gradle from
+  bundling the actual classes, which F-Droid's non-free-code scanner
+  flags regardless of whether the app calls them. The dependency group
+  is now excluded outright so nothing from it enters the build.
+
 ## [1.6.1] — 2026-08-20
 
 ### Fixed
