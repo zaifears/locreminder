@@ -54,8 +54,27 @@ Builds:
       - $$flutter$$/bin/flutter pub get
       - $$flutter$$/bin/flutter build apk --release
 
+  - versionName: 1.6.3
+    versionCode: 10
+    commit: v1.6.3
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - linux
+      - macos
+      - web
+      - windows
+    prebuild: sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
+    build:
+      - export PUB_CACHE=$PWD/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+      - $$flutter$$/bin/flutter build apk --release
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.6.2
-CurrentVersionCode: 9
+CurrentVersion: 1.6.3
+CurrentVersionCode: 10

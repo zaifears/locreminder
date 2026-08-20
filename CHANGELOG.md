@@ -3,6 +3,18 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.3] — 2026-08-20
+
+### Fixed
+- 1.6.2's fix for the Play Core classes didn't work: they're compiled
+  directly into Flutter's own engine artifact, not pulled in as a
+  separate dependency, so excluding a Gradle dependency group had
+  nothing to act on. The real cause was a blanket ProGuard keep rule for
+  `io.flutter.**`, which forced R8 to preserve Flutter's unused
+  deferred-components manager — and, with it, the Play Core classes its
+  fields and methods are typed with. That rule now carves the manager
+  out explicitly, so R8 is free to drop it and everything it pulled in.
+
 ## [1.6.2] — 2026-08-20
 
 ### Fixed

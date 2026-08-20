@@ -1,0 +1,6 @@
+The Google Play Core code from the previous release is now actually gone.
+
+1.6.2 tried to remove it at the dependency level, but the real cause was
+different: a broad keep rule was forcing R8 to preserve Flutter's unused
+deferred-components manager, which pulled the Play Core classes along
+with it. That rule is now narrowed, so they're stripped for good.
