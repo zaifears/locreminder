@@ -1,0 +1,8 @@
+Corrects the About screen, which still described the app as using
+Android's built-in geofencing after that was removed in 1.6.0.
+
+The device-setup guidance now covers more manufacturers: Honor is listed
+separately from Huawei since its menus differ, and Meizu, Asus, Lenovo,
+ZTE and LeEco have been added. Phones that follow stock Android are now
+named and told plainly that no extra setup is needed, instead of being
+shown a generic warning.

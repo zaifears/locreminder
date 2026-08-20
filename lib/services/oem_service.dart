@@ -35,9 +35,253 @@ class DeviceProfile {
   final String vendorName;
   final List<OemStep> steps;
   final String note;
-
-  String get androidVersionLabel => 'Android API $sdkInt';
 }
+
+/// A manufacturer, the name of its Android skin, and what it takes to stop
+/// that skin killing a background alarm.
+class _VendorProfile {
+  const _VendorProfile({
+    required this.keys,
+    required this.name,
+    required this.note,
+    this.steps = const [],
+    this.aggressive = true,
+  });
+
+  /// Lowercase substrings matched against `Build.MANUFACTURER`.
+  final List<String> keys;
+  final String name;
+  final String note;
+  final List<OemStep> steps;
+
+  /// Whether this vendor restricts background apps beyond stock Android.
+  final bool aggressive;
+}
+
+/// Every vendor we have specific guidance for.
+///
+/// Deliberately one table rather than parallel switches on name, steps and
+/// notes: those drift apart silently, and a device being told it "needs
+/// extra setup" while being shown only generic advice is worse than saying
+/// nothing.
+const _vendorProfiles = <_VendorProfile>[
+  _VendorProfile(
+    keys: ['xiaomi', 'redmi', 'poco'],
+    name: 'Xiaomi (MIUI / HyperOS)',
+    note: 'MIUI blocks autostart for apps by default and will not restart '
+        'background work without it. Autostart plus "No restrictions" are '
+        'both needed — one alone is not enough.',
+    steps: [
+      OemStep(
+        title: 'Turn on Autostart',
+        path: 'Settings → Apps → Manage apps → LocReminder → Autostart',
+      ),
+      OemStep(
+        title: 'Set battery saver to No restrictions',
+        path: 'Settings → Apps → Manage apps → LocReminder → Battery saver → No restrictions',
+      ),
+      OemStep(
+        title: 'Lock the app in Recents',
+        path: 'Open Recents, pull down on the LocReminder card, tap the padlock',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['samsung'],
+    name: 'Samsung (One UI)',
+    note: 'Samsung puts apps you have not opened for a few days into '
+        '"sleeping", which stops their alarms. Adding LocReminder to '
+        '"Never sleeping apps" is the setting that prevents this.',
+    steps: [
+      OemStep(
+        title: 'Add to Never sleeping apps',
+        path: 'Settings → Battery → Background usage limits → Never sleeping apps → add LocReminder',
+      ),
+      OemStep(
+        title: 'Make sure it is not in Sleeping or Deep sleeping apps',
+        path: 'Settings → Battery → Background usage limits → Sleeping apps',
+      ),
+      OemStep(
+        title: 'Set battery usage to Unrestricted',
+        path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['oppo', 'realme'],
+    name: 'Oppo / Realme (ColorOS)',
+    note: 'ColorOS stops background apps unless they are given both '
+        'auto-startup and permission to keep running in the background.',
+    steps: [
+      OemStep(
+        title: 'Allow Auto-startup',
+        path: 'Settings → Apps → App management → LocReminder → Allow Auto-startup',
+      ),
+      OemStep(
+        title: 'Allow background running',
+        path: 'Settings → Battery → App battery management → LocReminder → Allow background running',
+      ),
+      OemStep(
+        title: 'Lock the app in Recents',
+        path: 'Open Recents, tap the menu on the LocReminder card, tap Lock',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['vivo', 'iqoo'],
+    name: 'Vivo / iQOO (Funtouch / OriginOS)',
+    note: 'Funtouch treats steady background location as "high power '
+        'consumption" and cuts it off unless the app is allowed explicitly.',
+    steps: [
+      OemStep(
+        title: 'Allow high background power consumption',
+        path: 'Settings → Battery → High background power consumption → LocReminder',
+      ),
+      OemStep(
+        title: 'Allow autostart',
+        path: 'Settings → Apps → Permission manager → Autostart → LocReminder',
+      ),
+      OemStep(
+        title: 'Lock the app in Recents',
+        path: 'Open Recents, swipe down on the LocReminder card to lock it',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['oneplus'],
+    name: 'OnePlus (OxygenOS)',
+    note: 'OxygenOS has a second layer of "advanced" optimization on top of '
+        'the standard battery setting, and it needs turning off separately.',
+    steps: [
+      OemStep(
+        title: 'Turn off battery optimization',
+        path: "Settings → Apps → LocReminder → Battery → Don't optimize",
+      ),
+      OemStep(
+        title: 'Allow auto-launch',
+        path: 'Settings → Apps → Auto-launch → LocReminder',
+      ),
+      OemStep(
+        title: 'Disable Advanced optimization / Deep optimization',
+        path: 'Settings → Battery → More settings → turn off Advanced optimization',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['huawei'],
+    name: 'Huawei (EMUI / HarmonyOS)',
+    note: 'EMUI resets background permissions during its own maintenance, so '
+        'it is worth re-checking these after a system update.',
+    steps: [
+      OemStep(
+        title: 'Set app launch to Manage manually',
+        path: 'Settings → Battery → App launch → LocReminder → Manage manually → enable all three',
+      ),
+      OemStep(
+        title: 'Turn off Power Genie / battery optimization',
+        path: 'Settings → Battery → More battery settings',
+      ),
+      OemStep(
+        title: 'Lock the app in Recents',
+        path: 'Open Recents, swipe down on the LocReminder card to lock it',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['honor'],
+    name: 'Honor (MagicOS)',
+    note: 'MagicOS keeps Huawei-style app-launch controls. Its menus moved '
+        'after Honor split from Huawei, so the wording may differ slightly '
+        'from older guides.',
+    steps: [
+      OemStep(
+        title: 'Set app launch to Manage manually',
+        path: 'Settings → Battery → App launch → LocReminder → Manage manually → enable all three',
+      ),
+      OemStep(
+        title: 'Turn off battery optimization',
+        path: 'Settings → Apps → LocReminder → Battery → No restrictions',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['meizu'],
+    name: 'Meizu (Flyme)',
+    note: 'Flyme keeps its own standby and autostart lists, separate from '
+        'Android\'s battery settings.',
+    steps: [
+      OemStep(
+        title: 'Allow autostart',
+        path: 'Settings → Apps → Permission management → Autostart → LocReminder',
+      ),
+      OemStep(
+        title: 'Turn off standby management',
+        path: 'Settings → Battery → Standby management → LocReminder → allow background',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['asus'],
+    name: 'Asus (ZenUI)',
+    note: 'ZenUI ships a Mobile Manager app that manages autostart separately '
+        'from Android\'s own settings.',
+    steps: [
+      OemStep(
+        title: 'Allow auto-start',
+        path: 'Mobile Manager → Auto-start Manager → LocReminder → Allow',
+      ),
+      OemStep(
+        title: 'Set battery usage to Unrestricted',
+        path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['tecno', 'infinix', 'itel'],
+    name: 'Transsion (HiOS / XOS)',
+    note: 'These devices ship a Phone Master app whose power saving overrides '
+        'Android\'s own battery settings.',
+    steps: [
+      OemStep(
+        title: 'Allow autostart',
+        path: 'Settings → Apps → LocReminder → Autostart',
+      ),
+      OemStep(
+        title: 'Set battery to No restrictions',
+        path: 'Settings → Battery → Background power consumption → LocReminder',
+      ),
+      OemStep(
+        title: 'Add to the protected list in Phone Master',
+        path: 'Phone Master → Power saving → Protected apps → LocReminder',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['lenovo', 'zte', 'nubia', 'letv', 'leeco'],
+    name: 'Lenovo / ZTE / LeEco',
+    note: 'These skins keep a background autostart list separate from '
+        'Android\'s battery settings; an app missing from it gets stopped.',
+    steps: [
+      OemStep(
+        title: 'Allow autostart / background running',
+        path: 'Settings → Apps → LocReminder → Autostart (or Background settings)',
+      ),
+      OemStep(
+        title: 'Set battery usage to Unrestricted',
+        path: 'Settings → Battery → LocReminder → Unrestricted',
+      ),
+    ],
+  ),
+  // Vendors that follow stock Android closely. Listed so the app can name
+  // them and say plainly that no extra work is needed, rather than nagging.
+  _VendorProfile(
+    keys: ['google', 'motorola', 'lge', 'sony', 'nokia', 'hmd', 'nothing', 'fairphone'],
+    name: 'stock Android',
+    aggressive: false,
+    note: 'This manufacturer follows Android\'s standard background rules, so '
+        'the permissions above should be all you need.',
+  ),
+];
 
 /// Works out which vendor-specific background restrictions apply to this
 /// exact phone, and what the user must do about them.
@@ -65,169 +309,42 @@ class OemService {
     final manufacturer = (info['manufacturer'] as String? ?? '').trim();
     final model = (info['model'] as String? ?? '').trim();
     final sdkInt = (info['sdkInt'] as int?) ?? 0;
-    final needsExtraSetup = (info['needsExtraSetup'] as bool?) ?? false;
     final key = manufacturer.toLowerCase();
+
+    final vendor = _lookup(key);
 
     return DeviceProfile(
       manufacturer: manufacturer,
       model: model,
       sdkInt: sdkInt,
-      needsExtraSetup: needsExtraSetup,
-      vendorName: _vendorName(key),
-      steps: _stepsFor(key),
-      note: _noteFor(key),
+      // Driven by whether we actually have advice to give, so the app can
+      // never warn about a device and then have nothing useful to show.
+      needsExtraSetup: vendor != null && vendor.aggressive && vendor.steps.isNotEmpty,
+      vendorName: vendor?.name ?? _fallbackName(key),
+      steps: vendor?.steps ?? const [],
+      note: vendor?.note ?? _fallbackNote,
     );
   }
 
   Future<bool> openAutoStartSettings() => _nativeBridge.openAutoStartSettings();
   Future<bool> openAppSettings() => _nativeBridge.openAppSettings();
 
-  String _vendorName(String key) {
-    if (key.contains('xiaomi') || key.contains('redmi') || key.contains('poco')) {
-      return 'Xiaomi (MIUI / HyperOS)';
+  _VendorProfile? _lookup(String key) {
+    if (key.isEmpty) return null;
+    for (final profile in _vendorProfiles) {
+      if (profile.keys.any(key.contains)) return profile;
     }
-    if (key.contains('samsung')) return 'Samsung (One UI)';
-    if (key.contains('oppo') || key.contains('realme')) return 'Oppo / Realme (ColorOS)';
-    if (key.contains('vivo') || key.contains('iqoo')) return 'Vivo / iQOO (Funtouch / OriginOS)';
-    if (key.contains('oneplus')) return 'OnePlus (OxygenOS)';
-    if (key.contains('huawei') || key.contains('honor')) return 'Huawei / Honor (EMUI / MagicOS)';
-    if (key.contains('tecno') || key.contains('infinix') || key.contains('itel')) {
-      return 'Transsion (HiOS / XOS)';
-    }
+    return null;
+  }
+
+  String _fallbackName(String key) {
     if (key.isEmpty) return 'your device';
     return key[0].toUpperCase() + key.substring(1);
   }
 
-  List<OemStep> _stepsFor(String key) {
-    if (key.contains('xiaomi') || key.contains('redmi') || key.contains('poco')) {
-      return const [
-        OemStep(
-          title: 'Turn on Autostart',
-          path: 'Settings → Apps → Manage apps → LocReminder → Autostart',
-        ),
-        OemStep(
-          title: 'Set battery saver to No restrictions',
-          path: 'Settings → Apps → Manage apps → LocReminder → Battery saver → No restrictions',
-        ),
-        OemStep(
-          title: 'Lock the app in Recents',
-          path: 'Open Recents, pull down on the LocReminder card, tap the padlock',
-        ),
-      ];
-    }
-    if (key.contains('samsung')) {
-      return const [
-        OemStep(
-          title: 'Add to Never sleeping apps',
-          path: 'Settings → Battery → Background usage limits → Never sleeping apps → add LocReminder',
-        ),
-        OemStep(
-          title: 'Make sure it is not in Sleeping or Deep sleeping apps',
-          path: 'Settings → Battery → Background usage limits → Sleeping apps',
-        ),
-        OemStep(
-          title: 'Set battery usage to Unrestricted',
-          path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
-        ),
-      ];
-    }
-    if (key.contains('oppo') || key.contains('realme')) {
-      return const [
-        OemStep(
-          title: 'Allow Auto-startup',
-          path: 'Settings → Apps → App management → LocReminder → Allow Auto-startup',
-        ),
-        OemStep(
-          title: 'Allow background running',
-          path: 'Settings → Battery → App battery management → LocReminder → Allow background running',
-        ),
-        OemStep(
-          title: 'Lock the app in Recents',
-          path: 'Open Recents, tap the menu on the LocReminder card, tap Lock',
-        ),
-      ];
-    }
-    if (key.contains('vivo') || key.contains('iqoo')) {
-      return const [
-        OemStep(
-          title: 'Allow high background power consumption',
-          path: 'Settings → Battery → High background power consumption → LocReminder',
-        ),
-        OemStep(
-          title: 'Allow autostart',
-          path: 'Settings → Apps → Permission manager → Autostart → LocReminder',
-        ),
-        OemStep(
-          title: 'Lock the app in Recents',
-          path: 'Open Recents, swipe down on the LocReminder card to lock it',
-        ),
-      ];
-    }
-    if (key.contains('oneplus')) {
-      return const [
-        OemStep(
-          title: 'Turn off battery optimisation',
-          path: "Settings → Apps → LocReminder → Battery → Don't optimise",
-        ),
-        OemStep(
-          title: 'Allow auto-launch',
-          path: 'Settings → Apps → Auto-launch → LocReminder',
-        ),
-        OemStep(
-          title: 'Disable Advanced optimisation / Deep optimisation',
-          path: 'Settings → Battery → More settings → turn off Advanced optimisation',
-        ),
-      ];
-    }
-    if (key.contains('huawei') || key.contains('honor')) {
-      return const [
-        OemStep(
-          title: 'Set app launch to Manage manually',
-          path: 'Settings → Battery → App launch → LocReminder → Manage manually → enable all three',
-        ),
-        OemStep(
-          title: 'Turn off Power Genie / battery optimisation',
-          path: 'Settings → Battery → More battery settings',
-        ),
-      ];
-    }
-    if (key.contains('tecno') || key.contains('infinix') || key.contains('itel')) {
-      return const [
-        OemStep(
-          title: 'Allow autostart',
-          path: 'Settings → Apps → LocReminder → Autostart',
-        ),
-        OemStep(
-          title: 'Set battery to No restrictions',
-          path: 'Settings → Battery → Background power consumption → LocReminder',
-        ),
-      ];
-    }
-    return const [
-      OemStep(
-        title: 'Allow unrestricted battery usage',
-        path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
-      ),
-    ];
-  }
-
-  String _noteFor(String key) {
-    if (key.contains('samsung')) {
-      return 'Samsung puts apps you have not opened for a few days into '
-          '"sleeping", which stops their alarms. Adding LocReminder to '
-          '"Never sleeping apps" is the setting that prevents this.';
-    }
-    if (key.contains('xiaomi') || key.contains('redmi') || key.contains('poco')) {
-      return 'MIUI blocks autostart for apps by default and will not restart '
-          'background work without it. Autostart plus "No restrictions" are '
-          'both needed — one alone is not enough.';
-    }
-    if (key.contains('huawei') || key.contains('honor')) {
-      return 'EMUI resets background permissions during its own maintenance, '
-          'so it is worth re-checking these after a system update.';
-    }
-    return 'These vendor settings sit on top of Android\'s own battery '
-        'controls. Granting the in-app permissions alone is not enough on '
-        'this device.';
-  }
+  static const _fallbackNote =
+      'We have no specific notes for this manufacturer. If an alarm is ever '
+      'late, look for an "autostart", "background activity" or "unrestricted '
+      'battery" setting for LocReminder — most Android skins have one under '
+      'some name.';
 }

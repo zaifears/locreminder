@@ -119,6 +119,9 @@ object OemHelper {
         }
     }
 
+    // Kept in step with the vendor table in oem_service.dart, which is what
+    // actually decides whether the user is shown extra steps. This list only
+    // gates the native side's own checks.
     private val AGGRESSIVE_VENDORS = listOf(
         "xiaomi", "redmi", "poco",
         "samsung",
@@ -126,6 +129,8 @@ object OemHelper {
         "vivo", "iqoo",
         "oneplus",
         "huawei", "honor",
-        "meizu", "asus", "letv", "tecno", "infinix", "itel",
+        "meizu", "asus",
+        "tecno", "infinix", "itel",
+        "lenovo", "zte", "nubia", "letv", "leeco",
     )
 }

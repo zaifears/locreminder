@@ -79,7 +79,7 @@ and automatic updates.
 
 | | |
 |---|---|
-| **Latest release** | `v1.6.0` |
+| **Latest release** | `v1.6.1` |
 | **Requirements** | Android 6.0 or newer |
 | **Price** | Free. No ads, no accounts, no in-app purchases, no tracking. |
 

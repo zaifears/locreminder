@@ -143,7 +143,7 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                       ),
                       const Divider(height: 1),
                       _CheckRow(
-                        title: 'Battery optimisation off',
+                        title: 'Battery optimization off',
                         granted: permissions.batteryOptimizationDisabled,
                         onFix: () async {
                           await _permissionService.requestDisableBatteryOptimization();

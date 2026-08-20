@@ -3,6 +3,27 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.1] — 2026-08-20
+
+### Fixed
+- The About screen still said the app "uses Android's built-in geofencing",
+  which stopped being true in 1.6.0 when geofencing was removed. It now
+  describes what the app actually does and notes it carries no Google
+  services.
+- Device setup guidance had drifted: the native side flagged Meizu, Asus
+  and LeEco as needing extra steps while the UI had none to show them, so
+  those users saw a warning with only generic advice. Vendor names, steps
+  and notes now come from a single table, so that cannot recur.
+- Mixed British and American spellings of "optimization" across screens;
+  now consistently American, matching Android's own English settings
+  labels so the wording matches what users are hunting for.
+
+### Added
+- Honor listed separately from Huawei — its menus diverged after the split.
+- Guidance for Meizu (Flyme), Asus (ZenUI), and Lenovo / ZTE / LeEco.
+- Stock-Android manufacturers (Google, Motorola, Sony, Nokia, Nothing,
+  Fairphone) are now recognised by name and told no extra setup is needed.
+
 ## [1.6.0] — 2026-08-19
 
 ### Changed
@@ -100,6 +121,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   with looping audio on the alarm channel, full-screen lock-screen alarm,
   and geofence restoration after reboot.
 
+[1.6.1]: https://github.com/zaifears/locreminder/releases/tag/v1.6.1
 [1.6.0]: https://github.com/zaifears/locreminder/releases/tag/v1.6.0
 [1.5.0]: https://github.com/zaifears/locreminder/releases/tag/v1.5.0
 [1.4.0]: https://github.com/zaifears/locreminder/releases/tag/v1.4.0
