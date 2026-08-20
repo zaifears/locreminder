@@ -90,3 +90,30 @@ jobs:
         with:
           files: build/app/outputs/flutter-apk/*.apk
           generate_release_notes: true
+
+      # Keeps the README's download button serving the current build without
+      # anyone having to remember to do it. Only ever one APK is tracked: the
+      # new one overwrites the old in place, so history gains one ~53MB blob
+      # per release rather than one per release *plus* every predecessor.
+      - name: Publish the APK for direct download
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk apk/locreminder.apk
+
+          # Nothing to do when the build is byte-identical to what's already
+          # published, which is the common case for doc-only pushes.
+          if git diff --quiet -- apk/locreminder.apk; then
+            echo "APK unchanged; nothing to publish."
+            exit 0
+          fi
+
+          version=$(grep -m1 '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//')
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apk/locreminder.apk
+          git commit -m "Publish the v${version} APK for direct download [skip ci]"
+
+          # Another push may have landed while this build ran; rebase rather
+          # than fail, since this commit only ever touches the one binary.
+          git pull --rebase origin main
+          git push origin HEAD:main

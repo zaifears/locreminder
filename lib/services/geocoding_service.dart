@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/place_result.dart';
+import 'app_version.dart';
 
 /// Result of a place search: either matches (possibly none) or an outright
 /// failure to reach the service, which the UI must word differently.
@@ -23,10 +24,17 @@ class SearchOutcome {
 /// typing, and [_throttle] enforces the floor as a backstop.
 class GeocodingService {
   static const _host = 'nominatim.openstreetmap.org';
-  static const _userAgent = 'LocReminder/1.0 (https://github.com/zaifears/locreminder)';
   static const _minInterval = Duration(seconds: 1);
 
   DateTime? _lastRequest;
+
+  /// Nominatim's policy asks that this identify the app accurately, so the
+  /// version comes from the package rather than a literal — the previous one
+  /// silently said 1.0 while the app shipped 1.6.x.
+  Future<Map<String, String>> _headers() async => {
+        'User-Agent':
+            'LocReminder/${await AppVersion.plain()} (https://github.com/zaifears/locreminder)',
+      };
 
   Future<void> _throttle() async {
     final last = _lastRequest;
@@ -55,7 +63,7 @@ class GeocodingService {
 
     try {
       final response = await http
-          .get(uri, headers: {'User-Agent': _userAgent})
+          .get(uri, headers: await _headers())
           .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return const SearchOutcome.failure();
       final decoded = jsonDecode(response.body) as List<dynamic>;
@@ -82,7 +90,7 @@ class GeocodingService {
 
     try {
       final response = await http
-          .get(uri, headers: {'User-Agent': _userAgent})
+          .get(uri, headers: await _headers())
           .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return null;
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;

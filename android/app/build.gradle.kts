@@ -44,6 +44,16 @@ android {
         versionName = flutter.versionName
     }
 
+    // AGP otherwise stamps a dependency-metadata blob into the APK's signing
+    // block for Play's benefit. It is encrypted to a Google key, so nobody
+    // else — including F-Droid, and including us — can read or reproduce it,
+    // which both defeats reproducible builds and puts unauditable proprietary
+    // data in a package that claims to be entirely free software.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
