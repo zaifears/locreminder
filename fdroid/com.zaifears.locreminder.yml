@@ -16,9 +16,9 @@ RepoType: git
 Repo: https://github.com/zaifears/locreminder.git
 
 Builds:
-  - versionName: 1.6.0
-    versionCode: 7
-    commit: v1.6.0
+  - versionName: 1.6.1
+    versionCode: 8
+    commit: v1.6.1
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
@@ -30,16 +30,15 @@ Builds:
       - windows
     prebuild:
       - sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
-    scanignore:
-      - android/app/build.gradle.kts
     scandelete:
       - .pub-cache
     build:
+      - export PUB_CACHE=$PWD/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get
       - $$flutter$$/bin/flutter build apk --release
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.6.0
-CurrentVersionCode: 7
+CurrentVersion: 1.6.1
+CurrentVersionCode: 8
