@@ -65,29 +65,30 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
 
 ## 📱 Download
 
-**LocReminder is published through F-Droid**, the free and open-source
-Android app store. Installing from there means signed, reproducible builds
-and automatic updates.
+**LocReminder is on its way to F-Droid**, the free and open-source Android
+app store — submission is in review. Until that listing goes live, grab
+the APK directly below.
 
 <div align="center">
   <br/>
-  <a href="https://f-droid.org/packages/com.zaifears.locreminder/">
-    <img src="https://img.shields.io/badge/📥_Get_LocReminder_on-F--Droid-1976D2?style=for-the-badge&logo=fdroid&logoColor=white" alt="Get it on F-Droid" />
+  <a href="https://github.com/zaifears/locreminder/raw/main/apk/locreminder.apk">
+    <img src="https://img.shields.io/badge/⬇️_Download-APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" />
   </a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/📥_F--Droid-Coming_soon-9E9E9E?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid: coming soon" />
   <br/><br/>
 </div>
 
 | | |
 |---|---|
-| **Latest release** | `v1.6.1` |
+| **Latest release** | `v1.6.3` |
 | **Requirements** | Android 6.0 or newer |
 | **Price** | Free. No ads, no accounts, no in-app purchases, no tracking. |
 
-> ⚠️ **APKs in [GitHub Releases](https://github.com/zaifears/locreminder/releases) are test builds only.**
-> They are signed with a different key from the F-Droid version, so Android
-> treats them as a separate app — you would have to uninstall one (losing
-> your saved alarms) to move to the other. Unless you are testing a change,
-> install from F-Droid.
+> ⚠️ **This APK is a test build, signed with a different key from the
+> eventual F-Droid version.** Once F-Droid is live, installing from there
+> will require uninstalling this one first (losing your saved alarms).
+> Full release notes: [CHANGELOG.md](CHANGELOG.md).
 
 <br/>
 
