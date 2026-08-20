@@ -38,8 +38,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<LocationAlarm> _alarms = [];
   LatLng _initialPosition = _defaultPosition;
   LatLng? _userLocation;
+  double? _userAccuracy;
   PermissionStatusSummary? _permissions;
   bool _loading = true;
+  bool _locating = false;
   bool _alarmRinging = false;
 
   @override
@@ -106,22 +108,63 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Updates the blue dot, and on [recenter] moves the map to it.
+  ///
+  /// A tap on the locate button asks for a *fresh* fix: the cached one the
+  /// background refresh uses can be hours stale or missing entirely, which
+  /// made the button appear to do nothing at all right after a reboot.
   Future<void> _locateUser({bool recenter = false}) async {
+    if (recenter && _locating) return;
+    if (recenter) setState(() => _locating = true);
+
     try {
-      final fix = await _nativeBridge.getLastKnownLocation();
+      final fix = recenter
+          ? await _nativeBridge.getCurrentLocation()
+          : await _nativeBridge.getLastKnownLocation();
       final latitude = fix?['latitude'] as double?;
       final longitude = fix?['longitude'] as double?;
-      if (latitude == null || longitude == null || !mounted) return;
+
+      if (latitude == null || longitude == null) {
+        if (recenter && mounted) await _reportLocateFailure();
+        return;
+      }
+      if (!mounted) return;
 
       final located = LatLng(latitude, longitude);
       setState(() {
         _userLocation = located;
+        _userAccuracy = (fix?['accuracy'] as num?)?.toDouble();
         _initialPosition = located;
       });
       if (recenter) _mapController.move(located, 15);
     } catch (_) {
       // Keep the default position; the user can still pan and search.
+      if (recenter && mounted) await _reportLocateFailure();
+    } finally {
+      if (recenter && mounted) setState(() => _locating = false);
     }
+  }
+
+  /// Says why locating failed, and offers the fix when it is the usual one.
+  Future<void> _reportLocateFailure() async {
+    final locationOn = await _nativeBridge.isLocationEnabled();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          locationOn
+              ? "Couldn't get a location fix. Try again outdoors."
+              : 'Location is switched off.',
+        ),
+        action: locationOn
+            ? null
+            : SnackBarAction(
+                label: 'Turn on',
+                onPressed: _nativeBridge.openLocationSettings,
+              ),
+      ),
+    );
   }
 
   /// If an alarm fired while the app wasn't running, the native side already
@@ -359,19 +402,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  List<CircleMarker> get _circles => _alarms
-      .where((a) => a.isActive)
-      .map(
-        (alarm) => CircleMarker(
-          point: LatLng(alarm.latitude, alarm.longitude),
-          radius: alarm.radiusMeters,
+  List<CircleMarker> get _circles {
+    final circles = _alarms
+        .where((a) => a.isActive)
+        .map(
+          (alarm) => CircleMarker(
+            point: LatLng(alarm.latitude, alarm.longitude),
+            radius: alarm.radiusMeters,
+            useRadiusInMeter: true,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+            borderColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+            borderStrokeWidth: 2,
+          ),
+        )
+        .toList();
+
+    // How sure the fix actually is. Without this the dot claims a precision
+    // it may not have — indoors it can be hundreds of metres out, which
+    // matters here, because that is also roughly the scale of the radius
+    // people pick. Below the dot's own size it would just be noise.
+    final here = _userLocation;
+    final accuracy = _userAccuracy;
+    if (here != null && accuracy != null && accuracy > 30) {
+      circles.insert(
+        0,
+        CircleMarker(
+          point: here,
+          radius: accuracy,
           useRadiusInMeter: true,
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-          borderColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-          borderStrokeWidth: 2,
+          color: Colors.blueAccent.withValues(alpha: 0.10),
+          borderColor: Colors.blueAccent.withValues(alpha: 0.35),
+          borderStrokeWidth: 1,
         ),
-      )
-      .toList();
+      );
+    }
+    return circles;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -429,8 +495,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             FloatingActionButton.small(
               heroTag: 'locate',
               tooltip: 'Centre on my location',
-              onPressed: () => _locateUser(recenter: true),
-              child: const Icon(Icons.my_location),
+              // Getting a real fix can take a few seconds, so the button has
+              // to show it is working rather than looking inert.
+              onPressed: _locating ? null : () => _locateUser(recenter: true),
+              child: _locating
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location),
             ),
             const SizedBox(height: 12),
             FloatingActionButton.extended(

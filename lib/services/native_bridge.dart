@@ -143,10 +143,20 @@ class NativeBridge {
     return _channel.invokeMethod<void>('openLocationSettings');
   }
 
-  /// Latest fix the platform already holds, used to centre the map. Returns
-  /// null when nothing is cached rather than blocking on a fresh fix.
+  /// Latest fix the platform already holds. Returns instantly, but may be
+  /// null, and what it returns can be hours old — good enough to pick an
+  /// opening map position, not to answer "where am I now".
+  ///
+  /// Returns `{latitude, longitude, accuracy, time}`.
   Future<Map<Object?, Object?>?> getLastKnownLocation() {
     return _channel.invokeMapMethod<Object?, Object?>('getLastKnownLocation');
+  }
+
+  /// Asks the platform for a fresh fix, falling back to the cached one if
+  /// none arrives within a few seconds. Takes noticeably longer than
+  /// [getLastKnownLocation], so callers should show progress.
+  Future<Map<Object?, Object?>?> getCurrentLocation() {
+    return _channel.invokeMapMethod<Object?, Object?>('getCurrentLocation');
   }
 
   Future<bool> isAlarmRinging() async {
