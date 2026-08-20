@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 
 object NotificationHelper {
@@ -14,6 +15,7 @@ object NotificationHelper {
     const val WATCH_CHANNEL_ID = "locreminder_watch_channel"
     const val FALLBACK_NOTIFICATION_ID = 4202
     const val WATCH_STOPPED_NOTIFICATION_ID = 4204
+    const val LOCATION_OFF_NOTIFICATION_ID = 4205
 
     fun ensureAlarmChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -123,6 +125,42 @@ object NotificationHelper {
             .build()
 
         NotificationManagerCompatShim.notify(context, WATCH_STOPPED_NOTIFICATION_ID, notification)
+    }
+
+    /**
+     * Tells the user that location is switched off at the OS level while an
+     * alarm is armed. The watch service cannot register with any provider in
+     * that state, so nothing will ever trigger — and because the service is
+     * still running with its usual notification, the app otherwise looks
+     * perfectly armed. Taps straight through to the system location screen.
+     */
+    fun postLocationOffNotification(context: Context) {
+        ensureAlarmChannel(context)
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            3,
+            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
+            .setContentTitle("Location is off — your alarm can't ring")
+            .setContentText("Tap to turn location on.")
+            .setSmallIcon(R.drawable.ic_notification_alarm)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompatShim.notify(context, LOCATION_OFF_NOTIFICATION_ID, notification)
+    }
+
+    fun clearLocationOffNotification(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        manager.cancel(LOCATION_OFF_NOTIFICATION_ID)
     }
 }
 

@@ -32,8 +32,12 @@ class WatchdogReceiver : BroadcastReceiver() {
             return
         }
 
-        if (!LocationWatchService.isWatching) {
-            Log.w(TAG, "Watcher not running while ${armed.size} alarm(s) armed; restarting")
+        // A watcher that is alive but receiving nothing is as useless as one
+        // that was killed — that is the state left behind when location was
+        // off at arming time — so both cases get the same restart, which
+        // re-attempts provider registration.
+        if (!LocationWatchService.isWatching || !LocationWatchService.isReceivingUpdates) {
+            Log.w(TAG, "Watcher not delivering fixes while ${armed.size} alarm(s) armed; restarting")
             try {
                 ContextCompat.startForegroundService(
                     context,

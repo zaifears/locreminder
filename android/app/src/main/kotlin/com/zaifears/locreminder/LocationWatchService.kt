@@ -49,9 +49,16 @@ class LocationWatchService : Service() {
         @Deprecated("Deprecated in Java")
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
 
-        override fun onProviderEnabled(provider: String) = Unit
+        // A provider coming back (user re-enabling GPS, leaving airplane mode)
+        // is the cue to re-register: the set of usable providers has changed,
+        // and on the way in it may have been empty.
+        override fun onProviderEnabled(provider: String) {
+            requestUpdates(currentIntervalMillis)
+        }
 
-        override fun onProviderDisabled(provider: String) = Unit
+        override fun onProviderDisabled(provider: String) {
+            requestUpdates(currentIntervalMillis)
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -77,9 +84,12 @@ class LocationWatchService : Service() {
         }
 
         startForeground(NOTIFICATION_ID, buildNotification())
+        // Deliberately reported even when registration fails. The service is
+        // alive either way; what the watchdog needs to know is whether fixes
+        // are actually arriving, which isReceivingUpdates carries separately.
+        isWatching = true
         requestUpdates(currentIntervalMillis)
 
-        isWatching = true
         WatchdogReceiver.schedule(this)
         return START_STICKY
     }
@@ -115,7 +125,15 @@ class LocationWatchService : Service() {
     private fun requestUpdates(intervalMillis: Long) {
         val providers = activeProviders()
         if (providers.isEmpty()) {
+            // Location is switched off at the OS level. Nothing can be
+            // registered, so no callback will ever arrive to recover on its
+            // own — the watchdog's retry is the only way back, and until then
+            // the user must be told, or they will trust an alarm that cannot
+            // possibly ring.
             Log.w(TAG, "No location provider is enabled; cannot watch")
+            isReceivingUpdates = false
+            updateNotification()
+            NotificationHelper.postLocationOffNotification(this)
             return
         }
 
@@ -131,11 +149,18 @@ class LocationWatchService : Service() {
                 )
             }
             currentIntervalMillis = intervalMillis
+            if (!isReceivingUpdates) {
+                isReceivingUpdates = true
+                NotificationHelper.clearLocationOffNotification(this)
+                updateNotification()
+            }
         } catch (e: SecurityException) {
             Log.e(TAG, "Location permission missing; stopping watch", e)
+            isReceivingUpdates = false
             stopWatching()
         } catch (e: Exception) {
             Log.e(TAG, "Could not request location updates", e)
+            isReceivingUpdates = false
         }
     }
 
@@ -160,10 +185,17 @@ class LocationWatchService : Service() {
             val distance = results[0].toDouble()
 
             if (distance <= entry.radius) {
-                // Arrival means crossing *into* the radius. Being inside
-                // already when watching starts is not an arrival, so an alarm
-                // set for where you're currently standing doesn't ring at once.
-                if (!hadFirstFix || entry.id in suppressedUntilExit) {
+                // A fix far vaguer than the radius cannot actually place the
+                // user inside it — a cell-tower fix can be kilometres out, and
+                // acting on one rings the alarm nowhere near the stop. Wait for
+                // a sharper fix instead; one is normally seconds away, since
+                // proximity has already tightened the polling interval.
+                if (!canConfirmArrival(location, entry.radius)) {
+                    Log.i(TAG, "Ignoring ${location.accuracy}m fix for ${entry.label}")
+                } else if (!hadFirstFix || entry.id in suppressedUntilExit) {
+                    // Arrival means crossing *into* the radius. Being inside
+                    // already when watching starts is not an arrival, so an
+                    // alarm set for where you're standing doesn't ring at once.
                     suppressedUntilExit.add(entry.id)
                 } else {
                     triggerAlarm(entry)
@@ -185,6 +217,21 @@ class LocationWatchService : Service() {
             updateNotification()
             adaptIntervalTo(distance)
         }
+    }
+
+    /**
+     * Whether [location] is precise enough to say the user is inside a
+     * [radiusMetres] circle.
+     *
+     * The floor matters as much as the ratio: with a tight radius on a phone
+     * indoors, insisting on radius-grade accuracy could hold the alarm back
+     * indefinitely, and a missed stop is the worse failure. Anything up to
+     * [ACCURACY_FLOOR_METRES] is therefore accepted regardless of radius,
+     * which still excludes the kilometre-scale fixes that cause false alarms.
+     */
+    private fun canConfirmArrival(location: Location, radiusMetres: Double): Boolean {
+        if (!location.hasAccuracy()) return true
+        return location.accuracy <= maxOf(radiusMetres, ACCURACY_FLOOR_METRES)
     }
 
     /**
@@ -223,6 +270,8 @@ class LocationWatchService : Service() {
 
     private fun stopWatching() {
         isWatching = false
+        isReceivingUpdates = false
+        NotificationHelper.clearLocationOffNotification(this)
         try {
             locationManager.removeUpdates(locationListener)
         } catch (_: Exception) {
@@ -239,6 +288,7 @@ class LocationWatchService : Service() {
 
     override fun onDestroy() {
         isWatching = false
+        isReceivingUpdates = false
         try {
             locationManager.removeUpdates(locationListener)
         } catch (_: Exception) {
@@ -270,6 +320,7 @@ class LocationWatchService : Service() {
         val distance = nearestDistance
         val label = nearestLabel
         val text = when {
+            !isReceivingUpdates -> "Turn on location — the alarm can't ring without it"
             label == null || distance == null ->
                 if (armedCount == 1) "1 alarm armed" else "$armedCount alarms armed"
             distance >= 1000 -> "%.1f km from %s".format(distance / 1000, label)
@@ -277,7 +328,9 @@ class LocationWatchService : Service() {
         }
 
         return NotificationCompat.Builder(this, NotificationHelper.WATCH_CHANNEL_ID)
-            .setContentTitle("Watching for your destination")
+            .setContentTitle(
+                if (isReceivingUpdates) "Watching for your destination" else "Not watching",
+            )
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_notification_alarm)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -296,8 +349,19 @@ class LocationWatchService : Service() {
         private const val VERY_FAR_INTERVAL_MILLIS = 300_000L
         private const val FAR_INTERVAL_MILLIS = 120_000L
         private const val NEAR_INTERVAL_MILLIS = 10_000L
+        private const val ACCURACY_FLOOR_METRES = 500.0
 
         var isWatching: Boolean = false
+            private set
+
+        /**
+         * Whether fixes are actually being delivered, as opposed to the
+         * service merely being alive. The two diverge exactly when location is
+         * switched off at the OS level: the service runs, holds its
+         * notification and looks armed, while nothing can ever trigger. Kept
+         * separate so the watchdog can tell that case apart and retry.
+         */
+        var isReceivingUpdates: Boolean = false
             private set
     }
 }

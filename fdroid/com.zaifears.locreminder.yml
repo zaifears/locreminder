@@ -16,9 +16,9 @@ RepoType: git
 Repo: https://github.com/zaifears/locreminder.git
 
 Builds:
-  - versionName: 1.6.4
-    versionCode: 11
-    commit: v1.6.4
+  - versionName: 1.6.5
+    versionCode: 12
+    commit: v1.6.5
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
@@ -38,5 +38,5 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.6.4
-CurrentVersionCode: 11
+CurrentVersion: 1.6.5
+CurrentVersionCode: 12

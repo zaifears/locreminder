@@ -3,6 +3,44 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.5] — 2026-08-20
+
+### Fixed
+- An alarm armed while location was switched off never watched anything.
+  `requestUpdates()` found no enabled provider and returned early, but
+  the service still reported itself as watching, so the watchdog saw a
+  healthy watcher and never retried — and with no listener registered,
+  the provider-enabled callback could not fire when location came back.
+  The service sat in the foreground claiming to watch while nothing
+  could trigger. "Alive" and "actually receiving fixes" are now tracked
+  separately, the watchdog restarts on either, the provider callbacks
+  are implemented, and the state is visible instead of silent.
+- Coarse fixes could ring the alarm kilometres early: arrival compared
+  raw distance and ignored `Location.accuracy` — already being read and
+  then discarded — so a cell-tower fix good to ~2 km satisfied a 200 m
+  radius. A fix must now be precise enough to place you inside the
+  radius, floored at 500 m, since a missed stop is worse than an early
+  one.
+- "Centre on my location" read only the platform's cached fix, which is
+  null after a reboot or fresh install — the button did nothing, with no
+  feedback — and otherwise could be hours out of date. It now requests a
+  real fix, falls back to the cache after 8 s, shows progress, and
+  explains failure.
+
+### Changed
+- The blue dot draws its actual accuracy, instead of a fixed-size circle
+  implying a precision it may not have at the same scale as the radius
+  people choose.
+- AGP's dependency-metadata block is no longer stamped into the APK. It
+  is encrypted to a Google key, so it is unreadable and unreproducible
+  by anyone else — unwanted in a package that is otherwise entirely free
+  software, and something F-Droid's scanner inspects.
+- The Nominatim `User-Agent` reports the real version; it had been
+  hardcoded to 1.0 since well before 1.6.x.
+- The README download button points at the GitHub Release asset rather
+  than a copy committed into the repository, which kept a ~53 MB binary
+  in history per release and could not be counted.
+
 ## [1.6.4] — 2026-08-20
 
 ### Fixed

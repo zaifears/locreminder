@@ -25,6 +25,13 @@ class MainActivity : FlutterActivity() {
     private companion object {
         const val REQUEST_PICK_RINGTONE = 8101
         const val REQUEST_PICK_AUDIO_FILE = 8102
+
+        /**
+         * How long to wait for a fresh fix before falling back to the cached
+         * one. Long enough for GPS to come up from cold outdoors, short enough
+         * that the button never feels stuck.
+         */
+        const val FRESH_FIX_TIMEOUT_MILLIS = 8_000L
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -81,6 +88,7 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "getLastKnownLocation" -> result.success(lastKnownLocation())
+                "getCurrentLocation" -> currentLocation(result)
                 "isIgnoringBatteryOptimizations" -> {
                     val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
                     result.success(powerManager.isIgnoringBatteryOptimizations(packageName))
@@ -378,11 +386,89 @@ class MainActivity : FlutterActivity() {
             if (best == null || location.time > best.time) best = location
         }
 
-        val found = best ?: return null
-        return mapOf(
-            "latitude" to found.latitude,
-            "longitude" to found.longitude,
-            "accuracy" to found.accuracy.toDouble(),
-        )
+        return (best ?: return null).asMap()
+    }
+
+    private fun android.location.Location.asMap(): Map<String, Any> = mapOf(
+        "latitude" to latitude,
+        "longitude" to longitude,
+        "accuracy" to accuracy.toDouble(),
+        // Lets the caller judge staleness. A cached fix can be hours old and
+        // hundreds of kilometres away, which is worth showing differently
+        // from a fix taken just now.
+        "time" to time,
+    )
+
+    /**
+     * Asks for a fresh fix, falling back to the cached one if nothing arrives
+     * in time.
+     *
+     * [lastKnownLocation] alone is not enough for "centre on my location":
+     * right after a boot or a fresh install the platform holds no fix at all
+     * and it returns null, leaving the button doing nothing at all — and when
+     * it does return something, that something can be badly out of date.
+     */
+    private fun currentLocation(result: MethodChannel.Result) {
+        val manager = getSystemService(LocationManager::class.java)
+        if (manager == null) {
+            result.success(null)
+            return
+        }
+
+        val providers = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
+            add(LocationManager.GPS_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+        }.filter { provider ->
+            runCatching { manager.isProviderEnabled(provider) }.getOrDefault(false)
+        }
+
+        if (providers.isEmpty()) {
+            result.success(lastKnownLocation())
+            return
+        }
+
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        var settled = false
+        // A one-slot holder rather than a `var`: settle() has to unregister
+        // the listener, but the listener has to call settle(), and Kotlin
+        // won't smart-cast a var captured by a closure back to non-null.
+        val registered = arrayOfNulls<android.location.LocationListener>(1)
+
+        fun settle(value: Map<String, Any>?) {
+            if (settled) return
+            settled = true
+            registered[0]?.let { runCatching { manager.removeUpdates(it) } }
+            result.success(value)
+        }
+
+        val giveUp = Runnable { settle(lastKnownLocation()) }
+
+        val listener = object : android.location.LocationListener {
+            override fun onLocationChanged(location: android.location.Location) {
+                handler.removeCallbacks(giveUp)
+                settle(location.asMap())
+            }
+
+            // Explicit for API 23; the interface defaults only exist from 30.
+            @Deprecated("Deprecated in Java")
+            override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) = Unit
+
+            override fun onProviderEnabled(provider: String) = Unit
+
+            override fun onProviderDisabled(provider: String) = Unit
+        }
+        registered[0] = listener
+
+        try {
+            for (provider in providers) {
+                manager.requestLocationUpdates(provider, 0L, 0f, listener, mainLooper)
+            }
+            handler.postDelayed(giveUp, FRESH_FIX_TIMEOUT_MILLIS)
+        } catch (e: SecurityException) {
+            settle(null)
+        } catch (e: Exception) {
+            settle(lastKnownLocation())
+        }
     }
 }
