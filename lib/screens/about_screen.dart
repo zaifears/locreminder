@@ -80,10 +80,11 @@ class _AboutScreenState extends State<AboutScreen> {
                 'A location-based alarm that wakes you when you approach your '
                 'destination — so you can sleep on the bus without missing '
                 'your stop.\n\n'
-                'It uses Android\'s built-in geofencing, so the alarm still '
-                'fires when the app is closed, and OpenStreetMap for maps, so '
-                'it needs no API keys or accounts. Your locations stay on your '
-                'phone.',
+                'It keeps watching in the background, so the alarm still fires '
+                'when the app is closed, and uses OpenStreetMap for maps, so '
+                'it needs no API keys or accounts.\n\n'
+                'Free software with no Google services, no ads and no '
+                'tracking. Your locations stay on your phone.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
               ),
             ),
