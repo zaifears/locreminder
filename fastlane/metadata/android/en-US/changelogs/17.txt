@@ -1,0 +1,3 @@
+Every package the app is built from is now pinned to an exact version,
+so two builds of the same source always use identical dependencies.
+Nothing about how the app behaves has changed.

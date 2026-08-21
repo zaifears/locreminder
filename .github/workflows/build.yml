@@ -55,8 +55,15 @@ jobs:
           channel: stable
           cache: true
 
+      # --enforce-lockfile, not a plain pub get. Without it, resolution is
+      # free to pick whatever versions it likes and silently rewrite the
+      # lockfile, which is how the committed copy drifted far enough to still
+      # name geolocator long after 1.6.0 removed it. F-Droid rebuilds with the
+      # lockfile enforced, so anything less here means the two sides can
+      # compile different dependency versions and never match.
+      # Regenerate deliberately via the refresh-lockfile workflow.
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Analyze
         run: flutter analyze

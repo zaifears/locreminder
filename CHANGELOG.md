@@ -3,6 +3,19 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.10] - 2026-08-21
+
+### Fixed
+- `pubspec.lock` had drifted badly out of step with `pubspec.yaml`. It still
+  named geolocator and google_maps_flutter, both dropped in 1.6.0 along with
+  Play Services, while missing flutter_map, latlong2, url_launcher,
+  package_info_plus and shared_preferences, which the app actually uses.
+  Nothing caught it because the build ran a plain `pub get`, which resolves
+  whatever it likes and rewrites the file in place, so the stale copy was
+  never read. Builds now enforce the lockfile, which pins every dependency
+  to an exact version and makes two builds of the same commit resolve
+  identically.
+
 ## [1.6.9] - 2026-08-21
 
 ### Changed
