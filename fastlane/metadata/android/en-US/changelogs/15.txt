@@ -1,0 +1,2 @@
+Adds a Free Palestine banner to the end of the About screen, linking to
+Revolutionary Papers. Nothing else about the app changed.

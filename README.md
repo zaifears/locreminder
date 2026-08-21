@@ -63,7 +63,7 @@
 
 | | |
 |---|---|
-| **Latest version** | `v1.6.7`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.6.8`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | About 53 MB |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
@@ -367,6 +367,16 @@ Map data and search © [OpenStreetMap](https://www.openstreetmap.org/copyright) 
   <br/><br/>
 
   <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">Download</a> &nbsp;·&nbsp; <a href="https://github.com/zaifears/locreminder/issues">Report an issue</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/">Website</a> &nbsp;·&nbsp; <a href="mailto:shahoriar.connect@gmail.com">Contact</a>
+
+  <br/><br/>
+
+  ---
+
+  <br/>
+
+  <a href="https://revolutionarypapers.org/journal/free-palestine/">
+    <img src="assets/images/free_palestine.png" alt="Free Palestine" width="420"/>
+  </a>
 
   <br/><br/>
 

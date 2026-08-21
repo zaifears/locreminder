@@ -3,6 +3,28 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.8] - 2026-08-21
+
+### Added
+- A Free Palestine banner at the end of the About screen, linking to
+  Revolutionary Papers. It sits on a light card rather than directly on the
+  surface, because the artwork is dark ink on a transparent background and
+  would otherwise be close to invisible in dark mode.
+
+No change to how alarms work in this version.
+
+## [1.6.7] - 2026-08-21
+
+### Added
+- Every tagged release is scanned by VirusTotal before the GitHub Release is
+  created, so a build that looks like malware is never published. The verdict,
+  a link to the full report and the APK's SHA-256 go into the release notes, a
+  [scan log](docs/SECURITY-SCAN.md) and a README badge. The hash is carried
+  alongside the verdict throughout: a clean report proves something about a
+  file, and only the hash proves it was the one you downloaded.
+
+No change to the app itself in this version.
+
 ## [1.6.6] — 2026-08-21
 
 ### Fixed

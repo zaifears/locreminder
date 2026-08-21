@@ -24,6 +24,8 @@ class _AboutScreenState extends State<AboutScreen> {
   static final _website = Uri.parse('https://shahoriar.bd/');
   static final _github = Uri.parse('https://github.com/zaifears/locreminder');
   static final _email = Uri.parse('mailto:shahoriar.connect@gmail.com');
+  static final _palestine =
+      Uri.parse('https://revolutionarypapers.org/journal/free-palestine/');
 
   Future<void> _open(BuildContext context, Uri uri) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -163,7 +165,39 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 28),
+          _buildPalestineBanner(context),
         ],
+      ),
+    );
+  }
+
+  /// The artwork is dark ink on a transparent background, so on a dark theme
+  /// it would all but vanish against the surface behind it. Painting a light
+  /// card underneath keeps it legible either way, and reads as a deliberate
+  /// frame rather than an accident.
+  Widget _buildPalestineBanner(BuildContext context) {
+    return Semantics(
+      link: true,
+      label: 'Free Palestine. Opens revolutionarypapers.org in your browser.',
+      child: Material(
+        color: const Color(0xFFF5F1EA),
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _open(context, _palestine),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Image.asset(
+              'assets/images/free_palestine.png',
+              fit: BoxFit.contain,
+              // Excluded from semantics because the Semantics wrapper above
+              // already describes the whole tappable banner; announcing it
+              // twice would just be noise for a screen reader.
+              excludeFromSemantics: true,
+            ),
+          ),
+        ),
       ),
     );
   }
