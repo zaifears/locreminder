@@ -1,0 +1,5 @@
+Downloads from GitHub are now scanned by VirusTotal before release.
+
+The result and the file's checksum are published with every release, so
+you can confirm the APK you downloaded is the exact file that was
+checked. Nothing about the app itself changed in this version.
