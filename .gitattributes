@@ -1,0 +1,11 @@
+# This repository is developed on Windows, where core.autocrlf rewrites
+# checked-out files to CRLF. That is harmless for anything git carries
+# end to end, but the F-Droid recipe is different: it is uploaded from the
+# working tree straight into fdroiddata, and fdroidserver's rewritemeta
+# check compares it byte-for-byte against LF-normalised output. A CRLF copy
+# fails that check on every single line, with no hint that line endings are
+# the cause. Pin it to LF so the file on disk is always the file to upload.
+fdroid/*.yml text eol=lf
+
+# Uploaded to the same place and read the same way.
+fastlane/metadata/**/*.txt text eol=lf
