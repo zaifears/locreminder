@@ -4,7 +4,7 @@
 
   <h1>LocReminder</h1>
 
-  <h3>An alarm that rings when you <em>arrive</em>, not at a set time</h3>
+  <h3>Helps you wake up at the right place</h3>
 
   <p><em>Sleep on the bus. Read your book. We'll wake you at your stop.</em></p>
 
@@ -12,6 +12,18 @@
 
   <a href="#-download"><img src="https://img.shields.io/badge/⬇️_Download-APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download"/></a>
   <a href="#-how-to-use-it"><img src="https://img.shields.io/badge/📖_How_to-Use_it-475569?style=for-the-badge" alt="How to use"/></a>
+
+  <br/><br/>
+
+  <img src="https://img.shields.io/badge/Android-6.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android"/>
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"/>
+  <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/Maps-OpenStreetMap-7EBC6F?style=flat-square&logo=openstreetmap&logoColor=white" alt="OpenStreetMap"/>
+  <br/>
+  <a href="docs/SECURITY-SCAN.md"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Fvirustotal.json&style=flat-square&logo=virustotal&logoColor=white" alt="VirusTotal scan result"/></a>
+  <img src="https://img.shields.io/badge/100%25-FOSS-blue?style=flat-square" alt="FOSS"/>
+  <img src="https://img.shields.io/badge/No_Ads-No_Tracking-blueviolet?style=flat-square" alt="No ads, no tracking"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Code-MIT-green?style=flat-square" alt="MIT licensed"/></a>
 
 </div>
 
@@ -21,46 +33,15 @@
 
 <br/>
 
-## 🛡️ Safe to install — and here's the proof
-
-Anyone can *claim* an app is safe. These are the parts you can check yourself.
-
-<div align="center">
-  <br/>
-  <a href="docs/SECURITY-SCAN.md">
-    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Fvirustotal.json&style=for-the-badge&logo=virustotal&logoColor=white&labelColor=394EFF" alt="VirusTotal scan result" height="32"/>
-  </a>
-  &nbsp;&nbsp;
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-16A34A?style=for-the-badge" alt="MIT licensed" height="32"/></a>
-  &nbsp;&nbsp;
-  <img src="https://img.shields.io/badge/Trackers-none-7C3AED?style=for-the-badge" alt="No trackers" height="32"/>
-  <br/><br/>
-</div>
+## 🛡️ Safe to install
 
 | | | |
 |---|---|---|
-| 🔬 | **Scanned by VirusTotal** | Every release is checked by ~70 antivirus engines **before** it's published — a build that looks like malware never reaches you. [See every scan, with checksums →](docs/SECURITY-SCAN.md) |
+| 🔬 | **Scanned by VirusTotal** | Every release gets checked by around 70 antivirus engines before it is published, so a build that looks like malware never reaches you. [See every scan, with checksums](docs/SECURITY-SCAN.md) |
 | ✍️ | **Signed and verifiable** | Each release carries LocReminder's own signature, and its SHA-256 checksum is published so you can confirm your download is the exact file that was scanned. |
-| 👀 | **Open source, all of it** | Every line is public and MIT licensed. Nothing is hidden, and you can build it yourself from the same source. |
-| 🚫 | **No tracking, no accounts, no server** | No analytics, no ads, no sign-up. There is nowhere for your locations to go — they never leave your phone. |
-| 🧩 | **No Google Play Services** | Runs on de-Googled phones, Huawei/HMS devices and LineageOS. Maps come from OpenStreetMap. |
-
-<br/>
-
-<details>
-<summary><strong>What's inside it</strong> (click to expand)</summary>
-
-<br/>
-
-| Part | What it uses |
-|---|---|
-| **App** | Flutter 3 · Dart 3 · Material 3 |
-| **Alarm engine** | Native Kotlin — keeps working with the app fully closed |
-| **Maps & search** | OpenStreetMap + Nominatim — no API key, no Google |
-| **Location** | Android's own `LocationManager` — no Play Services |
-| **Your data** | Stored on your device only, in Android's private app storage |
-
-</details>
+| 👀 | **Open source, all of it** | Every line is public and MIT licensed. Nothing is hidden, and you can build the app yourself from the same source. |
+| 🚫 | **No tracking, no accounts, no server** | No analytics, no ads, no sign up. There is nowhere for your locations to go, so they never leave your phone. |
+| 🧩 | **No Google Play Services** | Runs fine on de-Googled phones, Huawei and Honor devices, and LineageOS. Maps come from OpenStreetMap. |
 
 <br/>
 
@@ -76,20 +57,20 @@ Anyone can *claim* an app is safe. These are the parts you can check yourself.
     <img src="https://img.shields.io/badge/⬇️_Download_the_latest_APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" height="38"/>
   </a>
   <br/><br/>
-  <img src="https://img.shields.io/badge/📥_Also_coming_to_F--Droid-9E9E9E?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid: coming soon" height="28"/>
+  <img src="https://img.shields.io/badge/📥_Also_coming_to_F--Droid-9E9E9E?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid coming soon" height="28"/>
   <br/><br/>
 </div>
 
 | | |
 |---|---|
-| **Latest version** | `v1.6.7` — see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.6.7`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | About 53 MB |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 
-**Installing an APK:** open the downloaded file and Android will ask permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store — allow it once, and you're done.
+**Installing an APK.** Open the downloaded file and Android will ask for permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store. Allow it once and you are done.
 
-> ⚠️ **Already have an older LocReminder from GitHub (before v1.6.6)?** Uninstall it first — those builds were signed with a different key by mistake, and Android won't replace one with the other. Your saved alarms will be lost in the swap. Sorry about that; it only affects this one upgrade.
+> ⚠️ **Already have an older LocReminder from GitHub, from before v1.6.6?** Please uninstall it first. Those builds went out signed with the wrong key by mistake, and Android will not replace one with the other. Your saved alarms will be lost in the swap. Sorry about that. It only affects this one upgrade.
 
 <br/>
 
@@ -102,7 +83,7 @@ Anyone can *claim* an app is safe. These are the parts you can check yourself.
 <table>
   <tr>
     <td width="70" align="center"><h2>1</h2></td>
-    <td><strong>Search for where you're going</strong><br/><sub>Type a place name, or drag the map under the pin. No account needed.</sub></td>
+    <td><strong>Search for where you are going</strong><br/><sub>Type a place name, or drag the map under the pin. No account needed.</sub></td>
   </tr>
   <tr>
     <td align="center"><h2>2</h2></td>
@@ -118,7 +99,7 @@ Anyone can *claim* an app is safe. These are the parts you can check yourself.
 
 > ### ⚡ Do this before your first real journey
 >
-> Open **Menu → Alarm reliability** and tap **Run alarm test**. It rings the alarm after 15 seconds, so you can lock your phone and confirm it gets through.
+> Open **Menu → Alarm reliability** and tap **Run alarm test**. It rings the alarm after 15 seconds, so you can lock your phone and check that it gets through.
 >
 > Much better to find out at home than on a train.
 
@@ -130,17 +111,17 @@ Anyone can *claim* an app is safe. These are the parts you can check yourself.
 
 ## 🚏 Why it exists
 
-You know roughly *where* you're going, but not exactly *when* you'll get there — traffic, delays, and unfamiliar routes make that impossible to predict. So you can't set a normal alarm. Instead you spend the whole journey glancing out of the window, unable to properly rest or focus.
+You know roughly where you are going, but not exactly when you will get there. Traffic, delays and unfamiliar routes make that impossible to predict, so a normal alarm is no use. Instead you spend the whole journey glancing out of the window, unable to properly rest or focus.
 
-LocReminder fixes that. Drop a pin on your destination, choose how close you want to get, and put your phone away. When you arrive, it **rings a real alarm** — a looping sound that plays even on silent, vibration, and a full-screen alert over your lock screen. Exactly like a morning alarm, except triggered by arriving somewhere.
+LocReminder fixes that. Drop a pin on your destination, choose how close you want to get, and put your phone away. When you arrive it rings a real alarm: a looping sound that plays even on silent, vibration, and a full screen alert over your lock screen. Just like a morning alarm, except that arriving somewhere is what sets it off.
 
 | | |
 |---|---|
-| 😴 **Long bus or train rides** | Actually sleep, instead of half-watching for your stop. |
-| 🌏 **An unfamiliar city** | You don't know what your stop looks like — so let the phone know for you. |
-| 📚 **Commuters** | Read, work, or listen to something without keeping one eye on the route. |
-| 🚗 **Passengers on road trips** | Get woken before the turn-off instead of 20 km past it. |
-| 📦 **Pickups and errands** | A nudge when you're near the shop, the post office, or a friend's place. |
+| 😴 **Long bus or train rides** | Actually sleep, instead of half watching for your stop. |
+| 🌏 **An unfamiliar city** | You do not know what your stop looks like, so let the phone know for you. |
+| 📚 **Commuters** | Read, work or listen to something without keeping one eye on the route. |
+| 🚗 **Passengers on road trips** | Get woken before the turn off instead of 20 km past it. |
+| 📦 **Pickups and errands** | A nudge when you are near the shop, the post office, or a friend's place. |
 
 <br/>
 
@@ -154,7 +135,7 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
   <tr>
     <td width="60"><strong>⏰</strong></td>
     <td><strong>A real alarm, not a notification</strong></td>
-    <td>Loops on the alarm audio stream, so it sounds even when your phone is on silent — with a full-screen alert over your lock screen and a big Stop button.</td>
+    <td>Loops on the alarm audio stream, so it sounds even when your phone is on silent. It shows a full screen alert over your lock screen with a big Stop button.</td>
   </tr>
   <tr>
     <td><strong>🔊</strong></td>
@@ -174,17 +155,17 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
   <tr>
     <td><strong>🔋</strong></td>
     <td><strong>Easy on the battery</strong></td>
-    <td>Checks rarely when you're far away and often as you get close, so a three-hour journey doesn't flatten your phone.</td>
+    <td>Checks rarely when you are far away and more often as you get close, so a three hour journey does not flatten your phone.</td>
   </tr>
   <tr>
     <td><strong>🛡️</strong></td>
     <td><strong>Reliability check</strong></td>
-    <td>Detects your phone's brand and shows the exact settings it needs, plus a test that proves the alarm gets through.</td>
+    <td>Works out your phone's brand and shows the exact settings it needs, plus a test that proves the alarm gets through.</td>
   </tr>
   <tr>
     <td><strong>🌙</strong></td>
     <td><strong>Light and dark themes</strong></td>
-    <td>Material 3 throughout, with map tiles tuned so dark mode isn't a white rectangle at night.</td>
+    <td>Material 3 throughout, with map tiles tuned so dark mode is not a white rectangle at night.</td>
   </tr>
 </table>
 
@@ -196,21 +177,21 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
 
 ## 🛡️ Making sure it rings
 
-> **Please read this once.** It's the difference between an alarm that works and one that doesn't.
+> **Please read this once.** It is the difference between an alarm that works and one that does not.
 
-Android lets apps ask for permission to run in the background — but **phone manufacturers overrule it.** Xiaomi, Samsung, Oppo, Vivo, OnePlus and Huawei each add their own app-killer, and no app can switch those off by itself. You have to allow it by hand, once.
+Android lets apps ask for permission to run in the background, but phone manufacturers overrule it. Xiaomi, Samsung, Oppo, Vivo, OnePlus and Huawei each add their own app killer, and no app can switch those off by itself. You have to allow it by hand, once.
 
-**Menu → Alarm reliability** detects your phone and walks you through it. For reference:
+**Menu → Alarm reliability** works out which phone you have and walks you through it. For reference:
 
 | Your phone | What to allow |
 |---|---|
-| **Xiaomi / Redmi / Poco** | Autostart **and** Battery saver → No restrictions |
-| **Samsung** | Battery → Background usage limits → **Never sleeping apps** |
-| **Oppo / Realme** | Allow Auto-startup + Allow background running |
-| **Vivo / iQOO** | High background power consumption + Autostart |
-| **OnePlus** | Don't optimise + Auto-launch + turn off Advanced optimisation |
-| **Huawei / Honor** | App launch → Manage manually, all three switches on |
-| **Google, Motorola, Sony, Nokia, Nothing, Fairphone** | Nothing extra — stock Android respects the standard settings |
+| **Xiaomi, Redmi, Poco** | Autostart, and Battery saver set to No restrictions |
+| **Samsung** | Battery, then Background usage limits, then **Never sleeping apps** |
+| **Oppo, Realme** | Allow Auto startup and Allow background running |
+| **Vivo, iQOO** | High background power consumption and Autostart |
+| **OnePlus** | Don't optimise, Auto launch, and turn off Advanced optimisation |
+| **Huawei, Honor** | App launch, set to Manage manually, all three switches on |
+| **Google, Motorola, Sony, Nokia, Nothing, Fairphone** | Nothing extra. Stock Android respects the standard settings. |
 
 <br/>
 
@@ -222,7 +203,7 @@ Android lets apps ask for permission to run in the background — but **phone ma
 
 ### 👩‍💻 For developers
 
-<sub>Everything below is about building and contributing to LocReminder.<br/>If you just want to use the app, you're all set.</sub>
+<sub>Everything below is about building and contributing to LocReminder.<br/>If you just want to use the app, you are all set.</sub>
 
 </div>
 
@@ -231,15 +212,15 @@ Android lets apps ask for permission to run in the background — but **phone ma
 ## 🔧 Under the hood
 
 <details>
-<summary><strong>How the alarm actually survives a locked screen</strong> (click to expand)</summary>
+<summary><strong>How the alarm survives a locked screen</strong> (click to expand)</summary>
 
 <br/>
 
-The usual approach — polling GPS from a Dart `Timer` — works in an emulator and fails on a real trip, because Android kills the app as soon as you lock the screen.
+The obvious approach, polling GPS from a Dart `Timer`, works in an emulator and fails on a real trip, because Android kills the app as soon as you lock the screen.
 
-Android's native geofencing alone also failed field testing. An alarm was set 150 m away with a 100 m radius; the phone walked in and waited 30 seconds. Nothing. It rang the instant the app was reopened, because Doze had **deferred** the geofence broadcast until the app became active.
+Android's own geofencing did not survive field testing either. An alarm was set 150 m away with a 100 m radius, then the phone walked in and waited 30 seconds. Nothing happened. It rang the instant the app was reopened, because Doze had held the geofence broadcast back until the app became active.
 
-Geofencing was therefore dropped entirely in favour of a foreground service that watches location itself. The alarm is native Kotlin — the Flutter engine can be completely dead and it still rings — and the app uses only platform APIs, so it needs no Google Play Services and works on de-Googled and HMS-only devices.
+So geofencing was dropped entirely in favour of a foreground service that watches location itself. The alarm is native Kotlin, which means the Flutter engine can be completely dead and it still rings, and the app uses only platform APIs, so it needs no Google Play Services and works on de-Googled and HMS only devices.
 
 ```
                      ┌──────────────────┐
@@ -269,9 +250,9 @@ Geofencing was therefore dropped entirely in favour of a foreground service that
 
 | Layer | Role |
 |---|---|
-| **Foreground watcher** | The whole detection mechanism. Polls adaptively — 5 min beyond 10 km, 10 s within 500 m. Holding a foreground service keeps the process out of the idle state that defers everything else. Ignores fixes too imprecise to confirm arrival, so a coarse cell-tower fix can't ring the alarm kilometres early. |
-| **Alarm service** | Looping `USAGE_ALARM` audio, vibration, wake lock, full-screen activity. Auto-stops after 10 minutes. |
-| **Watchdog** | Inexact allow-while-idle alarm. Restarts the watcher if a vendor power manager killed it, or if it is running but receiving no fixes — the state left behind when location is switched off at the OS level. |
+| **Foreground watcher** | The whole detection mechanism. Polls adaptively, every 5 minutes beyond 10 km and every 10 seconds within 500 m. Holding a foreground service keeps the process out of the idle state that defers everything else. It ignores fixes too imprecise to confirm arrival, so a coarse cell tower fix cannot ring the alarm kilometres early. |
+| **Alarm service** | Looping `USAGE_ALARM` audio, vibration, wake lock, full screen activity. Stops itself after 10 minutes. |
+| **Watchdog** | An inexact allow-while-idle alarm. Restarts the watcher if a vendor power manager killed it, or if it is running but receiving no fixes, which is the state left behind when location is switched off at the OS level. |
 | **Boot receiver** | Restores alarms and the watcher after a restart. |
 
 </details>
@@ -285,13 +266,13 @@ Geofencing was therefore dropped entirely in favour of a foreground service that
 │  UI               Flutter 3 · Dart 3 · Material 3           │
 │  Native engine    Kotlin (watcher, alarm, watchdog, boot)   │
 ├─────────────────────────────────────────────────────────────┤
-│  Maps             OpenStreetMap via flutter_map — no key    │
-│  Search           Nominatim geocoding — no key              │
-│  Location         Platform LocationManager — no Play Services│
+│  Maps             OpenStreetMap via flutter_map, no key     │
+│  Search           Nominatim geocoding, no key               │
+│  Location         Platform LocationManager, no Play Services│
 ├─────────────────────────────────────────────────────────────┤
 │  Storage          SharedPreferences (device-local only)     │
 │  Build            Gradle 9 · AGP 9 · R8 shrinking           │
-│  CI/CD            GitHub Actions → signed, scanned release  │
+│  CI/CD            GitHub Actions, signed and scanned        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -306,9 +287,9 @@ Geofencing was therefore dropped entirely in favour of a foreground service that
 ### Prerequisites
 
 - **[Flutter SDK](https://flutter.dev/docs/get-started/install)** (stable channel)
-- **[Android SDK](https://developer.android.com/studio)** + **JDK 17**
+- **[Android SDK](https://developer.android.com/studio)** and **JDK 17**
 
-No Maps API key, no Google Cloud billing account, no signup — the map is OpenStreetMap.
+No Maps API key, no Google Cloud billing account, no signup. The map is OpenStreetMap.
 
 ```bash
 git clone https://github.com/zaifears/locreminder.git
@@ -317,9 +298,9 @@ flutter pub get
 flutter run --release
 ```
 
-> `--release` is recommended even for testing — background location behaves closest to real conditions in a release build.
+> `--release` is worth using even for testing, because background location behaves closest to real conditions in a release build.
 
-> **App icons** under `android/app/src/main/res/mipmap-*` are hand-authored and committed as-is. Don't run `flutter_launcher_icons`; it would overwrite them.
+> **App icons** under `android/app/src/main/res/mipmap-*` are hand drawn and committed as they are. Do not run `flutter_launcher_icons`, as it would overwrite them.
 
 ### Commands
 
@@ -332,7 +313,7 @@ flutter run --release
 
 ### Signing
 
-For local builds, signing falls back to Android's debug key so `flutter build apk --release` always produces something installable. To sign with your own key instead:
+For local builds, signing falls back to Android's debug key so that `flutter build apk --release` always produces something installable. To sign with your own key instead:
 
 ```bash
 keytool -genkey -v -keystore locreminder-release.jks -keyalg RSA \
@@ -340,9 +321,9 @@ keytool -genkey -v -keystore locreminder-release.jks -keyalg RSA \
 cp android/key.properties.example android/key.properties
 ```
 
-Fill in your keystore path and passwords — `key.properties` is git-ignored.
+Fill in your keystore path and passwords. `key.properties` is git ignored.
 
-> **Published releases are different.** Tagged builds refuse to publish unless all four of `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` are set as repository secrets, and CI reads the certificate back out of the finished APK to prove the debug key wasn't used. That check exists because the fallback is silent, and every release up to v1.6.5 shipped debug-signed without anything complaining.
+> **Published releases work differently.** Tagged builds refuse to publish unless all four of `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` are set as repository secrets, and CI reads the certificate back out of the finished APK to prove the debug key was not used. That check exists because the fallback is silent, and every release up to v1.6.5 shipped debug signed without anything complaining.
 
 <br/>
 
@@ -352,7 +333,7 @@ Fill in your keystore path and passwords — `key.properties` is git-ignored.
 
 ## 🤝 Contributing
 
-Contributions are welcome — fork, branch, commit, and open a pull request.
+Contributions are welcome. Fork, branch, commit, and open a pull request.
 
 1. **Fork the project**
 2. **Create your feature branch** (`git checkout -b feature/AmazingFeature`)
@@ -366,8 +347,8 @@ Contributions are welcome — fork, branch, commit, and open a pull request.
 
 | | |
 |---|---|
-| **Source code** | [MIT](LICENSE) — free to use, modify, and distribute, commercially or otherwise |
-| **Logo, app icon & the name "LocReminder"** | © Shahoriar Hossain — all rights reserved |
+| **Source code** | [MIT](LICENSE). Free to use, modify and distribute, commercially or otherwise. |
+| **Logo, app icon and the name "LocReminder"** | © Shahoriar Hossain, all rights reserved |
 
 Fork the code freely. Please use your own name and artwork when publishing a derivative.
 
