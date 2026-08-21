@@ -75,7 +75,17 @@ class _PinPainter extends CustomPainter {
     );
     path.close();
 
-    canvas.drawShadow(path, Colors.black54, 3, false);
+    // A blurred copy rather than Canvas.drawShadow. That call is Material's
+    // elevation primitive and it rasterises differently per backend: under
+    // Impeller it lands as a hard offset silhouette, so the pin reads as two
+    // overlapping markers instead of one with a shadow. A mask filter blurs
+    // the same on every backend.
+    canvas.drawPath(
+      path.shift(const Offset(0, 1.5)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.28)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5),
+    );
 
     canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
     canvas.drawPath(
