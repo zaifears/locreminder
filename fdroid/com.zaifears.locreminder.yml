@@ -20,7 +20,7 @@ Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-rele
 Builds:
   - versionName: 1.6.9
     versionCode: 16
-    commit: PLACEHOLDER_COMMIT
+    commit: 62ac4227b0a87fdbb5c4d8b3b1afc62956a8f9b8
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
