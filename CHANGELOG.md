@@ -3,6 +3,20 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.9] - 2026-08-21
+
+### Changed
+- The Flutter version used to build releases is pinned rather than tracking
+  whatever the stable channel happens to be that week. This is what makes the
+  build reproducible: F-Droid rebuilds the app from source and compares the
+  result byte for byte, and a compiler that changes underneath would make the
+  two differ for no visible reason.
+
+Once reproducible builds are verified, F-Droid can publish this project's own
+signed APK instead of re-signing with its key, which means the GitHub and
+F-Droid builds become interchangeable and you can move between them without
+uninstalling.
+
 ## [1.6.8] - 2026-08-21
 
 ### Added

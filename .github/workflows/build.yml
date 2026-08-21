@@ -42,9 +42,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Pinned rather than tracking the stable channel, because F-Droid
+      # reproduces this build and compares it byte for byte. "stable" means a
+      # different compiler from one week to the next, which would make the two
+      # diverge for no reason anyone could see. F-Droid's recipe reads the
+      # version straight out of this line, so the two can never drift apart.
+      # Bumping it here is a deliberate act that belongs in its own release.
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.1'
           channel: stable
           cache: true
 

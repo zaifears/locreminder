@@ -1,0 +1,5 @@
+Groundwork for reproducible builds, so that F-Droid can eventually ship
+this project's own signed app rather than re-signing it. That would let
+you move between the GitHub and F-Droid versions without uninstalling.
+
+Nothing about how the app behaves has changed.

@@ -15,28 +15,48 @@ AutoName: LocReminder
 RepoType: git
 Repo: https://github.com/zaifears/locreminder.git
 
+Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
+
 Builds:
-  - versionName: 1.6.8
-    versionCode: 15
-    commit: 82df7311b65bec6b73d28ae7bd53f0a8be115a24
+  - versionName: 1.6.9
+    versionCode: 16
+    commit: PLACEHOLDER_COMMIT
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
+    sudo:
+      - mkdir -p /home/runner/work/locreminder
+      - chown -R vagrant /home/runner
     rm:
       - ios
       - linux
       - macos
       - web
       - windows
-    prebuild: sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
-    build:
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*flutter-version:\s*'(.*)'/\1/p" .github/workflows/build.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
+      - export repo=/home/runner/work/locreminder/locreminder
+      - cd .. && mv com.zaifears.locreminder $repo && pushd $repo
       - export PUB_CACHE=$PWD/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get
+      - $$flutter$$/bin/flutter pub get --enforce-lockfile
+      - popd && mv $repo com.zaifears.locreminder && cd com.zaifears.locreminder
+    scandelete:
+      - .pub-cache
+    build:
+      - export repo=/home/runner/work/locreminder/locreminder
+      - cd .. && mv com.zaifears.locreminder $repo && pushd $repo
+      - export PUB_CACHE=$PWD/.pub-cache
       - $$flutter$$/bin/flutter build apk --release
+      - popd && mv $repo com.zaifears.locreminder && cd com.zaifears.locreminder
+
+AllowedAPKSigningKeys: e594d95da857cb75c7abf991915722086671815b7ee105cf9e224bec48858115
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.6.8
-CurrentVersionCode: 15
+CurrentVersion: 1.6.9
+CurrentVersionCode: 16
