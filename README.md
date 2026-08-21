@@ -85,10 +85,12 @@ the APK directly below.
 | **Requirements** | Android 6.0 or newer |
 | **Price** | Free. No ads, no accounts, no in-app purchases, no tracking. |
 
-> ⚠️ **This APK is a test build, signed with a different key from the
-> eventual F-Droid version.** Once F-Droid is live, installing from there
-> will require uninstalling this one first (losing your saved alarms).
-> Full release notes: [CHANGELOG.md](CHANGELOG.md).
+> ⚠️ **Upgrading from a GitHub build older than v1.6.6 means uninstalling
+> it first.** Those releases were signed with Android's shared debug key by
+> mistake; from 1.6.6 they carry LocReminder's own key, and Android will not
+> install one over the other. Saved alarms are lost in the swap. The same
+> applies when the F-Droid listing goes live, since F-Droid signs with its
+> own key. Full release notes: [CHANGELOG.md](CHANGELOG.md).
 
 <br/>
 

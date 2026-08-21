@@ -277,3 +277,29 @@ say why, and the fix goes in the `Builds:` section of the metadata file.
 | **versionCode** | The integer after `+` in `pubspec.yaml`; must always increase |
 | **srclib** | A shared dependency F-Droid provides — here, the Flutter SDK |
 | **Anti-feature** | A warning label, e.g. for non-free dependencies. LocReminder has none |
+
+---
+
+## Signing key
+
+From v1.6.6 releases are signed with the project's own key
+(`CN=Shahoriar Hossain, O=LocReminder, C=BD`, valid to 2054). Everything
+before that was signed with Android's shared debug key by mistake, so those
+APKs prove nothing about who built them.
+
+The certificate's SHA-256, which is what `AllowedAPKSigningKeys` wants if
+reproducible builds are ever enabled:
+
+```
+e594d95da857cb75c7abf991915722086671815b7ee105cf9e224bec48858115
+```
+
+Recompute it from any release with:
+
+```bash
+apksigner verify --print-certs app-release.apk
+```
+
+> Losing the keystore or its password means never being able to update the
+> app for anyone who installed it from GitHub — Android refuses an update
+> signed with a different key, and there is no recovery path.
