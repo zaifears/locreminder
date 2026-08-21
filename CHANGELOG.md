@@ -3,6 +3,25 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.6] — 2026-08-21
+
+### Fixed
+- Releases are signed with a real key. `build.gradle.kts` falls back to
+  debug signing when no keystore is configured, so that a fresh clone can
+  still run `flutter build apk --release` — but nothing checked whether CI
+  was taking that path, and it was: no signing secrets had ever been set,
+  so every release through 1.6.5 was signed with Android's debug key.
+  That key ships identically with every SDK install, so it identified
+  nobody and let anyone sign an update Android would accept in place.
+  Tagged builds now fail if a signing secret is missing, and read the
+  certificate back out of the finished APK to prove the debug key was not
+  used.
+
+> **Upgrading from an earlier GitHub build requires uninstalling it
+> first.** Android refuses updates signed with a different key. Saved
+> alarms will be lost. This does not affect F-Droid, which signs its own
+> builds.
+
 ## [1.6.5] — 2026-08-20
 
 ### Fixed

@@ -81,7 +81,7 @@ the APK directly below.
 
 | | |
 |---|---|
-| **Latest release** | `v1.6.5` |
+| **Latest release** | `v1.6.6` |
 | **Requirements** | Android 6.0 or newer |
 | **Price** | Free. No ads, no accounts, no in-app purchases, no tracking. |
 

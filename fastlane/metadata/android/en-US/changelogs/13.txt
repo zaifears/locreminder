@@ -1,0 +1,9 @@
+This release is signed with LocReminder's own key.
+
+Every previous GitHub release was signed with Android's shared debug
+key by mistake, which meant the signature proved nothing about who
+built the app. Downloads from GitHub are now properly identified.
+
+Because Android ties updates to the signing key, this version cannot
+install over an older GitHub build: uninstall the old one first. This
+does not affect the F-Droid release, which F-Droid signs itself.
