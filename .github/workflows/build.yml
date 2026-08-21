@@ -5,8 +5,8 @@ on:
     branches: [main]
     tags: ['v*']
     # Documentation and store-asset changes can't affect the APK, so skip the
-    # ~5 minute build for them. GitHub skips path filters entirely for tag
-    # pushes, so release builds on v* tags are unaffected by this list.
+    # build for them. GitHub skips path filters entirely for tag pushes, so
+    # release builds on v* tags are unaffected by this list.
     paths-ignore:
       - '**.md'
       - 'LICENSE'
@@ -28,86 +28,94 @@ jobs:
   build:
     name: Build release APK
     runs-on: ubuntu-latest
-    # The default workflow token is read-only, which makes creating a release
-    # on a tag push fail with a 403. Only the release step needs more.
+
+    # Releases are compiled inside F-Droid's own buildserver image, at the
+    # paths F-Droid uses, because F-Droid rebuilds this app and compares the
+    # result byte for byte. Matching versions was not enough: with the NDK,
+    # CMake, Flutter, build path, package cache and locked dependencies all
+    # provably identical, libdartjni.so still differed. The remaining
+    # variables are the ones a shared image removes at a stroke, so rather
+    # than chase them one release at a time, build where F-Droid builds.
+    container:
+      image: registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie
+      options: --user root
+
     permissions:
       contents: write
+
     env:
-      # flutter-action defaults this to /home/runner/.pub-cache, while the
-      # F-Droid recipe uses .pub-cache inside the project. libdartjni.so is
-      # the only library compiled from sources that live in there, and it is
-      # the only file that failed to reproduce, so line the two up. Everything
-      # else was already matched: same NDK r28c, same CMake 3.22.1, same
-      # Flutter, same build path, same locked dependencies.
-      PUB_CACHE: ${{ github.workspace }}/.pub-cache
+      # F-Droid's own layout: the app under build/<applicationId>, the Flutter
+      # srclib beside it. Flutter records both the project and SDK paths in
+      # what it compiles, so these have to agree, not merely be pinned.
+      BUILD_DIR: /home/vagrant/build/com.zaifears.locreminder
+      FLUTTER_DIR: /home/vagrant/build/srclib/flutter
+      FLUTTER_VERSION: '3.47.1'
+      ANDROID_NDK_VERSION: '28.2.13676358'
+      # F-Droid builds as the vagrant user; keeping HOME there puts .gradle
+      # and .android in the same place on both sides.
+      HOME: /home/vagrant
+
     steps:
+      - name: Install what the image lacks
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends jq git curl unzip xz-utils
+          git config --global --add safe.directory '*'
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+      - name: Stage the source where F-Droid builds it
+        run: |
+          mkdir -p "$(dirname "$BUILD_DIR")"
+          rm -rf "$BUILD_DIR"
+          cp -a "$GITHUB_WORKSPACE" "$BUILD_DIR"
 
-      # Pinned rather than tracking the stable channel, because F-Droid
-      # reproduces this build and compares it byte for byte. "stable" means a
-      # different compiler from one week to the next, which would make the two
-      # diverge for no reason anyone could see. F-Droid's recipe reads the
-      # version straight out of this line, so the two can never drift apart.
-      # Bumping it here is a deliberate act that belongs in its own release.
+      # Cloned rather than taken from a setup action, so the SDK lands on the
+      # same path F-Droid's srclib uses and sits at the same commit.
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.1'
-          channel: stable
-          cache: true
+        run: |
+          git clone --quiet https://github.com/flutter/flutter.git "$FLUTTER_DIR"
+          git -C "$FLUTTER_DIR" checkout -f "$FLUTTER_VERSION"
+          "$FLUTTER_DIR/bin/flutter" config --no-analytics
+          "$FLUTTER_DIR/bin/flutter" --version
 
-      # Gradle takes its NDK from ndkVersion in build.gradle.kts, but the
-      # Dart native-assets hook that compiles libdartjni.so does not: it picks
-      # a toolchain from the environment. GitHub's runners ship several NDKs
-      # preinstalled and point ANDROID_NDK_HOME at one of them, while
-      # F-Droid's container has only the one Gradle installs, so the two can
-      # compile the same source with different compilers. That library was the
-      # only file that failed to reproduce, so pin the environment to the same
-      # version Gradle uses and leave nothing to the default.
       - name: Pin the NDK
-        env:
-          ANDROID_NDK_VERSION: '28.2.13676358'
         run: |
           ndk="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
-          if [ ! -d "$ndk" ]; then
-            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-              "ndk;$ANDROID_NDK_VERSION" > /dev/null
-          fi
+          [ -d "$ndk" ] || sdkmanager "ndk;$ANDROID_NDK_VERSION"
           test -d "$ndk" || { echo "::error::NDK $ANDROID_NDK_VERSION unavailable"; exit 1; }
           for v in ANDROID_NDK_HOME ANDROID_NDK_ROOT ANDROID_NDK; do
             echo "$v=$ndk" >> "$GITHUB_ENV"
           done
-          echo "Using $ndk"
 
-      # --enforce-lockfile, not a plain pub get. Without it, resolution is
-      # free to pick whatever versions it likes and silently rewrite the
-      # lockfile, which is how the committed copy drifted far enough to still
-      # name geolocator long after 1.6.0 removed it. F-Droid rebuilds with the
-      # lockfile enforced, so anything less here means the two sides can
-      # compile different dependency versions and never match.
-      # Regenerate deliberately via the refresh-lockfile workflow.
+      # --enforce-lockfile, not a plain pub get. Without it resolution picks
+      # whatever versions it likes and rewrites the lockfile in place, which
+      # is how the committed copy drifted far enough to still name geolocator
+      # long after 1.6.0 removed it. Regenerate deliberately, via the
+      # refresh-lockfile workflow.
       - name: Install dependencies
-        run: flutter pub get --enforce-lockfile
+        working-directory: /home/vagrant/build/com.zaifears.locreminder
+        run: |
+          export PUB_CACHE="$BUILD_DIR/.pub-cache"
+          "$FLUTTER_DIR/bin/flutter" pub get --enforce-lockfile
 
       - name: Analyze
-        run: flutter analyze
+        working-directory: /home/vagrant/build/com.zaifears.locreminder
+        run: |
+          export PUB_CACHE="$BUILD_DIR/.pub-cache"
+          "$FLUTTER_DIR/bin/flutter" analyze
 
       - name: Run tests
-        run: flutter test
+        working-directory: /home/vagrant/build/com.zaifears.locreminder
+        run: |
+          export PUB_CACHE="$BUILD_DIR/.pub-cache"
+          "$FLUTTER_DIR/bin/flutter" test
 
-      # A tag is what publishes a Release, so it is the point where debug
-      # signing stops being a harmless convenience and starts being shipped to
-      # users. Without this gate the Gradle fallback quietly signs with the
-      # debug key — which is public and shared by every Android SDK install,
-      # so it identifies nobody and lets anyone forge an update. Every release
-      # up to v1.6.5 went out that way precisely because nothing complained.
+      # A tag is what publishes a Release, so it is where debug signing stops
+      # being a harmless convenience and starts being shipped to users. Every
+      # release up to v1.6.5 went out debug-signed precisely because nothing
+      # complained.
       - name: Require a real signing key for published builds
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -123,7 +131,6 @@ jobs:
           [ -z "$KEY_PASSWORD"    ] && missing="$missing RELEASE_KEY_PASSWORD"
           if [ -n "$missing" ]; then
             echo "::error::Refusing to publish a release. Missing secrets:$missing"
-            echo "Set them under Settings -> Secrets and variables -> Actions."
             exit 1
           fi
 
@@ -133,40 +140,45 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/locreminder-release.jks"
-            echo "path=$GITHUB_WORKSPACE/android/locreminder-release.jks" >> "$GITHUB_OUTPUT"
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$BUILD_DIR/android/locreminder-release.jks"
+            echo "path=$BUILD_DIR/android/locreminder-release.jks" >> "$GITHUB_OUTPUT"
           else
             echo "path=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build release APK
+        working-directory: /home/vagrant/build/com.zaifears.locreminder
         env:
           RELEASE_STORE_FILE: ${{ steps.keystore.outputs.path }}
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: flutter build apk --release
+        run: |
+          export PUB_CACHE="$BUILD_DIR/.pub-cache"
+          "$FLUTTER_DIR/bin/flutter" build apk --release
 
-      # Belt and braces: the gate above proves the secrets exist, this proves
-      # they were actually used. Gradle's fallback is silent, so the only
-      # trustworthy evidence is the certificate in the finished APK.
+      # Brought back into the workspace so the upload and release actions,
+      # which expect paths under it, can reach the file.
+      - name: Collect the APK
+        run: cp "$BUILD_DIR/build/app/outputs/flutter-apk/app-release.apk" "$GITHUB_WORKSPACE/app-release.apk"
+
+      # The gate above proves the secrets exist; this proves they were used.
+      # Gradle's fallback to the debug key is silent, so the finished APK is
+      # the only trustworthy evidence.
       - name: Verify the published APK is not debug-signed
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort | tail -1)
-          if [ -z "$apksigner" ]; then
-            echo "::error::apksigner not found; cannot verify the signature."
-            exit 1
-          fi
-          certs=$("$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)
+          [ -n "$apksigner" ] || { echo "::error::apksigner not found"; exit 1; }
+          certs=$("$apksigner" verify --print-certs "$GITHUB_WORKSPACE/app-release.apk")
           echo "$certs"
           if echo "$certs" | grep -qi "CN=Android Debug"; then
             echo "::error::APK is signed with the public Android debug key. Refusing to publish."
             exit 1
           fi
 
-      # Runs before the Release is created, so a build that looks like malware
-      # never gets published in the first place.
+      # Runs before the Release exists, so a build that looks like malware is
+      # never published in the first place.
       - name: Scan the APK with VirusTotal
         id: virustotal
         if: startsWith(github.ref, 'refs/tags/v')
@@ -174,29 +186,28 @@ jobs:
           VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
         run: |
           chmod +x .github/scripts/virustotal-scan.sh
-          .github/scripts/virustotal-scan.sh build/app/outputs/flutter-apk/app-release.apk
+          .github/scripts/virustotal-scan.sh "$GITHUB_WORKSPACE/app-release.apk"
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
           name: location-alarm-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: app-release.apk
           if-no-files-found: error
 
       - name: Attach APKs to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/*.apk
+          files: app-release.apk
           generate_release_notes: true
           # Carries the hash as well as the verdict: the hash is what lets a
           # reader confirm the file they downloaded is the file that was
-          # scanned, which the result on its own does not establish.
+          # scanned, which the result alone does not establish.
           body: ${{ steps.virustotal.outputs.release_note }}
 
-      # A tiny JSON the README's badge reads, plus a page recording every
-      # scan. Text files of a few hundred bytes, so unlike the APK they cost
-      # the repository nothing to keep forever.
+      # A tiny JSON the README badge reads, plus a page recording every scan.
+      # A few hundred bytes each, so unlike the APK they cost nothing to keep.
       - name: Record the scan result
         if: startsWith(github.ref, 'refs/tags/v') && steps.virustotal.outputs.status == 'completed'
         env:
@@ -206,12 +217,10 @@ jobs:
           PERMALINK: ${{ steps.virustotal.outputs.permalink }}
           VERSION: ${{ github.ref_name }}
         run: |
-          # This job checks out a tag, in detached HEAD, and the build leaves
-          # tracked files modified behind it (pub get touches pubspec.lock).
-          # So start from a clean copy of current main and regenerate there:
-          # rebasing a tag commit over a dirty tree is what broke this before,
-          # and writing the table from the tag's copy would clobber any row
-          # added since.
+          # This job checks out a tag, detached, and the build leaves tracked
+          # files modified behind it. Start from a clean copy of current main
+          # and regenerate there, so nothing is rebased over a dirty tree and
+          # no row added since is clobbered.
           git fetch origin main
           git checkout -f -B record-scan FETCH_HEAD
 
@@ -221,7 +230,6 @@ jobs:
           printf '{"schemaVersion":1,"label":"VirusTotal","message":"%s/%s","color":"%s"}\n' \
             "$FLAGGED" "$TOTAL" "$colour" > .github/badges/virustotal.json
 
-          # Newest first, directly under the table header.
           row="| [\`$VERSION\`](https://github.com/${GITHUB_REPOSITORY}/releases/tag/$VERSION) | $FLAGGED / $TOTAL | [report]($PERMALINK) | \`$SHA256\` |"
           awk -v row="$row" '
             {print}

@@ -3,6 +3,16 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.13] - 2026-08-21
+
+### Changed
+- Releases are compiled inside F-Droid's own buildserver container, at the
+  same paths F-Droid uses. Matching versions individually was not enough:
+  with the NDK, CMake, Flutter, build path, package cache and locked
+  dependencies all provably identical, one library still differed. Sharing
+  the image removes the remaining variables, the operating system and its
+  libraries among them, in one step rather than one release at a time.
+
 ## [1.6.12] - 2026-08-21
 
 ### Changed

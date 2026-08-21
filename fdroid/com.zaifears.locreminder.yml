@@ -17,12 +17,9 @@ Repo: https://github.com/zaifears/locreminder.git
 Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
 
 Builds:
-  - versionName: 1.6.12
-    versionCode: 19
-    commit: a4024e5fd1e9b274055a4a7e42fc2010304234c0
-    sudo:
-      - mkdir -p /home/runner/work/locreminder
-      - chown -R vagrant /home/runner
+  - versionName: 1.6.13
+    versionCode: 20
+    commit: PLACEHOLDER_COMMIT
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
@@ -34,32 +31,26 @@ Builds:
       - windows
     prebuild:
       - sdkmanager "ndk;28.2.13676358" || true
-      - flutterVersion=$(sed -n -E "s/.*flutter-version:\s*'(.*)'/\1/p" .github/workflows/build.yml)
+      - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\s*'(.*)'/\1/p" .github/workflows/build.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
       - sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
-      - export repo=/home/runner/work/locreminder/locreminder
-      - cd .. && mv com.zaifears.locreminder $repo && pushd $repo
       - export PUB_CACHE=$PWD/.pub-cache
       - $$flutter$$/bin/flutter config --no-analytics
       - $$flutter$$/bin/flutter pub get --enforce-lockfile
-      - popd && mv $repo com.zaifears.locreminder && cd com.zaifears.locreminder
     scandelete:
       - .pub-cache
     build:
       - export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358
       - export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
       - export ANDROID_NDK=$ANDROID_NDK_HOME
-      - export repo=/home/runner/work/locreminder/locreminder
-      - cd .. && mv com.zaifears.locreminder $repo && pushd $repo
       - export PUB_CACHE=$PWD/.pub-cache
       - $$flutter$$/bin/flutter build apk --release
-      - popd && mv $repo com.zaifears.locreminder && cd com.zaifears.locreminder
 
 AllowedAPKSigningKeys: e594d95da857cb75c7abf991915722086671815b7ee105cf9e224bec48858115
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.6.12
-CurrentVersionCode: 19
+CurrentVersion: 1.6.13
+CurrentVersionCode: 20

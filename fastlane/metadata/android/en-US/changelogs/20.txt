@@ -1,0 +1,3 @@
+Releases are now compiled in the same environment F-Droid uses, another
+step towards reproducible builds. Nothing about how the app behaves has
+changed.
