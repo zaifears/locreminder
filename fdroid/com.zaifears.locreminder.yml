@@ -14,19 +14,18 @@ AutoName: LocReminder
 
 RepoType: git
 Repo: https://github.com/zaifears/locreminder.git
-
 Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
 
 Builds:
   - versionName: 1.6.9
     versionCode: 16
     commit: 62ac4227b0a87fdbb5c4d8b3b1afc62956a8f9b8
-    output: build/app/outputs/flutter-apk/app-release.apk
-    srclibs:
-      - flutter@stable
     sudo:
       - mkdir -p /home/runner/work/locreminder
       - chown -R vagrant /home/runner
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
     rm:
       - ios
       - linux
