@@ -43,6 +43,10 @@ jobs:
     permissions:
       contents: write
 
+    defaults:
+      run:
+        shell: bash
+
     env:
       # F-Droid's own layout: the app under build/<applicationId>, the Flutter
       # srclib beside it. Flutter records both the project and SDK paths in
@@ -51,6 +55,11 @@ jobs:
       FLUTTER_DIR: /home/vagrant/build/srclib/flutter
       FLUTTER_VERSION: '3.47.1'
       ANDROID_NDK_VERSION: '28.2.13676358'
+      # The image exports these from /etc/profile.d/bsenv.sh, which GitHub
+      # does not source, so steps would otherwise see them empty and resolve
+      # paths like "/ndk/28.2.13676358".
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_SDK_ROOT: /opt/android-sdk
       # F-Droid builds as the vagrant user; keeping HOME there puts .gradle
       # and .android in the same place on both sides.
       HOME: /home/vagrant

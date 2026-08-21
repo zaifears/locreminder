@@ -3,7 +3,7 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.6.13] - 2026-08-21
+## [1.6.14] - 2026-08-21
 
 ### Changed
 - Releases are compiled inside F-Droid's own buildserver container, at the
