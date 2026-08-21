@@ -1,0 +1,57 @@
+name: Refresh pubspec.lock
+
+# Run by hand from the Actions tab after changing dependencies.
+#
+# pubspec.lock exists to pin the exact version of every package a build uses.
+# That only holds if the committed copy actually matches pubspec.yaml, and it
+# had drifted badly: it still listed geolocator and google_maps_flutter,
+# dropped in 1.6.0, while missing flutter_map, latlong2, url_launcher and
+# others the app depends on now. Nothing noticed, because a plain `pub get`
+# quietly resolves whatever it likes and rewrites the file in place.
+#
+# It matters twice over. Two builds of one commit could use different package
+# versions, which rules out reproducible builds; and unpinned dependencies
+# mean the code shipped is not fully determined by the code committed.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Must match the pin in build.yml, or this would resolve against a
+      # different SDK than the one that ships releases.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Commit the result
+        run: |
+          if git diff --quiet -- pubspec.lock; then
+            echo "pubspec.lock already matches pubspec.yaml."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pubspec.lock
+          git commit -m "Regenerate pubspec.lock against the current dependencies"
+          git push origin HEAD:main
+
+      - name: Prove the lockfile is now self-consistent
+        run: flutter pub get --enforce-lockfile
