@@ -18,7 +18,7 @@ Repo: https://github.com/zaifears/locreminder.git
 Builds:
   - versionName: 1.6.8
     versionCode: 15
-    commit: 4af20e4614471d5b04227a785d243743e2032ccd
+    commit: 82df7311b65bec6b73d28ae7bd53f0a8be115a24
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
