@@ -120,6 +120,17 @@ jobs:
             exit 1
           fi
 
+      # Runs before the Release is created, so a build that looks like malware
+      # never gets published in the first place.
+      - name: Scan the APK with VirusTotal
+        id: virustotal
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+        run: |
+          chmod +x .github/scripts/virustotal-scan.sh
+          .github/scripts/virustotal-scan.sh build/app/outputs/flutter-apk/app-release.apk
+
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -133,3 +144,41 @@ jobs:
         with:
           files: build/app/outputs/flutter-apk/*.apk
           generate_release_notes: true
+          # Carries the hash as well as the verdict: the hash is what lets a
+          # reader confirm the file they downloaded is the file that was
+          # scanned, which the result on its own does not establish.
+          body: ${{ steps.virustotal.outputs.release_note }}
+
+      # A tiny JSON the README's badge reads, plus a page recording every
+      # scan. Text files of a few hundred bytes, so unlike the APK they cost
+      # the repository nothing to keep forever.
+      - name: Record the scan result
+        if: startsWith(github.ref, 'refs/tags/v') && steps.virustotal.outputs.status == 'completed'
+        env:
+          FLAGGED: ${{ steps.virustotal.outputs.detections }}
+          TOTAL: ${{ steps.virustotal.outputs.total }}
+          SHA256: ${{ steps.virustotal.outputs.sha256 }}
+          PERMALINK: ${{ steps.virustotal.outputs.permalink }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir -p .github/badges
+          colour=brightgreen
+          [ "$FLAGGED" -gt 0 ] && colour=orange
+          printf '{"schemaVersion":1,"label":"VirusTotal","message":"%s/%s","color":"%s"}\n' \
+            "$FLAGGED" "$TOTAL" "$colour" > .github/badges/virustotal.json
+
+          # Newest first, directly under the table header.
+          row="| [\`$VERSION\`](https://github.com/${GITHUB_REPOSITORY}/releases/tag/$VERSION) | $FLAGGED / $TOTAL | [report]($PERMALINK) | \`$SHA256\` |"
+          awk -v row="$row" '
+            {print}
+            /^\|---/ && !done {print row; done=1}
+          ' docs/SECURITY-SCAN.md > docs/SECURITY-SCAN.md.tmp
+          mv docs/SECURITY-SCAN.md.tmp docs/SECURITY-SCAN.md
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/virustotal.json docs/SECURITY-SCAN.md
+          git diff --cached --quiet && { echo "No change to record."; exit 0; }
+          git commit -m "Record the $VERSION VirusTotal scan [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main

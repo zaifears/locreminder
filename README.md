@@ -20,6 +20,7 @@
   <img src="https://img.shields.io/badge/100%25-FOSS-blue?style=flat-square" alt="FOSS"/>
   <img src="https://img.shields.io/badge/No_Ads-No_Tracking-blueviolet?style=flat-square" alt="No ads"/>
   <img src="https://img.shields.io/badge/Code-MIT-green?style=flat-square" alt="License"/>
+  <a href="docs/SECURITY-SCAN.md"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Fvirustotal.json&style=flat-square&logo=virustotal" alt="VirusTotal scan result"/></a>
 
   <br/><br/>
 
