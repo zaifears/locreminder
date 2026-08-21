@@ -161,6 +161,15 @@ jobs:
           PERMALINK: ${{ steps.virustotal.outputs.permalink }}
           VERSION: ${{ github.ref_name }}
         run: |
+          # This job checks out a tag, in detached HEAD, and the build leaves
+          # tracked files modified behind it (pub get touches pubspec.lock).
+          # So start from a clean copy of current main and regenerate there:
+          # rebasing a tag commit over a dirty tree is what broke this before,
+          # and writing the table from the tag's copy would clobber any row
+          # added since.
+          git fetch origin main
+          git checkout -f -B record-scan FETCH_HEAD
+
           mkdir -p .github/badges
           colour=brightgreen
           [ "$FLAGGED" -gt 0 ] && colour=orange
@@ -180,5 +189,4 @@ jobs:
           git add .github/badges/virustotal.json docs/SECURITY-SCAN.md
           git diff --cached --quiet && { echo "No change to record."; exit 0; }
           git commit -m "Record the $VERSION VirusTotal scan [skip ci]"
-          git pull --rebase origin main
           git push origin HEAD:main

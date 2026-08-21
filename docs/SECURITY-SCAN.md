@@ -6,6 +6,7 @@ malware never reaches anyone. The results are recorded here.
 
 | Release | Detections | Report | SHA-256 of the APK |
 |---|---|---|---|
+| [`v1.6.7`](https://github.com/zaifears/locreminder/releases/tag/v1.6.7) | 0 / 67 | [report](https://www.virustotal.com/gui/file/e288b08997bf4e80fe0f8d998404705e65d58efb1e888da9cf471c3e865818e1) | `e288b08997bf4e80fe0f8d998404705e65d58efb1e888da9cf471c3e865818e1` |
 
 ## Checking a download yourself
 
