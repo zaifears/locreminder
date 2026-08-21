@@ -1,0 +1,2 @@
+Another step towards reproducible builds. Nothing about how the app
+behaves has changed.

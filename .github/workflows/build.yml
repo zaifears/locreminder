@@ -32,6 +32,14 @@ jobs:
     # on a tag push fail with a 403. Only the release step needs more.
     permissions:
       contents: write
+    env:
+      # flutter-action defaults this to /home/runner/.pub-cache, while the
+      # F-Droid recipe uses .pub-cache inside the project. libdartjni.so is
+      # the only library compiled from sources that live in there, and it is
+      # the only file that failed to reproduce, so line the two up. Everything
+      # else was already matched: same NDK r28c, same CMake 3.22.1, same
+      # Flutter, same build path, same locked dependencies.
+      PUB_CACHE: ${{ github.workspace }}/.pub-cache
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -3,6 +3,16 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.12] - 2026-08-21
+
+### Changed
+- Releases are built with `PUB_CACHE` inside the project rather than in the
+  home directory, matching where F-Droid puts it. `libdartjni.so` is the one
+  library compiled from sources that live in the package cache, and the one
+  file that would not reproduce. Everything else was already aligned: the
+  logs on both sides show the same NDK r28c, the same CMake 3.22.1, the same
+  Flutter, the same build path and the same locked dependencies.
+
 ## [1.6.11] - 2026-08-21
 
 ### Changed
