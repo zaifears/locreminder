@@ -17,9 +17,9 @@ Repo: https://github.com/zaifears/locreminder.git
 Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
 
 Builds:
-  - versionName: 1.6.9
-    versionCode: 16
-    commit: 62ac4227b0a87fdbb5c4d8b3b1afc62956a8f9b8
+  - versionName: 1.6.10
+    versionCode: 17
+    commit: ec3b56fa8227c5dc51e0087966988b5f56ed8d61
     sudo:
       - mkdir -p /home/runner/work/locreminder
       - chown -R vagrant /home/runner
@@ -57,5 +57,5 @@ AllowedAPKSigningKeys: e594d95da857cb75c7abf991915722086671815b7ee105cf9e224bec4
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.6.9
-CurrentVersionCode: 16
+CurrentVersion: 1.6.10
+CurrentVersionCode: 17
