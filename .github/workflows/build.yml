@@ -57,6 +57,31 @@ jobs:
       - name: Run tests
         run: flutter test
 
+      # A tag is what publishes a Release, so it is the point where debug
+      # signing stops being a harmless convenience and starts being shipped to
+      # users. Without this gate the Gradle fallback quietly signs with the
+      # debug key — which is public and shared by every Android SDK install,
+      # so it identifies nobody and lets anyone forge an update. Every release
+      # up to v1.6.5 went out that way precisely because nothing complained.
+      - name: Require a real signing key for published builds
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -z "$KEYSTORE_BASE64" ] && missing="$missing RELEASE_KEYSTORE_BASE64"
+          [ -z "$STORE_PASSWORD"  ] && missing="$missing RELEASE_STORE_PASSWORD"
+          [ -z "$KEY_ALIAS"       ] && missing="$missing RELEASE_KEY_ALIAS"
+          [ -z "$KEY_PASSWORD"    ] && missing="$missing RELEASE_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Refusing to publish a release. Missing secrets:$missing"
+            echo "Set them under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
       - name: Prepare release keystore
         id: keystore
         env:
@@ -76,6 +101,24 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: flutter build apk --release
+
+      # Belt and braces: the gate above proves the secrets exist, this proves
+      # they were actually used. Gradle's fallback is silent, so the only
+      # trustworthy evidence is the certificate in the finished APK.
+      - name: Verify the published APK is not debug-signed
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort | tail -1)
+          if [ -z "$apksigner" ]; then
+            echo "::error::apksigner not found; cannot verify the signature."
+            exit 1
+          fi
+          certs=$("$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)
+          echo "$certs"
+          if echo "$certs" | grep -qi "CN=Android Debug"; then
+            echo "::error::APK is signed with the public Android debug key. Refusing to publish."
+            exit 1
+          fi
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
