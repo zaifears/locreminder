@@ -3,6 +3,18 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.11] - 2026-08-21
+
+### Changed
+- The Android NDK version is pinned explicitly rather than left to whatever
+  Flutter defaults to, and the build environment points at that same copy.
+  F-Droid's rebuild of 1.6.10 matched byte for byte everywhere except
+  `libdartjni.so`, the one library compiled from native source by Dart's
+  build-hook mechanism. That hook takes its toolchain from the environment
+  rather than from Gradle's `ndkVersion`, and the two build machines offer
+  different defaults, so the same source could go through different
+  compilers.
+
 ## [1.6.10] - 2026-08-21
 
 ### Fixed

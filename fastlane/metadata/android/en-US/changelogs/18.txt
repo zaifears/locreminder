@@ -1,0 +1,4 @@
+Further groundwork for reproducible builds. The compiler used for the
+app's one piece of native code is now fixed to an exact version, so the
+same source always produces the same binary. Nothing about how the app
+behaves has changed.

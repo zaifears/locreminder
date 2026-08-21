@@ -55,6 +55,29 @@ jobs:
           channel: stable
           cache: true
 
+      # Gradle takes its NDK from ndkVersion in build.gradle.kts, but the
+      # Dart native-assets hook that compiles libdartjni.so does not: it picks
+      # a toolchain from the environment. GitHub's runners ship several NDKs
+      # preinstalled and point ANDROID_NDK_HOME at one of them, while
+      # F-Droid's container has only the one Gradle installs, so the two can
+      # compile the same source with different compilers. That library was the
+      # only file that failed to reproduce, so pin the environment to the same
+      # version Gradle uses and leave nothing to the default.
+      - name: Pin the NDK
+        env:
+          ANDROID_NDK_VERSION: '28.2.13676358'
+        run: |
+          ndk="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          if [ ! -d "$ndk" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+              "ndk;$ANDROID_NDK_VERSION" > /dev/null
+          fi
+          test -d "$ndk" || { echo "::error::NDK $ANDROID_NDK_VERSION unavailable"; exit 1; }
+          for v in ANDROID_NDK_HOME ANDROID_NDK_ROOT ANDROID_NDK; do
+            echo "$v=$ndk" >> "$GITHUB_ENV"
+          done
+          echo "Using $ndk"
+
       # --enforce-lockfile, not a plain pub get. Without it, resolution is
       # free to pick whatever versions it likes and silently rewrite the
       # lockfile, which is how the committed copy drifted far enough to still

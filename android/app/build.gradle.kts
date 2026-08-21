@@ -29,7 +29,13 @@ val hasReleaseSigning = releaseStoreFilePath != null
 android {
     namespace = "com.zaifears.locreminder"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned to a literal rather than flutter.ndkVersion. The version this
+    // resolves to is what compiles libdartjni.so, and that library was the
+    // single file standing between this build and reproducing byte for byte
+    // on F-Droid. Naming it here means the toolchain cannot shift underneath
+    // a release the way it silently would if Flutter changed its default.
+    // Keep in step with ANDROID_NDK_VERSION in .github/workflows/build.yml.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
