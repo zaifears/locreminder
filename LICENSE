@@ -19,3 +19,24 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+-------------------------------------------------------------------------------
+Notes on artwork
+-------------------------------------------------------------------------------
+
+The MIT licence above covers everything in this repository, including
+assets/images/free_palestine.png, which is original work by Shahoriar Hossain
+and may be used, copied and redistributed freely under those same terms.
+
+Two exceptions are reserved:
+
+  * The app icon and logo (store/playstore-icon.png,
+    android/app/src/main/res/mipmap-*, assets/images/shahoriar.png)
+  * The name "LocReminder"
+
+These remain (c) Shahoriar Hossain, all rights reserved. Fork the code freely,
+but please use your own name and artwork when publishing a derivative.
+
+Map data and place search are (c) OpenStreetMap contributors, available under
+the Open Database License: https://www.openstreetmap.org/copyright
