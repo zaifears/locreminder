@@ -47,12 +47,21 @@ def read(path: str) -> str:
     return io.open(path, encoding="utf-8").read()
 
 
-def write(path: str, text: str, newline: str = "\n") -> bool:
-    """Writes only when the content actually changes; reports whether it did."""
+def write(path: str, text: str) -> bool:
+    """Writes only when the content actually changes; reports whether it did.
+
+    Always LF, and the comparison ignores line endings entirely. This repo is
+    developed on Windows with core.autocrlf on and built on Linux, so one
+    committed file is CRLF on one machine and LF on the other. Comparing raw
+    bytes would make --check fail on whichever platform did not generate it,
+    which looks exactly like a stale file and is not one. .gitattributes pins
+    these paths to LF so the working trees agree as well.
+    """
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    if os.path.exists(path) and read(path) == text:
+    normalised = text.replace("\r\n", "\n")
+    if os.path.exists(path) and read(path).replace("\r\n", "\n") == normalised:
         return False
-    io.open(path, "w", encoding="utf-8", newline=newline).write(text)
+    io.open(path, "w", encoding="utf-8", newline="\n").write(normalised)
     return True
 
 
@@ -345,7 +354,7 @@ def main() -> int:
     changed = []
 
     dart_path = os.path.join(ROOT, "lib", "l10n", "strings.g.dart")
-    if write(dart_path, generate_dart(all_data), newline="\r\n"):
+    if write(dart_path, generate_dart(all_data)):
         changed.append(dart_path)
 
     for code in codes:
@@ -357,7 +366,7 @@ def main() -> int:
         path = os.path.join(
             ROOT, "android", "app", "src", "main", "res", folder, "strings.xml"
         )
-        if write(path, generate_android(code, all_data[code]), newline="\r\n"):
+        if write(path, generate_android(code, all_data[code])):
             changed.append(path)
 
         for path in generate_fastlane(code, all_data[code], ROOT):
