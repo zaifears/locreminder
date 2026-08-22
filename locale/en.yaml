@@ -1,0 +1,110 @@
+# The English source of every string in LocReminder.
+#
+# ADDING A LANGUAGE
+#   1. Copy this file to locale/<code>.yaml  (bn for Bangla, hi for Hindi...)
+#   2. Translate the text to the RIGHT of each colon. Leave the names on the
+#      left alone: those are how the app finds each string.
+#   3. Open a pull request. You do not need to run anything, and you do not
+#      need to know Dart or Kotlin.
+#
+# THINGS IN CURLY BRACES like {place} are filled in by the app at runtime.
+# Keep every one of them, spelled exactly the same. You may move them around
+# the sentence, which is the point of having them.
+#
+# YOU MAY LEAVE ANYTHING OUT. A key you skip falls back to English, so a
+# half-finished translation still works and is still worth sending.
+#
+# DO NOT TRANSLATE: LocReminder, OpenStreetMap, OpenTopoMap, or the names of
+# phone makers and their software (Xiaomi, MIUI, HyperOS, Samsung, OnePlus).
+# Those appear in English on the phone itself, so translating them here would
+# send people looking for a setting they cannot find.
+
+meta:
+  name: English
+  fastlane: en-US
+
+# ---------------------------------------------------------------------------
+# The alarm itself. Shown by Android, not by the app, because the alarm has to
+# work when the app is not running.
+# ---------------------------------------------------------------------------
+alarm:
+  alarm_arrived_default: You've arrived!
+  alarm_arrived_message: "You're near\n{place}"
+  alarm_stop_button: Stop alarm
+  alarm_default_destination: your destination
+
+  # Joins two stops when you arrive at both while the alarm is still ringing,
+  # as in "Home and Work".
+  alarm_label_joiner: " and "
+
+  alarm_notification_title: You're near {place}
+  alarm_notification_body: Tap to open the alarm, or stop it below.
+
+  # The channel names Android shows in its own notification settings.
+  channel_alarm_name: Location alarms
+  channel_alarm_description: Alerts you when you arrive near a saved destination
+  channel_watch_name: Watching for destinations
+  channel_watch_description: Shows while LocReminder is watching for your destination
+
+  notify_arrived_body: Tap to open your alarm.
+  notify_stopped_title: Your alarm stopped watching
+  notify_stopped_body: Tap to reopen LocReminder and re-arm it.
+  notify_location_off_title: "Location is off — your alarm can't ring"
+  notify_location_off_body: Tap to turn location on.
+
+  watch_title_active: Watching for your destination
+  watch_title_inactive: Not watching
+  watch_location_off: "Turn on location — the alarm can't ring without it"
+  watch_distance_km: "{distance} km from {place}"
+  watch_distance_m: "{distance} m from {place}"
+  watch_armed:
+    one: "{count} alarm armed"
+    other: "{count} alarms armed"
+
+  test_alarm_label: Test alarm
+  custom_sound_name: Custom sound
+
+# ---------------------------------------------------------------------------
+# The F-Droid store listing. Not shown in the app at all.
+# ---------------------------------------------------------------------------
+store:
+  title: LocReminder
+  shortDescription: An alarm that rings when you arrive, not at a set time.
+  fullDescription: |
+    LocReminder is an alarm clock that goes off at a place instead of a time.
+
+    You know roughly where you are going, but not exactly when you will get there. Traffic, delays and unfamiliar routes make that impossible to predict, so a normal alarm is no use. Instead you spend the whole journey glancing out of the window, unable to properly rest or focus.
+
+    Drop a pin on your destination, choose how close you want to get, and put your phone away. When you arrive, LocReminder rings a real alarm: a looping sound that plays even on silent, vibration, and a full-screen alert over your lock screen.
+
+    <b>What it is good for</b>
+
+    * Long bus or train rides, so you can actually sleep
+    * Arriving somewhere unfamiliar, where you would not recognise your stop
+    * Commuting, so you can read or work without watching the route
+    * Road trips as a passenger, to be woken before the turn-off
+    * Errands, as a nudge when you are near the shop or post office
+
+    <b>Features</b>
+
+    * A real alarm, not a quiet notification: loops on the alarm audio channel so it sounds even on silent
+    * Choose your own alarm sound: any system ringtone, or an audio file of your own
+    * Search for a destination by name, or drag the map to place the pin exactly
+    * Multiple alarms, each with its own label and trigger radius, and live distance to each
+    * Adjustable radius from 100 m to 3 km, so you get as much warning as you need
+    * Light and dark themes
+    * Battery-aware: checks rarely when you are far away, more often as you approach
+    * Reliability screen that detects your phone's manufacturer and shows the exact settings needed, plus a test that proves the alarm gets through a locked screen
+
+    <b>Privacy</b>
+
+    LocReminder has no account, no analytics, no advertising and no server. Your saved destinations never leave your device. Maps and place search come from OpenStreetMap.
+
+    <b>Important: background restrictions</b>
+
+    Many manufacturers (Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei) run their own battery managers that stop background apps, which will prevent the alarm from ringing. No app can change those settings on your behalf. After installing, open Menu, then Alarm reliability, and follow the steps shown for your device. It takes a minute and is the difference between an alarm that works and one that does not.
+# ---------------------------------------------------------------------------
+# The app's own screens.
+# ---------------------------------------------------------------------------
+app:
+  appTitle: LocReminder

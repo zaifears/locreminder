@@ -173,13 +173,13 @@ class MainActivity : FlutterActivity() {
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                         val testIntent = Intent(this, AlarmForegroundService::class.java).apply {
                             action = AlarmForegroundService.ACTION_START
-                            putExtra(AlarmForegroundService.EXTRA_LABEL, "Test alarm")
+                            putExtra(AlarmForegroundService.EXTRA_LABEL, getString(R.string.test_alarm_label))
                             putExtra(AlarmForegroundService.EXTRA_ALARM_ID, "")
                         }
                         try {
                             ContextCompat.startForegroundService(this, testIntent)
                         } catch (e: Exception) {
-                            NotificationHelper.postFallbackAlarmNotification(this, "Test alarm")
+                            NotificationHelper.postFallbackAlarmNotification(this, getString(R.string.test_alarm_label))
                         }
                     }, delaySeconds * 1000L)
                     result.success(true)

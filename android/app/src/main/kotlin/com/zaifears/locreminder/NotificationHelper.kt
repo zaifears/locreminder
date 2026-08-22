@@ -25,10 +25,10 @@ object NotificationHelper {
 
         val channel = NotificationChannel(
             ALARM_CHANNEL_ID,
-            "Location alarms",
+            context.getString(R.string.channel_alarm_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "Alerts you when you arrive near a saved destination"
+            description = context.getString(R.string.channel_alarm_description)
             // The service plays the alarm sound itself via MediaPlayer so it can
             // loop continuously; the channel must not also play a one-shot sound.
             setSound(null, null)
@@ -51,10 +51,10 @@ object NotificationHelper {
 
         val channel = NotificationChannel(
             WATCH_CHANNEL_ID,
-            "Watching for destinations",
+            context.getString(R.string.channel_watch_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = "Shows while LocReminder is watching for your destination"
+            description = context.getString(R.string.channel_watch_description)
             setSound(null, null)
             enableVibration(false)
             setShowBadge(false)
@@ -83,8 +83,8 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
-            .setContentTitle("You're near $label")
-            .setContentText("Tap to open your alarm.")
+            .setContentTitle(context.getString(R.string.alarm_notification_title, label))
+            .setContentText(context.getString(R.string.notify_arrived_body))
             .setSmallIcon(R.drawable.ic_notification_alarm)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -115,8 +115,8 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
-            .setContentTitle("Your alarm stopped watching")
-            .setContentText("Tap to reopen LocReminder and re-arm it.")
+            .setContentTitle(context.getString(R.string.notify_stopped_title))
+            .setContentText(context.getString(R.string.notify_stopped_body))
             .setSmallIcon(R.drawable.ic_notification_alarm)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ERROR)
@@ -146,8 +146,8 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, ALARM_CHANNEL_ID)
-            .setContentTitle("Location is off — your alarm can't ring")
-            .setContentText("Tap to turn location on.")
+            .setContentTitle(context.getString(R.string.notify_location_off_title))
+            .setContentText(context.getString(R.string.notify_location_off_body))
             .setSmallIcon(R.drawable.ic_notification_alarm)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ERROR)

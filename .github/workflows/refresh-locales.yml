@@ -1,0 +1,49 @@
+# Regenerates the string files from locale/*.yaml and commits the result.
+#
+# Here so that adding a language never requires a translator to install
+# anything. They edit or add one file under locale/, and a maintainer runs
+# this to produce the Dart, Android and F-Droid listing files the app
+# actually reads.
+name: Refresh generated strings
+
+on:
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    name: Regenerate from locale/*.yaml
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyYAML
+        run: python -m pip install --quiet pyyaml
+
+      - name: Regenerate
+        run: python tool/gen_locale.py
+
+      - name: Commit if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Already up to date."
+            exit 0
+          fi
+          git add lib/l10n android/app/src/main/res fastlane/metadata
+          git commit -m "Regenerate strings from locale/*.yaml
+
+          Ran by the refresh-locales workflow.
+
+          [skip ci]"
+          git push
