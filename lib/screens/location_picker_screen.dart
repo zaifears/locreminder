@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/place_result.dart';
 import '../services/geocoding_service.dart';
+import '../services/radius_advice.dart';
 import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
 
@@ -27,9 +28,26 @@ class PickedLocation {
 /// fixed centre crosshair. Replaces blind tapping — you can look up "Dhaka
 /// Airport" instead of hunting for it on the map.
 class LocationPickerScreen extends StatefulWidget {
-  const LocationPickerScreen({super.key, required this.initialCenter});
+  const LocationPickerScreen({
+    super.key,
+    required this.initialCenter,
+    this.autofocusSearch = false,
+    this.travelSpeed,
+  });
 
   final LatLng initialCenter;
+
+  /// Whether to raise the keyboard on arrival.
+  ///
+  /// True when the user tapped the search field on the map, where they have
+  /// already said what they want to do and a second tap to summon the
+  /// keyboard is pure friction. False when they tapped "Add alarm", which
+  /// asks for a place on the map, not a name.
+  final bool autofocusSearch;
+
+  /// The user's current speed in metres per second, where it is known.
+  /// Decides the starting radius: see [minimumRadiusForSpeed].
+  final double? travelSpeed;
 
   @override
   State<LocationPickerScreen> createState() => _LocationPickerScreenState();
@@ -53,8 +71,22 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   bool _resolvingAddress = false;
   Timer? _addressDebounce;
 
-  double _radius = 500;
+  late double _radius = _initialRadius();
   String? _chosenName;
+
+  /// Whether the starting radius was raised because of [widget.travelSpeed],
+  /// which is worth explaining rather than silently doing.
+  late final double? _speedFloor = minimumRadiusForSpeed(widget.travelSpeed);
+
+  /// Opens wider than the 500m default when the user is moving fast enough
+  /// that 500m could be crossed between two location checks. Defaulting to
+  /// the safe value and explaining it beats showing a hint next to a slider
+  /// already sitting on a number that will not work.
+  double _initialRadius() {
+    const fallback = 500.0;
+    final floor = minimumRadiusForSpeed(widget.travelSpeed);
+    return floor == null || floor < fallback ? fallback : floor;
+  }
 
   @override
   void initState() {
@@ -203,6 +235,52 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     );
   }
 
+  /// Explains a radius that was widened for the speed the user is travelling
+  /// at, and warns if they then drag it back below what that speed needs.
+  ///
+  /// Silent when standing still or walking, which is most of the time: a note
+  /// that is always on screen is one nobody reads when it matters.
+  Widget _buildSpeedNote(BuildContext context) {
+    final floor = _speedFloor;
+    final speed = widget.travelSpeed;
+    if (floor == null || speed == null) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    final tooTight = _radius < floor;
+    final asText = floor >= 1000
+        ? '${(floor / 1000).toStringAsFixed(1)} km'
+        : '${floor.round()} m';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            tooTight ? Icons.warning_amber_rounded : Icons.speed,
+            size: 16,
+            color: tooTight ? scheme.error : scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              tooTight
+                  ? "You're moving at ${kilometresPerHour(speed)} km/h. Below "
+                      '$asText the alarm can pass your stop between location '
+                      'checks.'
+                  : "You're moving at ${kilometresPerHour(speed)} km/h, so "
+                      'this starts at $asText to give the alarm room to catch '
+                      'you.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: tooTight ? scheme.error : scheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSearchBar(BuildContext context) {
     return SafeArea(
       child: Padding(
@@ -221,6 +299,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocus,
+                  autofocus: widget.autofocusSearch,
                   textInputAction: TextInputAction.search,
                   onChanged: _onSearchChanged,
                   onTap: () {
@@ -401,6 +480,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   divisions: 29,
                   onChanged: (value) => setState(() => _radius = value),
                 ),
+                _buildSpeedNote(context),
                 const SizedBox(height: 4),
                 SizedBox(
                   width: double.infinity,
