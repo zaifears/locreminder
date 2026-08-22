@@ -3,6 +3,30 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.15] - 2026-08-22
+
+### Fixed
+- The map pin drew as two overlapping markers on some phones. Its shadow used
+  `Canvas.drawShadow`, Material's elevation primitive, which rasterises
+  differently per backend and lands under Impeller as a hard offset silhouette
+  rather than a blur. It is now a blurred copy of the same shape, which
+  renders the same everywhere.
+- A map tile that failed to load stayed blank until the app was restarted, so
+  switching between wifi and mobile data could not recover it: the handover
+  kills requests in flight and nothing tried again. Tiles now retry, with a
+  widening delay, and failed ones are evicted so returning to an area fetches
+  them afresh. 429 is deliberately not retried, since OpenStreetMap's tile
+  policy treats it as a request to back off.
+
+### Added
+- Humanitarian, Topographic and Cycle map styles alongside the standard one,
+  remembered per device and shared by both map screens.
+
+> No satellite view, and the style sheet says why. Every provider of satellite
+> imagery is a closed service, so offering one would mean depending on
+> something users cannot inspect, for a feature a location alarm does not
+> need.
+
 ## [1.6.14] - 2026-08-21
 
 ### Changed

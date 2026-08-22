@@ -63,7 +63,7 @@
 
 | | |
 |---|---|
-| **Latest version** | `v1.6.14`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.6.15`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | About 53 MB |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |

@@ -1,0 +1,8 @@
+Fixes the map pin, which drew as two overlapping markers on some phones.
+
+Map tiles that fail to load are now retried, so the map recovers on its
+own instead of staying blank until you restart the app.
+
+Adds Humanitarian, Topographic and Cycle map styles. There is no
+satellite view: every provider of satellite imagery is a closed service,
+and this app keeps to open data.
