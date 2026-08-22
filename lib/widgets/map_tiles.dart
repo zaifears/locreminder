@@ -189,13 +189,19 @@ Future<MapStyle?> showMapStyleSheet(BuildContext context, MapStyle current) {
                 ],
               ),
             ),
+            // A plain tile with a tick rather than RadioListTile, whose
+            // groupValue/onChanged pair is deprecated in favour of a
+            // RadioGroup ancestor. A sheet that closes on tap does not need
+            // the extra widget to express one choice out of four.
             for (final style in MapStyle.values)
-              RadioListTile<MapStyle>(
-                value: style,
-                groupValue: current,
-                onChanged: (value) => Navigator.of(context).pop(value),
+              ListTile(
+                selected: style == current,
                 title: Text(style.label),
                 subtitle: Text(style.description),
+                trailing: style == current
+                    ? Icon(Icons.check, color: scheme.primary)
+                    : null,
+                onTap: () => Navigator.of(context).pop(style),
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
