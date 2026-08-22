@@ -276,13 +276,13 @@ const _vendorProfiles = <_VendorProfile>[
   _VendorProfile(
     keys: ['tcl', 'alcatel'],
     name: 'TCL / Alcatel',
-    note: 'TCL devices pair Android's own battery optimisation with a '
+    note: 'TCL devices pair Android\'s own battery optimisation with a '
         'separate manager app, and being allowed by one does not mean being '
         'allowed by the other.',
     steps: [
       OemStep(
         title: 'Set battery use to Unrestricted',
-        path: 'Settings → Battery → Battery optimisation → LocReminder → Don't optimise',
+        path: 'Settings → Battery → Battery optimisation → LocReminder → Don\'t optimise',
       ),
       OemStep(
         title: 'Allow it to start automatically',
@@ -293,11 +293,11 @@ const _vendorProfiles = <_VendorProfile>[
   _VendorProfile(
     keys: ['htc'],
     name: 'HTC (Sense)',
-    note: 'HTC's Boost+ app has its own list of apps it is allowed to close, '
-        'which is separate from Android's battery settings.',
+    note: 'HTC\'s Boost+ app has its own list of apps it is allowed to close, '
+        'which is separate from Android\'s battery settings.',
     steps: [
       OemStep(
-        title: 'Set battery optimisation to Don't optimise',
+        title: 'Set battery optimisation to Don\'t optimise',
         path: 'Settings → Battery → Battery optimisation → LocReminder',
       ),
       OemStep(
@@ -317,7 +317,7 @@ const _vendorProfiles = <_VendorProfile>[
         path: 'Settings → Battery → Eco mode (or Long life battery) → exclude LocReminder',
       ),
       OemStep(
-        title: 'Set battery optimisation to Don't optimise',
+        title: 'Set battery optimisation to Don\'t optimise',
         path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
       ),
     ],
@@ -325,9 +325,9 @@ const _vendorProfiles = <_VendorProfile>[
   _VendorProfile(
     keys: ['ulefone', 'doogee', 'blackview', 'cubot', 'umidigi', 'oukitel', 'oscal', 'hotwav'],
     name: 'MediaTek-based device',
-    note: 'Phones built on MediaTek's reference software usually ship '
+    note: 'Phones built on MediaTek\'s reference software usually ship '
         'DuraSpeed, which closes background apps to speed up the foreground '
-        'one. It is separate from Android's battery settings and switched on '
+        'one. It is separate from Android\'s battery settings and switched on '
         'by default.',
     steps: [
       OemStep(
@@ -370,7 +370,7 @@ const _vendorProfiles = <_VendorProfile>[
     // should see "Walton" rather than a label invented to cover the group.
     name: '',
     note: 'This brand ships close to stock Android, so there is usually no '
-        'vendor app to fight. The one setting that still matters is Android's '
+        'vendor app to fight. The one setting that still matters is Android\'s '
         'own battery optimisation, which is on by default for every app.',
     steps: [
       OemStep(
