@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'l10n/strings.g.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/permission_service.dart';
@@ -41,6 +42,11 @@ class _LocReminderAppState extends State<LocReminderApp> {
           return MaterialApp(
             title: 'LocReminder',
             debugShowCheckedModeBanner: false,
+            // Follows the phone's language, falling back to English for one
+            // nobody has contributed yet. Both come from locale/*.yaml; see
+            // docs/LOCALISATION.md.
+            localizationsDelegates: const [S.delegate],
+            supportedLocales: S.supported,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: mode,

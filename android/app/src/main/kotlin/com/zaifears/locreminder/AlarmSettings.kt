@@ -97,9 +97,10 @@ class AlarmSettings(private val context: Context) {
 
             // Ringtones picked from the system picker expose a title instead.
             return try {
-                RingtoneManager.getRingtone(context, uri)?.getTitle(context) ?: "Custom sound"
+                RingtoneManager.getRingtone(context, uri)?.getTitle(context)
+                    ?: context.getString(R.string.custom_sound_name)
             } catch (e: Exception) {
-                "Custom sound"
+                context.getString(R.string.custom_sound_name)
             }
         }
     }

@@ -343,16 +343,21 @@ class LocationWatchService : Service() {
         val distance = nearestDistance
         val label = nearestLabel
         val text = when {
-            !isReceivingUpdates -> "Turn on location — the alarm can't ring without it"
+            !isReceivingUpdates -> getString(R.string.watch_location_off)
             label == null || distance == null ->
-                if (armedCount == 1) "1 alarm armed" else "$armedCount alarms armed"
-            distance >= 1000 -> "%.1f km from %s".format(distance / 1000, label)
-            else -> "${distance.toInt()} m from $label"
+                resources.getQuantityString(R.plurals.watch_armed, armedCount, armedCount)
+            distance >= 1000 ->
+                getString(R.string.watch_distance_km, "%.1f".format(distance / 1000), label)
+            else ->
+                getString(R.string.watch_distance_m, distance.toInt().toString(), label)
         }
 
         return NotificationCompat.Builder(this, NotificationHelper.WATCH_CHANNEL_ID)
             .setContentTitle(
-                if (isReceivingUpdates) "Watching for your destination" else "Not watching",
+                getString(
+                    if (isReceivingUpdates) R.string.watch_title_active
+                    else R.string.watch_title_inactive,
+                ),
             )
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_notification_alarm)

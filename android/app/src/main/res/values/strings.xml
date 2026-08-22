@@ -1,7 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED FILE - DO NOT EDIT. Source: locale/en.yaml -->
 <resources>
     <string name="alarm_arrived_default">You\'ve arrived!</string>
     <string name="alarm_arrived_message">You\'re near\n%1$s</string>
     <string name="alarm_stop_button">Stop alarm</string>
     <string name="alarm_default_destination">your destination</string>
+    <string name="alarm_label_joiner"> and </string>
+    <string name="alarm_notification_title">You\'re near %1$s</string>
+    <string name="alarm_notification_body">Tap to open the alarm, or stop it below.</string>
+    <string name="channel_alarm_name">Location alarms</string>
+    <string name="channel_alarm_description">Alerts you when you arrive near a saved destination</string>
+    <string name="channel_watch_name">Watching for destinations</string>
+    <string name="channel_watch_description">Shows while LocReminder is watching for your destination</string>
+    <string name="notify_arrived_body">Tap to open your alarm.</string>
+    <string name="notify_stopped_title">Your alarm stopped watching</string>
+    <string name="notify_stopped_body">Tap to reopen LocReminder and re-arm it.</string>
+    <string name="notify_location_off_title">Location is off — your alarm can\'t ring</string>
+    <string name="notify_location_off_body">Tap to turn location on.</string>
+    <string name="watch_title_active">Watching for your destination</string>
+    <string name="watch_title_inactive">Not watching</string>
+    <string name="watch_location_off">Turn on location — the alarm can\'t ring without it</string>
+    <string name="watch_distance_km">%1$s km from %2$s</string>
+    <string name="watch_distance_m">%1$s m from %2$s</string>
+    <plurals name="watch_armed">
+        <item quantity="one">%d alarm armed</item>
+        <item quantity="other">%d alarms armed</item>
+    </plurals>
+    <string name="test_alarm_label">Test alarm</string>
+    <string name="custom_sound_name">Custom sound</string>
 </resources>

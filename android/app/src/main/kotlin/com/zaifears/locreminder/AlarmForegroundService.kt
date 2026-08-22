@@ -55,7 +55,8 @@ class AlarmForegroundService : Service() {
             return START_NOT_STICKY
         }
 
-        val label = intent.getStringExtra(EXTRA_LABEL) ?: "your destination"
+        val label = intent.getStringExtra(EXTRA_LABEL)
+            ?: getString(R.string.alarm_default_destination)
         val alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: ""
         startAlarm(alarmId, label)
 
@@ -108,9 +109,9 @@ class AlarmForegroundService : Service() {
 
     /** What the notification calls this ring, once it may cover more than one stop. */
     private fun ringingLabel(): String = when (ringingLabels.size) {
-        0 -> "your destination"
+        0 -> getString(R.string.alarm_default_destination)
         1 -> ringingLabels.first()
-        else -> ringingLabels.joinToString(" and ")
+        else -> ringingLabels.joinToString(getString(R.string.alarm_label_joiner))
     }
 
     /**
@@ -292,14 +293,18 @@ class AlarmForegroundService : Service() {
         )
 
         return NotificationCompat.Builder(this, NotificationHelper.ALARM_CHANNEL_ID)
-            .setContentTitle("You're near $label")
-            .setContentText("Tap to open the alarm, or stop it below.")
+            .setContentTitle(getString(R.string.alarm_notification_title, label))
+            .setContentText(getString(R.string.alarm_notification_body))
             .setSmallIcon(R.drawable.ic_notification_alarm)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setContentIntent(fullScreenPendingIntent)
-            .addAction(R.drawable.ic_stop, "Stop alarm", stopPendingIntent)
+            .addAction(
+                R.drawable.ic_stop,
+                getString(R.string.alarm_stop_button),
+                stopPendingIntent,
+            )
             .setOngoing(true)
             .setAutoCancel(false)
             .build()

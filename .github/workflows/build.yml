@@ -68,7 +68,7 @@ jobs:
       - name: Install what the image lacks
         run: |
           apt-get update -qq
-          apt-get install -y -qq --no-install-recommends jq git curl unzip xz-utils
+          apt-get install -y -qq --no-install-recommends jq git curl unzip xz-utils python3-yaml
           git config --global --add safe.directory '*'
 
       - name: Checkout
@@ -108,6 +108,14 @@ jobs:
         run: |
           export PUB_CACHE="$BUILD_DIR/.pub-cache"
           "$FLUTTER_DIR/bin/flutter" pub get --enforce-lockfile
+
+      # The generated string files are committed rather than built, so that no
+      # code generation runs inside a build F-Droid reproduces byte for byte.
+      # That only works if they are kept in step with their source, which is
+      # what this checks. If it fails, run: python tool/gen_locale.py
+      - name: Check the generated strings match locale/*.yaml
+        working-directory: /home/vagrant/build/com.zaifears.locreminder
+        run: python3 tool/gen_locale.py --check
 
       - name: Analyze
         working-directory: /home/vagrant/build/com.zaifears.locreminder
