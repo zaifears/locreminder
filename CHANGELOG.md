@@ -3,7 +3,7 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.7.0] - 2026-08-22
+## [1.7.0] - 2026-08-23
 
 ### Fixed
 - With two alarms armed, the second could stay silent for the whole journey
