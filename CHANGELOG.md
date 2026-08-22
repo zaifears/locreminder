@@ -3,6 +3,23 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.16] - 2026-08-22
+
+### Fixed
+- The saved-location pin drew as a lopsided blob rather than a teardrop. Its
+  head's arc swept the wrong way round the circle: from the right tangent
+  point it ran 240 degrees clockwise, which ends at the top of the head rather
+  than at the left tangent, so the arc crossed the body and closing the path
+  cut a straight chord across the head. It has been malformed since the pin
+  was written.
+- The map style and locate buttons sat inset from the screen edge. The column
+  holding them centres its children, and the wide "Add alarm" button set the
+  column's width, so the two small buttons were pulled inward. All three now
+  align to the edge.
+- The map controls stayed pinned over the alarm list once it was dragged open.
+  They now follow the sheet while it is near its resting size and fade out
+  past the point where the list owns the screen.
+
 ## [1.6.15] - 2026-08-22
 
 ### Fixed

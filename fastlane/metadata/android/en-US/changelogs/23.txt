@@ -1,0 +1,6 @@
+Fixes the pin marking a saved place, which drew as a lopsided shape
+instead of a proper map pin.
+
+The map style and locate buttons now sit flush with the edge of the
+screen, and all three map buttons move out of the way when you drag the
+alarm list open instead of sitting on top of it.
