@@ -48,7 +48,7 @@ the next.
 | [The map screen](#the-map-screen) | 35 |
 | [Choosing a destination](#choosing-a-destination) | 14 |
 | [Will it ring?](#will-it-ring) | 26 |
-| [Phone-specific advice](#phone-specific-advice) | 105 |
+| [Phone-specific advice](#phone-specific-advice) | 101 |
 | [Settings](#settings) | 21 |
 | [Alarm sound](#alarm-sound) | 11 |
 | [About](#about) | 10 |
@@ -60,7 +60,7 @@ the next.
 | [Already moved over](#already-moved-over) | 15 |
 | [The alarm](#the-alarm) | 25 |
 | [The F-Droid listing](#the-f-droid-listing) | 3 |
-| **Everything** | **309** |
+| **Everything** | **305** |
 
 ## First run
 
@@ -72,25 +72,25 @@ Shown once, before anything else. The user has not agreed to anything yet, so th
 |---|---|---|
 | `findWhereYouAre` | Find where you are | |
 | `locreminderNeedsYourLocation` | LocReminder needs your location. | |
-| `thatSTheWholeTrick` | That's the whole trick: the app compares where you are against where you want to be woken up, and rings when the two match.\n\nYour location never leaves your phone. There is no account, no server, and nothing is uploaded anywhere — this app has no internet backend at all. | |
+| `thatSTheWholeTrick` | That's the whole trick: the app compares where you are against where you want to be woken up, and rings when the two match.  Your location never leaves your phone. There is no account, no server, and nothing is uploaded anywhere — this app has no internet backend at all. | |
 | `locationAccessGranted` | Location access granted | |
 | `allowLocation` | Allow location | |
 | `turnOnLocationServices` | Turn on location services | |
 | `keepWatchWhileYouRest` | Keep watch while you rest | |
 | `chooseAllowAllTheTime` | Choose "Allow all the time" on the next screen. | |
-| `thisIsTheMostImportant` | This is the most important one, and the easiest to get wrong.\n\nThe entire point of LocReminder is that you can put your phone in your pocket and sleep through the ride. Android only lets the alarm fire while the app is closed if you pick "Allow all the time".\n\nIf you pick "Only while using the app", everything will look fine — but the alarm will never go off once you lock your screen. | |
+| `thisIsTheMostImportant` | This is the most important one, and the easiest to get wrong.  The entire point of LocReminder is that you can put your phone in your pocket and sleep through the ride. Android only lets the alarm fire while the app is closed if you pick "Allow all the time".  If you pick "Only while using the app", everything will look fine — but the alarm will never go off once you lock your screen. | |
 | `backgroundLocationGranted` | Background location granted | |
 | `openLocationSettings` | Open location settings | |
 | `showTheAlarmOnScreen` | Show the alarm on screen | |
 | `locreminderNeedsToPostNotifications` | LocReminder needs to post notifications. | |
-| `whenYouArriveTheApp` | When you arrive, the app takes over your screen with a full-screen alarm and a Stop button — like a normal alarm clock, even over the lock screen.\n\nAndroid treats that as a notification. Without this permission the alarm may make noise with no way to see or silence it. | |
+| `whenYouArriveTheApp` | When you arrive, the app takes over your screen with a full-screen alarm and a Stop button — like a normal alarm clock, even over the lock screen.  Android treats that as a notification. Without this permission the alarm may make noise with no way to see or silence it. | |
 | `notificationsGranted` | Notifications granted | |
 | `allowFullScreenAlarms` | Allow full-screen alarms | |
 | `allowNotifications` | Allow notifications | |
 | `oneMoreStepAndroidAnd` | One more step: Android 14 and newer ask separately for permission to show full-screen alarms. | |
 | `donTLetAndroidDoze` | Don't let Android doze off | |
 | `turnOffBatteryOptimizationFor` | Turn off battery optimization for LocReminder. | |
-| `thisOneIsNotOptional` | This one is not optional, and it is the reason most location alarms fail.\n\nWith battery optimization on, Android puts the app to sleep once your screen is off and postpones its location work. The alarm then stays silent for the entire journey and only goes off when you next unlock and open the app — by which point you have already gone past your stop.\n\nOn the next screen choose LocReminder, then "Don\'t optimize" or "Unrestricted". | |
+| `thisOneIsNotOptional` | This one is not optional, and it is the reason most location alarms fail.  With battery optimization on, Android puts the app to sleep once your screen is off and postpones its location work. The alarm then stays silent for the entire journey and only goes off when you next unlock and open the app — by which point you have already gone past your stop.  On the next screen choose LocReminder, then "Don't optimize" or "Unrestricted". | |
 | `batteryOptimizationDisabled` | Battery optimization disabled | |
 | `openBatterySettings` | Open battery settings | |
 | `phoneMakersLikeXiaomiSamsung` | Phone makers like Xiaomi, Samsung, Oppo, Vivo and OnePlus add their own app-killer on top of this one. After finishing setup, open Alarm reliability from the menu — it shows the exact steps for your model and lets you test the alarm. | |
@@ -137,7 +137,7 @@ The screen people actually live in. Includes every transient message.
 | `alarmRinging` | Alarm ringing | |
 | `stop` | Stop | |
 | `noAlarmsYet` | No alarms yet | |
-| `tapAddAlarmToSearch` | Tap "Add alarm" to search for where you\'re heading, then choose how close you want to be before it rings. | |
+| `tapAddAlarmToSearch` | Tap "Add alarm" to search for where you're heading, then choose how close you want to be before it rings. | |
 | `alarmsAlarms` | {_alarms} {_alarms} | |
 | `activecountArmed` | {activeCount} armed | |
 | `pausedRingsWithinRadiuslabel` | Paused · rings within {radiusLabel} | |
@@ -177,7 +177,7 @@ The diagnostics screen. The most important text in the app after the alarm itsel
 | Key | English | Your language |
 |---|---|---|
 | `testTheAlarm` | Test the alarm | |
-| `theAlarmWillRingIn` | The alarm will ring in 15 seconds.\n\nLock your phone now and put it down. If the alarm sounds and its screen appears over your lock screen, background alarms work on this device.\n\nIf nothing happens, your phone is blocking the app — work through the steps on this page. | |
+| `theAlarmWillRingIn` | The alarm will ring in 15 seconds.  Lock your phone now and put it down. If the alarm sounds and its screen appears over your lock screen, background alarms work on this device.  If nothing happens, your phone is blocking the app — work through the steps on this page. | |
 | `cancel` | Cancel | |
 | `startTest` | Start test | |
 | `lockYourPhoneNowThe` | Lock your phone now — the alarm rings in 15 seconds. | |
@@ -259,36 +259,35 @@ Per-manufacturer instructions for stopping the phone killing background apps. Th
 | `magicosKeepsHuaweiStyleApp` | MagicOS keeps Huawei-style app-launch controls. Its menus moved after Honor split from Huawei, so the wording may differ slightly from older guides. | |
 | `settingsAppsLocreminderBatteryNo` | Settings → Apps → LocReminder → Battery → No restrictions | |
 | `meizuFlyme` | Meizu (Flyme) | |
-| `flymeKeepsItsOwnStandby` | Flyme keeps its own standby and autostart lists, separate from Android\'s battery settings. | |
+| `flymeKeepsItsOwnStandby` | Flyme keeps its own standby and autostart lists, separate from Android's battery settings. | |
 | `settingsAppsPermissionManagementAutostart` | Settings → Apps → Permission management → Autostart → LocReminder | |
 | `turnOffStandbyManagement` | Turn off standby management | |
 | `settingsBatteryStandbyManagementLocreminder` | Settings → Battery → Standby management → LocReminder → allow background | |
 | `asusZenui` | Asus (ZenUI) | |
-| `zenuiShipsAMobileManager` | ZenUI ships a Mobile Manager app that manages autostart separately from Android\'s own settings. | |
+| `zenuiShipsAMobileManager` | ZenUI ships a Mobile Manager app that manages autostart separately from Android's own settings. | |
 | `allowAutoStart` | Allow auto-start | |
 | `mobileManagerAutoStartManager` | Mobile Manager → Auto-start Manager → LocReminder → Allow | |
 | `transsionHiosXos` | Transsion (HiOS / XOS) | |
-| `theseDevicesShipAPhone` | These devices ship a Phone Master app whose power saving overrides Android\'s own battery settings. | |
+| `theseDevicesShipAPhone` | These devices ship a Phone Master app whose power saving overrides Android's own battery settings. | |
 | `settingsAppsLocreminderAutostart` | Settings → Apps → LocReminder → Autostart | |
 | `setBatteryToNoRestrictions` | Set battery to No restrictions | |
 | `settingsBatteryBackgroundPowerConsumption` | Settings → Battery → Background power consumption → LocReminder | |
 | `addToTheProtectedList` | Add to the protected list in Phone Master | |
 | `phoneMasterPowerSavingProtected` | Phone Master → Power saving → Protected apps → LocReminder | |
 | `lenovoZteLeeco` | Lenovo / ZTE / LeEco | |
-| `theseSkinsKeepABackground` | These skins keep a background autostart list separate from Android\'s battery settings; an app missing from it gets stopped. | |
+| `theseSkinsKeepABackground` | These skins keep a background autostart list separate from Android's battery settings; an app missing from it gets stopped. | |
 | `allowAutostartBackgroundRunning` | Allow autostart / background running | |
 | `settingsAppsLocreminderAutostartOr` | Settings → Apps → LocReminder → Autostart (or Background settings) | |
 | `settingsBatteryLocreminderUnrestricted` | Settings → Battery → LocReminder → Unrestricted | |
 | `tclAlcatel` | TCL / Alcatel | |
-| `tclDevicesPairAndroid` | TCL devices pair Android | |
-| `separateManagerAppAndBeing` | separate manager app, and being allowed by one does not mean being allowed by the other. | |
+| `tclDevicesPairAndroidS` | TCL devices pair Android's own battery optimisation with a separate manager app, and being allowed by one does not mean being allowed by the other. | |
 | `setBatteryUseToUnrestricted` | Set battery use to Unrestricted | |
-| `settingsBatteryBatteryOptimisationLocreminde` | Settings → Battery → Battery optimisation → LocReminder → Don | |
+| `settingsBatteryBatteryOptimisationLocreminde` | Settings → Battery → Battery optimisation → LocReminder → Don't optimise | |
 | `allowItToStartAutomatically` | Allow it to start automatically | |
 | `settingsAppsLocreminderAutostartIf` | Settings → Apps → LocReminder → Autostart, if your model has it | |
 | `htcSense` | HTC (Sense) | |
-| `whichIsSeparateFromAndroid` | which is separate from Android | |
-| `setBatteryOptimisationToDon` | Set battery optimisation to Don | |
+| `htcSBoostAppHas` | HTC's Boost+ app has its own list of apps it is allowed to close, which is separate from Android's battery settings. | |
+| `setBatteryOptimisationToDon` | Set battery optimisation to Don't optimise | |
 | `settingsBatteryBatteryOptimisationLocreminde2` | Settings → Battery → Battery optimisation → LocReminder | |
 | `excludeItFromBoost` | Exclude it from Boost+ | |
 | `boostOptimiseBackgroundAppsUntick` | Boost+ → Optimise background apps → untick LocReminder | |
@@ -297,9 +296,7 @@ Per-manufacturer instructions for stopping the phone killing background apps. Th
 | `excludeItFromTheBattery` | Exclude it from the battery saver | |
 | `settingsBatteryEcoModeOr` | Settings → Battery → Eco mode (or Long life battery) → exclude LocReminder | |
 | `mediatekBasedDevice` | MediaTek-based device | |
-| `phonesBuiltOnMediatek` | Phones built on MediaTek | |
-| `duraspeedWhichClosesBackgroundApps` | DuraSpeed, which closes background apps to speed up the foreground one. It is separate from Android | |
-| `byDefault` | by default. | |
+| `phonesBuiltOnMediatekS` | Phones built on MediaTek's reference software usually ship DuraSpeed, which closes background apps to speed up the foreground one. It is separate from Android's battery settings and switched on by default. | |
 | `turnDuraspeedOffOrAllow` | Turn DuraSpeed off, or allow LocReminder in it | |
 | `settingsDuraspeedOrSettingsSpecial` | Settings → DuraSpeed (or Settings → Special features → DuraSpeed) | |
 | `amazonFireOs` | Amazon (Fire OS) | |
@@ -308,12 +305,11 @@ Per-manufacturer instructions for stopping the phone killing background apps. Th
 | `settingsAppsNotificationsLocreminderAdvanced` | Settings → Apps & Notifications → LocReminder → Advanced → Battery | |
 | `turnOffLowPowerMode` | Turn off Low Power Mode while an alarm is armed | |
 | `settingsBatteryLowPowerMode` | Settings → Battery → Low Power Mode | |
-| `thisBrandShipsCloseTo` | This brand ships close to stock Android, so there is usually no vendor app to fight. The one setting that still matters is Android | |
-| `ownBatteryOptimisationWhichIs` | own battery optimisation, which is on by default for every app. | |
+| `thisBrandShipsCloseTo` | This brand ships close to stock Android, so there is usually no vendor app to fight. The one setting that still matters is Android's own battery optimisation, which is on by default for every app. | |
 | `ifYourPhoneHasA` | If your phone has a power or phone manager app, allow it there too | |
 | `lookForProtectedAppsAutostart` | Look for "protected apps", "autostart" or "background activity" | |
 | `stockAndroid` | stock Android | |
-| `thisManufacturerFollowsAndroidS` | This manufacturer follows Android\'s standard background rules, so the permissions above should be all you need. | |
+| `thisManufacturerFollowsAndroidS` | This manufacturer follows Android's standard background rules, so the permissions above should be all you need. | |
 | `yourDevice2` | your device | |
 | `weHaveNoNotesSpecific` | We have no notes specific to this manufacturer. Nearly every Android skin has a setting under some name that stops background apps, so if an alarm is ever late, look for "autostart", "background activity", "protected apps" or "unrestricted battery" and allow LocReminder in whichever of them your phone has. | |
 
@@ -327,7 +323,7 @@ Per-manufacturer instructions for stopping the phone killing background apps. Th
 | `system` | System | |
 | `light` | Light | |
 | `dark` | Dark | |
-| `matchingYourPhoneSTheme` | Matching your phone\'s theme. | |
+| `matchingYourPhoneSTheme` | Matching your phone's theme. | |
 | `alwaysLightWhateverYourPhone` | Always light, whatever your phone uses. | |
 | `alwaysDarkWhateverYourPhone` | Always dark, whatever your phone uses. | |
 | `alarmSound` | Alarm sound | |
@@ -372,12 +368,12 @@ Per-manufacturer instructions for stopping the phone killing background apps. Th
 | `couldNotOpenUri` | Could not open {uri} | |
 | `version2` | Version… | |
 | `versionVersion` | Version {_version} | |
-| `aLocationBasedAlarmThat` | A location-based alarm that wakes you when you approach your destination — so you can sleep on the bus without missing your stop.\n\nIt keeps watching in the background, so the alarm still fires when the app is closed, and uses OpenStreetMap for maps, so it needs no API keys or accounts.\n\nFree software with no Google services, no ads and no tracking. Your locations stay on your phone. | |
+| `aLocationBasedAlarmThat` | A location-based alarm that wakes you when you approach your destination — so you can sleep on the bus without missing your stop.  It keeps watching in the background, so the alarm still fires when the app is closed, and uses OpenStreetMap for maps, so it needs no API keys or accounts.  Free software with no Google services, no ads and no tracking. Your locations stay on your phone. | |
 | `shahoriarHossain` | Shahoriar Hossain | |
 | `website` | Website | |
 | `github` | GitHub | |
 | `contact` | Contact | |
-| `mapDataAndSearchOpenstreetmap` | Map data and search © OpenStreetMap contributors, available under the Open Database License.\n\nLocReminder\'s source code is open source under the MIT licence. The app icon, logo and name remain © Shahoriar Hossain, all rights reserved. | |
+| `mapDataAndSearchOpenstreetmap` | Map data and search © OpenStreetMap contributors, available under the Open Database License.  LocReminder's source code is open source under the MIT licence. The app icon, logo and name remain © Shahoriar Hossain, all rights reserved. | |
 | `freePalestineOpensRevolutionarypapersOrg` | Free Palestine. Opens revolutionarypapers.org in your browser. | |
 
 ## Map styles

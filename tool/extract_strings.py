@@ -211,6 +211,27 @@ CALL = re.compile(r"\.\w+\([^()]*\)")
 IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
 
 
+def unescape(text: str) -> str:
+    """Turns Dart escapes back into the characters they stand for.
+
+    A translator is shown the sentence, not the source. Leaving the escape
+    in makes "Android\'s" look like something that must be preserved
+    exactly, and someone would dutifully copy the backslash into their own
+    language.
+    """
+    out = []
+    i = 0
+    while i < len(text):
+        if text[i] == "\\" and i + 1 < len(text):
+            nxt = text[i + 1]
+            out.append({"n": " ", "t": " "}.get(nxt, nxt))
+            i += 2
+            continue
+        out.append(text[i])
+        i += 1
+    return "".join(out)
+
+
 def to_placeholders(text: str) -> str:
     """Turns Dart interpolation into a name a translator can move around.
 
@@ -283,7 +304,7 @@ def main() -> int:
             if not is_shown(text) or text in seen:
                 continue
             seen.add(text)
-            shown_text = to_placeholders(text)
+            shown_text = unescape(to_placeholders(text))
             if shown_text in done or text in done:
                 continue
             rows.append((key_for(shown_text, taken), shown_text))

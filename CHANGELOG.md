@@ -3,6 +3,46 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.1] - 2026-08-23
+
+### Fixed
+- Phones the app did not recognise were told they were fine. The reliability
+  screen printed a fixed sentence saying the manufacturer follows Android's
+  standard background rules, which is exactly what is not known about a brand
+  the app has never heard of. It also hid the fallback advice, which was the
+  only guidance available to those users. The real note is shown now.
+
+### Added
+- Phone-specific advice for around fifteen more manufacturers: TCL and
+  Alcatel, HTC, Sharp and Kyocera, Amazon's Fire OS, the MediaTek-based
+  budget brands (Ulefone, Doogee, Blackview, Cubot, Umidigi, Oukitel), and a
+  group covering Walton, Symphony, Lava, Micromax, Karbonn, BLU, Wiko and
+  others. Around forty-five brands are now named, up from thirty.
+
+  The MediaTek entry matters most of the new ones. Those phones ship
+  DuraSpeed, which closes background apps, sits outside Android's own battery
+  settings, and is switched on by default. It cannot be found unless you know
+  its name.
+
+  Phones in the grouped entry show their own brand rather than a label
+  invented to cover a dozen unrelated makers.
+- Translations now need one file and no tooling. Everything the app says
+  lives in `locale/<code>.yaml`, and a generator turns it into the three
+  formats the app actually reads: Dart for the screens, Android resources for
+  the alarm, and the F-Droid listing. Adding a language means copying
+  `locale/en.yaml`, translating the right-hand side, and nothing else.
+
+  No new dependencies, and the generator never runs during a build. Its
+  output is committed and CI only checks it still matches its source, so the
+  reproducible build is untouched.
+
+  The alarm's text and the store listing have moved across, leaving no
+  hardcoded user-facing text in the Android side at all. The app's own
+  screens follow file by file; anything not yet moved still works exactly as
+  before.
+- `docs/LANGUAGE.md` lists all 305 strings in the app in one table, ready to
+  be filled in by hand and turned into a language file.
+
 ## [1.7.0] - 2026-08-23
 
 ### Fixed
