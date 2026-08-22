@@ -40,6 +40,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final _geocoder = GeocodingService();
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
+  MapStyle _mapStyle = MapStyle.standard;
 
   late LatLng _center = widget.initialCenter;
   List<PlaceResult> _results = const [];
@@ -59,6 +60,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   void initState() {
     super.initState();
     _resolveAddress();
+    // Follows whatever the map screen is showing, rather than asking again.
+    MapStyleStore.load().then((style) {
+      if (mounted) setState(() => _mapStyle = style);
+    });
   }
 
   @override
@@ -157,7 +162,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               onTap: (_, __) => _searchFocus.unfocus(),
             ),
             children: [
-              buildTileLayer(context),
+              buildTileLayer(context, style: _mapStyle),
               CircleLayer(
                 circles: [
                   CircleMarker(
@@ -188,7 +193,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
           // Kept clear of the bottom panel so the required OSM credit stays
           // visible while picking.
-          const Positioned(left: 8, bottom: 232, child: MapAttribution()),
+          Positioned(left: 8, bottom: 232, child: MapAttribution(style: _mapStyle)),
 
           _buildSearchBar(context),
           if (_showResults) _buildResultsOverlay(context),

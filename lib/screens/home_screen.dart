@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   PermissionStatusSummary? _permissions;
   bool _loading = true;
   bool _locating = false;
+  MapStyle _mapStyle = MapStyle.standard;
   bool _alarmRinging = false;
 
   @override
@@ -68,6 +69,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _bootstrap() async {
+    final style = await MapStyleStore.load();
+    if (mounted) setState(() => _mapStyle = style);
     final alarms = await _repository.loadAll();
     if (mounted) setState(() => _alarms = alarms);
     await _reconcileTriggeredAlarms();
@@ -330,6 +333,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _syncLocationWatch();
   }
 
+  Future<void> _pickMapStyle() async {
+    final picked = await showMapStyleSheet(context, _mapStyle);
+    if (picked == null || !mounted) return;
+    setState(() => _mapStyle = picked);
+    await MapStyleStore.save(picked);
+  }
+
   void _focusAlarm(LocationAlarm alarm) {
     _mapController.move(LatLng(alarm.latitude, alarm.longitude), 15);
   }
@@ -457,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 initialZoom: 14,
               ),
               children: [
-                buildTileLayer(context),
+                buildTileLayer(context, style: _mapStyle),
                 CircleLayer(circles: _circles),
                 MarkerLayer(markers: _markers),
               ],
@@ -467,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Positioned(
               left: 8,
               bottom: MediaQuery.of(context).size.height * 0.13 + 6,
-              child: const MapAttribution(),
+              child: MapAttribution(style: _mapStyle),
             ),
             Positioned(
               top: 0,
@@ -492,6 +502,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            FloatingActionButton.small(
+              heroTag: 'style',
+              tooltip: 'Map style',
+              onPressed: _pickMapStyle,
+              child: const Icon(Icons.layers_outlined),
+            ),
+            const SizedBox(height: 12),
             FloatingActionButton.small(
               heroTag: 'locate',
               tooltip: 'Centre on my location',
