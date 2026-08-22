@@ -30,6 +30,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _defaultPosition = LatLng(23.8103, 90.4125); // Dhaka
 
+  // The alarm sheet's resting and full sizes, shared with the map controls so
+  // the two cannot drift apart.
+  static const _sheetCollapsed = 0.13;
+  static const _sheetExpanded = 0.62;
+  // Past this the sheet owns the screen and the map controls step aside.
+  static const _controlsFadeAt = 0.30;
+
   final _repository = AlarmRepository();
   final _nativeBridge = NativeBridge();
   final _permissionService = PermissionService();
@@ -43,6 +50,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _loading = true;
   bool _locating = false;
   MapStyle _mapStyle = MapStyle.standard;
+
+  /// How far the alarm sheet is drawn up, as a fraction of screen height.
+  /// Starts at the collapsed size the sheet itself declares.
+  double _sheetExtent = _sheetCollapsed;
   bool _alarmRinging = false;
 
   @override
@@ -333,6 +344,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _syncLocationWatch();
   }
 
+  bool get _mapControlsHidden => _sheetExtent > _controlsFadeAt;
+
+  /// Keeps the buttons sitting just clear of the sheet's top edge while it is
+  /// near its resting size, so they track the drag instead of jumping once.
+  double _mapControlsBottomInset(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+    final extent = _sheetExtent.clamp(_sheetCollapsed, _controlsFadeAt);
+    return height * extent + 12;
+  }
+
   Future<void> _pickMapStyle() async {
     final picked = await showMapStyleSheet(context, _mapStyle);
     if (picked == null || !mounted) return;
@@ -497,40 +518,60 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ],
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 110),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FloatingActionButton.small(
-              heroTag: 'style',
-              tooltip: 'Map style',
-              onPressed: _pickMapStyle,
-              child: const Icon(Icons.layers_outlined),
+      // Rides just above the collapsed sheet, and gets out of the way as the
+      // sheet is dragged open: past that point the user is reading the list,
+      // not working the map, and three buttons floating over the rows are
+      // just something to hit by accident.
+      // Rides just above the collapsed sheet, and gets out of the way as the
+      // sheet is dragged open: past that point the user is reading the list,
+      // not working the map, and three buttons floating over the rows are
+      // just something to hit by accident.
+      floatingActionButton: IgnorePointer(
+        ignoring: _mapControlsHidden,
+        child: AnimatedOpacity(
+          opacity: _mapControlsHidden ? 0 : 1,
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: _mapControlsBottomInset(context)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              // End, not the default centre: the wide "Add alarm" button sets
+              // the column's width, so centred small buttons sit inset from
+              // the screen edge and read as misaligned against it.
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'style',
+                  tooltip: 'Map style',
+                  onPressed: _pickMapStyle,
+                  child: const Icon(Icons.layers_outlined),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'locate',
+                  tooltip: 'Centre on my location',
+                  // Getting a real fix can take a few seconds, so the button
+                  // has to show it is working rather than looking inert.
+                  onPressed: _locating ? null : () => _locateUser(recenter: true),
+                  child: _locating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.extended(
+                  heroTag: 'add',
+                  onPressed: _addAlarm,
+                  icon: const Icon(Icons.add_location_alt),
+                  label: const Text('Add alarm'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            FloatingActionButton.small(
-              heroTag: 'locate',
-              tooltip: 'Centre on my location',
-              // Getting a real fix can take a few seconds, so the button has
-              // to show it is working rather than looking inert.
-              onPressed: _locating ? null : () => _locateUser(recenter: true),
-              child: _locating
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.my_location),
-            ),
-            const SizedBox(height: 12),
-            FloatingActionButton.extended(
-              heroTag: 'add',
-              onPressed: _addAlarm,
-              icon: const Icon(Icons.add_location_alt),
-              label: const Text('Add alarm'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -679,10 +720,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final scheme = Theme.of(context).colorScheme;
     final activeCount = _alarms.where((a) => a.isActive).length;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.13,
-      minChildSize: 0.13,
-      maxChildSize: 0.62,
+    // Listens rather than polls: the notification fires on every drag frame,
+    // which is what lets the map controls track the sheet instead of snapping
+    // once it settles.
+    return NotificationListener<DraggableScrollableNotification>(
+      onNotification: (notification) {
+        if (notification.extent != _sheetExtent) {
+          setState(() => _sheetExtent = notification.extent);
+        }
+        return false;
+      },
+      child: DraggableScrollableSheet(
+        initialChildSize: _sheetCollapsed,
+        minChildSize: _sheetCollapsed,
+        maxChildSize: _sheetExpanded,
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
@@ -760,8 +811,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ],
             ],
           ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

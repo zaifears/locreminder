@@ -67,10 +67,16 @@ class _PinPainter extends CustomPainter {
       headCentre.dx + headRadius * math.cos(rightAngle),
       headCentre.dy + headRadius * math.sin(rightAngle),
     );
+    // Anticlockwise, hence the negative sweep: the head's outer edge is the
+    // major arc that runs over the top, from the right tangent point back to
+    // the left one. Sweeping the same angle the other way lands on the top of
+    // the circle instead, and close() then cuts a straight chord across the
+    // head while the arc itself crosses the body. That is what made the pin
+    // render as a lopsided blob rather than a teardrop.
     path.arcTo(
       Rect.fromCircle(center: headCentre, radius: headRadius),
       rightAngle,
-      2 * math.pi - 2 * tangentAngle,
+      -(2 * math.pi - 2 * tangentAngle),
       false,
     );
     path.close();
