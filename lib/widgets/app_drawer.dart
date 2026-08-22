@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.g.dart';
 import '../screens/about_screen.dart';
 import '../screens/reliability_screen.dart';
 import '../screens/settings_screen.dart';
@@ -10,6 +11,7 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final text = S.of(context);
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -33,11 +35,11 @@ class AppDrawer extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'LocReminder',
+                        text.appTitle,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
-                        'Never miss your stop',
+                        text.appTagline,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
@@ -53,8 +55,8 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListTile(
                 leading: const Icon(Icons.health_and_safety_outlined),
-                title: const Text('Alarm reliability'),
-                subtitle: const Text('Make sure it will ring'),
+                title: Text(text.drawerReliability),
+                subtitle: Text(text.drawerReliabilitySubtitle),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -67,7 +69,7 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListTile(
                 leading: const Icon(Icons.settings_outlined),
-                title: const Text('Settings'),
+                title: Text(text.drawerSettings),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -80,7 +82,7 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListTile(
                 leading: const Icon(Icons.info_outline),
-                title: const Text('About'),
+                title: Text(text.drawerAbout),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
@@ -93,7 +95,7 @@ class AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Map data © OpenStreetMap contributors',
+                text.mapAttribution,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

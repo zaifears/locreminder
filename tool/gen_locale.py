@@ -383,7 +383,13 @@ def main() -> int:
         return 0
 
     print("%d language%s: %s" % (len(codes), "" if len(codes) == 1 else "s", ", ".join(codes)))
-    print("%d string%s in %s.yaml" % (len(all_data[BASE]["app"]), "", BASE))
+    app_count = len(all_data[BASE]["app"])
+    alarm_count = len(all_data[BASE].get("alarm") or {})
+    print(
+        "%d app string%s, %d alarm string%s"
+        % (app_count, "" if app_count == 1 else "s",
+           alarm_count, "" if alarm_count == 1 else "s")
+    )
     if changed:
         for path in changed:
             print("  wrote " + os.path.relpath(path, ROOT).replace(os.sep, "/"))

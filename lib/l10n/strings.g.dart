@@ -29,6 +29,20 @@ abstract class S {
   static const delegate = _SDelegate();
 
   String get appTitle => 'LocReminder';
+  String get appTagline => 'Never miss your stop';
+  String get drawerReliability => 'Alarm reliability';
+  String get drawerReliabilitySubtitle => 'Make sure it will ring';
+  String get drawerSettings => 'Settings';
+  String get drawerAbout => 'About';
+  String get mapAttribution => 'Map data © OpenStreetMap contributors';
+  String get mapStyleTitle => 'Map style';
+  String get mapStyleStandard => 'Standard';
+  String get mapStyleHumanitarian => 'Humanitarian';
+  String get mapStyleHumanitarianDescription => 'Higher contrast, clearer labels';
+  String get mapStyleTopographic => 'Topographic';
+  String get mapStyleTopographicDescription => 'Contours and terrain';
+  String get mapStyleCycle => 'Cycle';
+  String get mapStyleCycleDescription => 'Paths, lanes and cycle routes';
 }
 
 /// English

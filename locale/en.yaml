@@ -108,3 +108,21 @@ store:
 # ---------------------------------------------------------------------------
 app:
   appTitle: LocReminder
+  appTagline: Never miss your stop
+
+  # Navigation drawer
+  drawerReliability: Alarm reliability
+  drawerReliabilitySubtitle: Make sure it will ring
+  drawerSettings: Settings
+  drawerAbout: About
+
+  # Map
+  mapAttribution: Map data © OpenStreetMap contributors
+  mapStyleTitle: Map style
+  mapStyleStandard: Standard
+  mapStyleHumanitarian: Humanitarian
+  mapStyleHumanitarianDescription: Higher contrast, clearer labels
+  mapStyleTopographic: Topographic
+  mapStyleTopographicDescription: Contours and terrain
+  mapStyleCycle: Cycle
+  mapStyleCycleDescription: Paths, lanes and cycle routes
