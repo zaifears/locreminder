@@ -100,16 +100,24 @@ def check_against_base(code: str, data: dict, base: dict) -> None:
             actual = placeholders_of(value)
             if expected != actual:
                 die(
-                    "%s.yaml: %s.%s uses %s but %s.yaml uses %s"
+                    "%s.yaml: %s.%s uses %s, but %s.yaml uses %s. Keep the "
+                    "names in curly braces exactly as they are; only their "
+                    "position in the sentence may change.%s"
                     % (
                         code,
                         section,
                         key,
-                        sorted(actual) or "no placeholders",
+                        describe(actual),
                         BASE,
-                        sorted(expected) or "no placeholders",
+                        describe(expected),
+                        " {count} is filled in automatically and does not "
+                        "count." if isinstance(base_section[key], dict) else "",
                     )
                 )
+
+
+def describe(names: set) -> str:
+    return ", ".join("{%s}" % name for name in sorted(names)) or "no placeholders"
 
 
 def placeholders_of(value) -> set:
