@@ -3,6 +3,66 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-08-22
+
+### Fixed
+- With two alarms armed, the second could stay silent for the whole journey
+  and then ring on the way back past it. Two separate faults each caused
+  exactly that, and both are fixed.
+
+  The first was arrival state living in memory. An alarm rings on crossing
+  *into* its radius, so one set for where you are standing has to wait until
+  you leave and return, and deciding that needs a record of where you have
+  been. That record was two fields on the watch service. The service is
+  restarted automatically if Android kills it, which aggressive battery
+  managers do routinely and most of all right after a full-screen alarm takes
+  over the phone. It came back with the record erased, so the next location
+  fix looked like the first one ever taken, and any alarm you were already
+  approaching was filed as "we started inside this one" and held back until
+  the next time you left its radius. The record is now saved to disk.
+
+  The second was a second arrival landing while the first alarm was still
+  ringing. It was discarded outright, and because the alarm is only removed
+  from the armed list further along, it was left armed as well: silently
+  swallowed, then rung on re-entry. Arrivals now fold into the ring already
+  in progress, name both stops, and restart the ten-minute cutoff from the
+  newer arrival.
+- Vibration was suppressed by Do Not Disturb and the silent profile. It did
+  not declare itself as an alarm, so Android treated it as an ordinary
+  notification buzz and muted it — leaving the phone playing the tone while
+  sitting perfectly still in a pocket, which is the exact case vibration
+  exists for. It now also uses the current vibrator API on Android 12 and
+  above, and checks the phone has a vibrator before trying.
+- Messages appeared in the middle of the map and looked stuck there. A
+  floating message is laid out above whatever sits in the corner button slot,
+  and that slot held a column of three buttons rather than one, which pushed
+  every message a quarter of the way up the screen. Messages also queued
+  behind each other, so a burst played back one at a time long after the
+  action that caused it. Only one shows at a time now, at the bottom, for at
+  most five seconds.
+- Tapping the search bar took two taps to start typing. The first opened the
+  search screen with the field unfocused, so the keyboard needed a second tap
+  on a field you had in effect already tapped. It now opens ready to type.
+  "Add alarm" still opens on the map, since that asks for a place rather than
+  a name.
+
+### Added
+- Location checks now account for how fast you are moving. The intervals were
+  based on distance alone, which assumes a speed — and on a highway coach or
+  an intercity train it assumes far too low a one. At 108 km/h the app could
+  travel 600 m between two checks, enough to cross a small alarm area without
+  ever noticing. Where the phone reports a speed, the interval is also worked
+  out from how long is left until arrival, and the tighter of the two wins.
+- The alarm area now opens wider than 500 m when you set an alarm while
+  already travelling fast, and says why. Above 90 km/h it starts at 1 km,
+  above 50 at 500 m, above 25 at 300 m. Drag it back below that and it warns
+  you the alarm may pass your stop between checks.
+
+### Documentation
+- `docs/LOCALISATION.md` records what adding a language would take: the
+  inventory of every translatable string, where each has to live, and the
+  parts that are not just moving text.
+
 ## [1.6.16] - 2026-08-22
 
 ### Fixed
