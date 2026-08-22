@@ -53,3 +53,14 @@ ios/Runner/GoogleService-Info.plist
 *.key
 api_keys.txt
 secrets/
+
+# Editor and agent tooling. Installed per-developer by `npx impeccable install`;
+# the hooks reference absolute paths that only exist on the machine that ran it,
+# so shipping them to anyone cloning the app would only break for them.
+# PRODUCT.md, DESIGN.md and .impeccable/design.json are deliberately NOT here:
+# those are project documentation and belong with the code.
+.claude/
+.github/agents/
+.github/hooks/
+.github/skills/
+.impeccable/config.local.json

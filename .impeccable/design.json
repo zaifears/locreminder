@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-22T13:00:00Z",
+  "title": "Design System: LocReminder",
+  "extensions": {
+    "colorMeta": {
+      "primary-seed": {
+        "role": "primary",
+        "displayName": "Signal Blue",
+        "canonical": "#2563EB",
+        "tonalRamp": ["#0a1633", "#12285c", "#1a3a8a", "#2050b8", "#2563eb", "#5a8bf1", "#93b4f6", "#cddffb"]
+      },
+      "user-position": {
+        "role": "tertiary",
+        "displayName": "Position Blue",
+        "canonical": "#448AFF",
+        "tonalRamp": ["#0b1a33", "#12305e", "#1a468c", "#2a63c4", "#448aff", "#7aabff", "#a9c8ff", "#d7e5ff"]
+      },
+      "banner-paper": {
+        "role": "neutral",
+        "displayName": "Banner Paper",
+        "canonical": "#F5F1EA",
+        "tonalRamp": ["#2b2822", "#453f36", "#5f584c", "#7d7466", "#a49a89", "#c9c0b0", "#e3ddd2", "#f5f1ea"]
+      }
+    },
+    "typographyMeta": {
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase section markers, tinted Signal Blue. The only uppercase in the system."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Heavier than body so actions read as actions."
+      }
+    },
+    "shadows": [
+      { "name": "floating-control", "value": "elevation 3", "purpose": "Top search bar and menu button over the map." },
+      { "name": "action", "value": "elevation 4", "purpose": "All floating action buttons." },
+      { "name": "panel", "value": "elevation 12", "purpose": "The picker's bottom panel; heaviest in the system." },
+      { "name": "pin-shadow", "value": "blur 2.5, offset (0, 1.5), rgba(0,0,0,0.28)", "purpose": "Under the map pin. A blurred path copy, never Canvas.drawShadow." }
+    ],
+    "motion": [
+      { "name": "controls-fade", "value": "160ms ease-out", "purpose": "Map controls fading as the alarm sheet opens." },
+      { "name": "page-transition", "value": "PredictiveBackPageTransitionsBuilder", "purpose": "Android predictive back on route changes." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Filled Button",
+      "kind": "button",
+      "refersTo": "button-filled",
+      "description": "Primary action. 52px minimum height so it stays thumb-reachable while spacing elsewhere stays compact.",
+      "html": "<button class=\"ds-btn-filled\">Set alarm here</button>",
+      "css": ".ds-btn-filled{background:#2563eb;color:#fff;min-height:52px;padding:0 24px;border:none;border-radius:16px;font:600 16px Roboto,sans-serif;cursor:pointer;transition:filter .15s}.ds-btn-filled:hover{filter:brightness(1.08)}.ds-btn-filled:focus-visible{outline:2px solid #2563eb;outline-offset:2px}"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button-outlined",
+      "description": "Secondary action; identical geometry to filled so the two align in a row.",
+      "html": "<button class=\"ds-btn-outlined\">Cancel</button>",
+      "css": ".ds-btn-outlined{background:transparent;color:#2563eb;min-height:52px;padding:0 24px;border:1px solid rgba(37,99,235,.5);border-radius:16px;font:600 15px Roboto,sans-serif;cursor:pointer}.ds-btn-outlined:hover{background:rgba(37,99,235,.06)}.ds-btn-outlined:focus-visible{outline:2px solid #2563eb;outline-offset:2px}"
+    },
+    {
+      "name": "Floating Action Button",
+      "kind": "custom",
+      "refersTo": "fab",
+      "description": "18px radius rather than a circle, matching the system's rounded-rectangle language. Lives in an end-aligned column over the map.",
+      "html": "<button class=\"ds-fab\" aria-label=\"Centre on my location\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/></svg></button>",
+      "css": ".ds-fab{display:grid;place-items:center;width:44px;height:44px;border:none;border-radius:18px;background:#dbe6fd;color:#12285c;box-shadow:0 3px 8px rgba(0,0,0,.22);cursor:pointer;transition:box-shadow .15s}.ds-fab:hover{box-shadow:0 5px 14px rgba(0,0,0,.28)}.ds-fab:focus-visible{outline:2px solid #2563eb;outline-offset:2px}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat by design. Inside a sheet, tonal difference separates rows; stacked shadows would turn a list into corduroy.",
+      "html": "<div class=\"ds-card\"><strong>Kamalapur Railway Station</strong><span>500 m &middot; 2.4 km away</span></div>",
+      "css": ".ds-card{display:flex;flex-direction:column;gap:4px;background:#eef1f7;border-radius:20px;padding:16px;box-shadow:none;font:400 14px Roboto,sans-serif;color:#1a1c1e}.ds-card span{color:#44474e;font-size:13px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "No border at rest; a 2px Signal Blue border is the entire focus treatment.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search for a place or address\"/>",
+      "css": ".ds-input{width:100%;background:#e3e6ee;border:none;border-radius:16px;padding:16px;font:400 15px Roboto,sans-serif;color:#1a1c1e;outline:none}.ds-input::placeholder{color:#44474e}.ds-input:focus{box-shadow:inset 0 0 0 2px #2563eb}"
+    },
+    {
+      "name": "Map Pin",
+      "kind": "custom",
+      "refersTo": "map-pin",
+      "description": "The one bespoke silhouette. Circular head, two tangent edges converging on a point that sits exactly on the coordinate.",
+      "html": "<svg class=\"ds-pin\" width=\"44\" height=\"44\" viewBox=\"0 0 44 44\"><path d=\"M9.81 22.88 L22 44 L34.19 22.88 A14.08 14.08 0 1 0 9.81 22.88 Z\" fill=\"#2563eb\" stroke=\"#fff\" stroke-width=\"2.4\"/><circle cx=\"22\" cy=\"15.84\" r=\"5.35\" fill=\"#fff\"/></svg>",
+      "css": ".ds-pin{filter:drop-shadow(0 1.5px 2.5px rgba(0,0,0,.28))}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Instrument",
+    "overview": "LocReminder is a tool that sits still until the moment it matters, and is then unmissable. Almost the entire interface is in service of getting out of the way: the map fills the screen, chrome floats at its edges, and nothing competes for attention while someone is dozing on a bus. All of the app's loudness is spent in one place - the alarm itself, which takes the whole screen, overrides silent mode, and cannot be ignored.\n\nThat produces an unusual distribution. The resting state is deliberately undramatic: one accent colour, no gradients, no decoration, generated Material 3 tonal surfaces doing the separation work. The instrument reads as precise rather than friendly, because the promise it makes is a precise one - it rings at a place, not approximately.\n\nThe map is the content, not a backdrop. Every chrome decision is measured against whether it obscures the map or the pin the user is placing. Density is compact: controls take the space they need and no more, so that more of the route stays visible.",
+    "keyCharacteristics": [
+      "A single blue accent, taken from the launcher icon, used sparingly",
+      "Floating chrome over a full-bleed map; depth separates control from content",
+      "Compact controls, generous touch targets - density without shrinking targets",
+      "Material 3 tonal surfaces rather than borders or dividers",
+      "Full expressive weight reserved for the alarm screen"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Signal Blue is the only accent in the system. A second hue enters only when it must not be confused with the first - the user's position dot is the sole example. Introducing a third means proving the same.", "section": "colors" },
+      { "name": "The Map Wins Rule", "body": "No chrome is opaque across the full width of the map. Panels stop short, attribution stays visible, and translucency is used where a surface must sit over the map at all.", "section": "colors" },
+      { "name": "The System Face Rule", "body": "No bundled font ships with this app. The APK is already ~53 MB and the type system gains nothing from a custom face that the platform's own does not already do at every accessibility scale.", "section": "typography" },
+      { "name": "The Thumb Column Rule", "body": "Every map control lives in one column at the end edge, aligned to that edge rather than centred against the widest of them. A control the thumb has to hunt for on a moving vehicle has failed.", "section": "layout" },
+      { "name": "The Real Shadow Rule", "body": "Every shadow has both an offset and a blur. A zero-offset halo is decoration, and this system has no decoration.", "section": "elevation" },
+      { "name": "The Tip-On-Target Rule", "body": "The pin's point is the coordinate. Any marker change must keep the tip on the anchor, or the alarm appears to be somewhere it is not.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do keep Signal Blue (#2563EB) as the only accent, and derive everything else from the seeded scheme.",
+      "Do give anything floating over the map a shadow with both offset and blur.",
+      "Do keep interactive targets at 48px or more even while spacing stays compact. Density comes from the gaps, never from the targets.",
+      "Do let chrome respond to the alarm sheet's drag, not just its end state.",
+      "Do keep the pin's tip on its coordinate.",
+      "Do test every screen at large system font scales; the type system is the platform's precisely so this keeps working."
+    ],
+    "donts": [
+      "Don't use Canvas.drawShadow for custom-painted shapes. It rasterises differently per backend. Draw a blurred copy of the path.",
+      "Don't put shadows on cards inside sheets. Tonal separation does that job.",
+      "Don't add a second accent hue without proving it would be confused with Signal Blue if it were not distinct.",
+      "Don't bundle a custom font.",
+      "Don't centre a column of floating controls whose widest member is an extended button; the small ones end up inset from the edge and read as misaligned.",
+      "Don't cover the OpenStreetMap attribution. Its visibility is a licence condition, not a layout preference."
+    ]
+  }
+}
