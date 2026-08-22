@@ -343,10 +343,14 @@ class _DeviceCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
+            // device.note, not a fixed sentence. The hardcoded one told every
+            // unrecognised phone that it follows Android's standard rules,
+            // which is precisely what we do not know about it, and it buried
+            // the fallback advice, which is the only thing we have to offer
+            // someone on a brand this table has never heard of.
             if (!device.needsExtraSetup)
               Text(
-                'This manufacturer follows Android\'s standard background '
-                'rules, so the permissions above should be all you need.',
+                device.note,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                       height: 1.4,

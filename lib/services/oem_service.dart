@@ -31,7 +31,8 @@ class DeviceProfile {
   /// True for vendors that kill background work beyond stock Android's rules.
   final bool needsExtraSetup;
 
-  /// Display name for the vendor's OS, e.g. "Xiaomi (MIUI / HyperOS)".
+  /// Display name for the vendor's OS, e.g. "Xiaomi (MIUI / HyperOS)", or
+  /// the manufacturer's own name where the profile covers several brands.
   final String vendorName;
   final List<OemStep> steps;
   final String note;
@@ -272,6 +273,116 @@ const _vendorProfiles = <_VendorProfile>[
       ),
     ],
   ),
+  _VendorProfile(
+    keys: ['tcl', 'alcatel'],
+    name: 'TCL / Alcatel',
+    note: 'TCL devices pair Android's own battery optimisation with a '
+        'separate manager app, and being allowed by one does not mean being '
+        'allowed by the other.',
+    steps: [
+      OemStep(
+        title: 'Set battery use to Unrestricted',
+        path: 'Settings → Battery → Battery optimisation → LocReminder → Don't optimise',
+      ),
+      OemStep(
+        title: 'Allow it to start automatically',
+        path: 'Settings → Apps → LocReminder → Autostart, if your model has it',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['htc'],
+    name: 'HTC (Sense)',
+    note: 'HTC's Boost+ app has its own list of apps it is allowed to close, '
+        'which is separate from Android's battery settings.',
+    steps: [
+      OemStep(
+        title: 'Set battery optimisation to Don't optimise',
+        path: 'Settings → Battery → Battery optimisation → LocReminder',
+      ),
+      OemStep(
+        title: 'Exclude it from Boost+',
+        path: 'Boost+ → Optimise background apps → untick LocReminder',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['sharp', 'kyocera'],
+    name: 'Sharp / Kyocera',
+    note: 'These models ship an eco or long-life battery mode that suspends '
+        'background apps more aggressively than stock Android does.',
+    steps: [
+      OemStep(
+        title: 'Exclude it from the battery saver',
+        path: 'Settings → Battery → Eco mode (or Long life battery) → exclude LocReminder',
+      ),
+      OemStep(
+        title: 'Set battery optimisation to Don't optimise',
+        path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['ulefone', 'doogee', 'blackview', 'cubot', 'umidigi', 'oukitel', 'oscal', 'hotwav'],
+    name: 'MediaTek-based device',
+    note: 'Phones built on MediaTek's reference software usually ship '
+        'DuraSpeed, which closes background apps to speed up the foreground '
+        'one. It is separate from Android's battery settings and switched on '
+        'by default.',
+    steps: [
+      OemStep(
+        title: 'Turn DuraSpeed off, or allow LocReminder in it',
+        path: 'Settings → DuraSpeed (or Settings → Special features → DuraSpeed)',
+      ),
+      OemStep(
+        title: 'Set battery use to Unrestricted',
+        path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
+      ),
+    ],
+  ),
+  _VendorProfile(
+    keys: ['amazon'],
+    name: 'Amazon (Fire OS)',
+    note: 'Fire OS restricts background apps on its own terms, and has no '
+        'Google location services at all. LocReminder does not need them, but '
+        'the background limits still apply.',
+    steps: [
+      OemStep(
+        title: 'Turn off battery optimisation for it',
+        path: 'Settings → Apps & Notifications → LocReminder → Advanced → Battery',
+      ),
+      OemStep(
+        title: 'Turn off Low Power Mode while an alarm is armed',
+        path: 'Settings → Battery → Low Power Mode',
+      ),
+    ],
+  ),
+  // Brands that ship close to stock Android but still carry a battery
+  // optimiser worth checking. Named individually so a user in one of these
+  // markets sees their own phone recognised rather than a shrug.
+  _VendorProfile(
+    keys: [
+      'walton', 'symphony', 'lava', 'micromax', 'karbonn', 'blu', 'wiko',
+      'energizer', 'vsmart', 'coolpad', 'gionee', 'panasonic', 'xolo',
+    ],
+    // Empty so the phone's own manufacturer name is shown. This entry covers
+    // a dozen unrelated brands across as many markets, and a Walton owner
+    // should see "Walton" rather than a label invented to cover the group.
+    name: '',
+    note: 'This brand ships close to stock Android, so there is usually no '
+        'vendor app to fight. The one setting that still matters is Android's '
+        'own battery optimisation, which is on by default for every app.',
+    steps: [
+      OemStep(
+        title: 'Set battery use to Unrestricted',
+        path: 'Settings → Apps → LocReminder → Battery → Unrestricted',
+      ),
+      OemStep(
+        title: 'If your phone has a power or phone manager app, allow it there too',
+        path: 'Look for "protected apps", "autostart" or "background activity"',
+      ),
+    ],
+  ),
   // Vendors that follow stock Android closely. Listed so the app can name
   // them and say plainly that no extra work is needed, rather than nagging.
   _VendorProfile(
@@ -320,7 +431,9 @@ class OemService {
       // Driven by whether we actually have advice to give, so the app can
       // never warn about a device and then have nothing useful to show.
       needsExtraSetup: vendor != null && vendor.aggressive && vendor.steps.isNotEmpty,
-      vendorName: vendor?.name ?? _fallbackName(key),
+      vendorName: (vendor?.name.isNotEmpty ?? false)
+          ? vendor!.name
+          : _fallbackName(key),
       steps: vendor?.steps ?? const [],
       note: vendor?.note ?? _fallbackNote,
     );
@@ -342,9 +455,16 @@ class OemService {
     return key[0].toUpperCase() + key.substring(1);
   }
 
+  /// Shown for a manufacturer with no entry in the table above.
+  ///
+  /// Deliberately still actionable. There are hundreds of Android brands and
+  /// this app is used well beyond the dozen with the largest market shares,
+  /// so an unrecognised phone is a normal case rather than an edge one, and
+  /// telling that user nothing is the one outcome worth avoiding.
   static const _fallbackNote =
-      'We have no specific notes for this manufacturer. If an alarm is ever '
-      'late, look for an "autostart", "background activity" or "unrestricted '
-      'battery" setting for LocReminder — most Android skins have one under '
-      'some name.';
+      'We have no notes specific to this manufacturer. Nearly every Android '
+      'skin has a setting under some name that stops background apps, so if '
+      'an alarm is ever late, look for "autostart", "background activity", '
+      '"protected apps" or "unrestricted battery" and allow LocReminder in '
+      'whichever of them your phone has.';
 }
