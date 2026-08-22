@@ -68,7 +68,7 @@ jobs:
       - name: Install what the image lacks
         run: |
           apt-get update -qq
-          apt-get install -y -qq --no-install-recommends jq git curl unzip xz-utils
+          apt-get install -y -qq --no-install-recommends jq git curl unzip xz-utils python3-yaml
           git config --global --add safe.directory '*'
 
       - name: Checkout
@@ -115,9 +115,7 @@ jobs:
       # what this checks. If it fails, run: python tool/gen_locale.py
       - name: Check the generated strings match locale/*.yaml
         working-directory: /home/vagrant/build/com.zaifears.locreminder
-        run: |
-          python3 -m pip install --quiet --break-system-packages pyyaml
-          python3 tool/gen_locale.py --check
+        run: python3 tool/gen_locale.py --check
 
       - name: Analyze
         working-directory: /home/vagrant/build/com.zaifears.locreminder
