@@ -17,9 +17,9 @@ Repo: https://github.com/zaifears/locreminder.git
 Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
 
 Builds:
-  - versionName: 1.6.16
-    versionCode: 23
-    commit: e8bd4b68661e3ec4049f67858a8c866c85707861
+  - versionName: 1.7.0
+    versionCode: 24
+    commit: 396fd48dd94a9478ae734932ea07e71ddd148958
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
@@ -52,5 +52,5 @@ AllowedAPKSigningKeys: e594d95da857cb75c7abf991915722086671815b7ee105cf9e224bec4
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.6.16
-CurrentVersionCode: 23
+CurrentVersion: 1.7.0
+CurrentVersionCode: 24
