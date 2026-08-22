@@ -82,8 +82,13 @@ class AlarmForegroundService : Service() {
             launchAlarmActivity(ringingLabel(), alarmId)
             // The user has only just arrived somewhere new, so give them the
             // full ten minutes from *this* arrival rather than the first.
+            // Both timers, not just the visible one: the wake lock was taken
+            // out when the first alarm began, so a fold nine minutes in would
+            // otherwise let the CPU sleep a minute later with the alarm
+            // still ringing.
             autoStopRunnable?.let { handler.removeCallbacks(it) }
             scheduleAutoStop()
+            acquireWakeLock()
             return
         }
 
@@ -162,7 +167,9 @@ class AlarmForegroundService : Service() {
         super.onDestroy()
     }
 
+    /** Takes the wake lock, replacing any already held so the timeout restarts. */
     private fun acquireWakeLock() {
+        wakeLock?.let { if (it.isHeld) it.release() }
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
