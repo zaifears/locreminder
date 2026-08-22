@@ -15,6 +15,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 
@@ -34,6 +35,9 @@ class AlarmForegroundService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private val handler = Handler(Looper.getMainLooper())
     private var autoStopRunnable: Runnable? = null
+
+    /** Every destination this ring covers, in arrival order. */
+    private val ringingLabels = mutableListOf<String>()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -61,17 +65,47 @@ class AlarmForegroundService : Service() {
     }
 
     private fun startAlarm(alarmId: String, label: String) {
-        if (isRinging) return
+        // A second arrival landing mid-ring used to be dropped here, and
+        // because the entry is consumed further down it was left armed too.
+        // Two alarms close enough together that the first was still ringing
+        // therefore lost the second outright: it stayed silent for the rest
+        // of the journey and only went off on the way back past it, once the
+        // user had left its radius and re-entered. Fold it into the ring that
+        // is already happening instead of discarding it.
+        if (isRinging) {
+            Log.i(TAG, "Already ringing; folding in $label")
+            if (label !in ringingLabels) ringingLabels.add(label)
+            consumeAlarm(alarmId)
+            startForeground(NOTIFICATION_ID, buildNotification(ringingLabel(), alarmId))
+            // Re-delivered to the activity too, so the screen names both
+            // stops instead of only the one that got there first.
+            launchAlarmActivity(ringingLabel(), alarmId)
+            // The user has only just arrived somewhere new, so give them the
+            // full ten minutes from *this* arrival rather than the first.
+            autoStopRunnable?.let { handler.removeCallbacks(it) }
+            scheduleAutoStop()
+            return
+        }
+
         isRinging = true
+        ringingLabels.clear()
+        ringingLabels.add(label)
 
         NotificationHelper.ensureAlarmChannel(this)
-        startForeground(NOTIFICATION_ID, buildNotification(label, alarmId))
+        startForeground(NOTIFICATION_ID, buildNotification(ringingLabel(), alarmId))
         acquireWakeLock()
         launchAlarmActivity(label, alarmId)
         playAlarmSound()
         startVibration()
         scheduleAutoStop()
         consumeAlarm(alarmId)
+    }
+
+    /** What the notification calls this ring, once it may cover more than one stop. */
+    private fun ringingLabel(): String = when (ringingLabels.size) {
+        0 -> "your destination"
+        1 -> ringingLabels.first()
+        else -> ringingLabels.joinToString(" and ")
     }
 
     /**
@@ -113,6 +147,7 @@ class AlarmForegroundService : Service() {
         wakeLock = null
 
         isRinging = false
+        ringingLabels.clear()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -180,13 +215,42 @@ class AlarmForegroundService : Service() {
 
     private fun startVibration() {
         if (!AlarmSettings(this).vibrationEnabled()) return
-        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        val pattern = longArrayOf(0, 800, 400)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+
+        // VIBRATOR_SERVICE still resolves on Android 12+, but through a
+        // compatibility shim; VibratorManager is the real accessor there.
+        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
-            vibrator?.vibrate(pattern, 0)
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+
+        if (device == null || !device.hasVibrator()) {
+            Log.i(TAG, "No vibrator available; ringing without it")
+            return
+        }
+        vibrator = device
+
+        // Declared as an alarm rather than left to default to USAGE_UNKNOWN.
+        // Do Not Disturb and the silent profile suppress ordinary vibrations,
+        // so without these attributes the phone would play the tone on the
+        // alarm stream while sitting perfectly still in a pocket — which is
+        // exactly the situation the buzz exists for.
+        val attributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        val pattern = longArrayOf(0, 800, 400)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                device.vibrate(VibrationEffect.createWaveform(pattern, 0), attributes)
+            } else {
+                @Suppress("DEPRECATION")
+                device.vibrate(pattern, 0, attributes)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Vibration failed; the tone still plays", e)
         }
     }
 

@@ -36,6 +36,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _sheetExpanded = 0.62;
   // Past this the sheet owns the screen and the map controls step aside.
   static const _controlsFadeAt = 0.30;
+  /// Ceiling for any transient message, in seconds.
+  static const _maxNoticeSeconds = 5;
 
   final _repository = AlarmRepository();
   final _nativeBridge = NativeBridge();
@@ -46,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   LatLng _initialPosition = _defaultPosition;
   LatLng? _userLocation;
   double? _userAccuracy;
+  double? _userSpeed;
   PermissionStatusSummary? _permissions;
   bool _loading = true;
   bool _locating = false;
@@ -96,6 +99,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) setState(() => _permissions = status);
   }
 
+  /// Shows a transient message, replacing any message already on screen.
+  ///
+  /// Every notice goes through here for two reasons. SnackBars *queue* by
+  /// default, so a burst of them plays back one after another and the last is
+  /// still sitting there long after the action that caused it — which reads
+  /// as a stuck message rather than a slow one. And the longest message needs
+  /// a ceiling: [_maxNoticeSeconds] is long enough to read a two-line
+  /// sentence and short enough not to outstay the moment.
+  void _notify(String message, {SnackBarAction? action, int seconds = 3}) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context)..clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: action,
+        duration: Duration(seconds: seconds.clamp(1, _maxNoticeSeconds)),
+      ),
+    );
+  }
+
   /// Keeps the native watch service running exactly while something is armed.
   /// Called after every change to the alarm list so the service never lingers
   /// with nothing to watch, and never stops while an alarm still needs it.
@@ -108,15 +131,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await _nativeBridge.stopLocationWatch();
       }
     } on PlatformException catch (e) {
-      if (mounted && shouldWatch) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Background tracking could not start (${e.code}). Alarms may be '
-              'delayed — check permissions in Settings.',
-            ),
-            duration: const Duration(seconds: 6),
-          ),
+      if (shouldWatch) {
+        _notify(
+          'Background tracking could not start (${e.code}). Alarms may be '
+          'delayed — check permissions in Settings.',
+          seconds: 5,
         );
       }
     }
@@ -148,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         _userLocation = located;
         _userAccuracy = (fix?['accuracy'] as num?)?.toDouble();
+        _userSpeed = (fix?['speed'] as num?)?.toDouble();
         _initialPosition = located;
       });
       if (recenter) _mapController.move(located, 15);
@@ -164,20 +184,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final locationOn = await _nativeBridge.isLocationEnabled();
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          locationOn
-              ? "Couldn't get a location fix. Try again outdoors."
-              : 'Location is switched off.',
-        ),
-        action: locationOn
-            ? null
-            : SnackBarAction(
-                label: 'Turn on',
-                onPressed: _nativeBridge.openLocationSettings,
-              ),
-      ),
+    _notify(
+      locationOn
+          ? "Couldn't get a location fix. Try again outdoors."
+          : 'Location is switched off.',
+      action: locationOn
+          ? null
+          : SnackBarAction(
+              label: 'Turn on',
+              onPressed: _nativeBridge.openLocationSettings,
+            ),
     );
   }
 
@@ -200,11 +216,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() => _alarms = reconciled);
       await _repository.saveAll(_alarms);
       await _syncLocationWatch();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Already rang: ${triggeredLabels.join(', ')}')),
-        );
-      }
+      _notify('Already rang: ${triggeredLabels.join(', ')}');
     }
   }
 
@@ -219,11 +231,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _refreshRingingState();
   }
 
-  Future<void> _addAlarm() async {
+  /// Opens the picker. [fromSearch] is set by the search field at the top of
+  /// the map, which is a request to type — so the keyboard comes up with the
+  /// screen rather than waiting for a second tap on a field the user has in
+  /// effect already tapped.
+  Future<void> _addAlarm({bool fromSearch = false}) async {
     final picked = await Navigator.of(context).push<PickedLocation>(
       MaterialPageRoute(
         builder: (_) => LocationPickerScreen(
           initialCenter: _userLocation ?? _initialPosition,
+          autofocusSearch: fromSearch,
+          travelSpeed: _userSpeed,
         ),
       ),
     );
@@ -256,16 +274,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const Distance()(here, LatLng(alarm.latitude, alarm.longitude)) <=
             alarm.radiusMeters;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          alreadyInside
-              ? "Alarm set — but you're already inside this area, so it will "
-                  'ring when you leave and come back.'
-              : 'Alarm set for ${alarm.label}',
-        ),
-        duration: Duration(seconds: alreadyInside ? 6 : 3),
-      ),
+    _notify(
+      alreadyInside
+          ? "Alarm set — but you're already inside this area, so it will ring "
+              'when you leave and come back.'
+          : 'Alarm set for ${alarm.label}',
+      seconds: alreadyInside ? 5 : 3,
     );
   }
 
@@ -276,11 +290,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _nativeBridge.addAlarm(alarm);
       return true;
     } on PlatformException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not set alarm: ${e.message ?? e.code}')),
-        );
-      }
+      _notify('Could not set alarm: ${e.message ?? e.code}', seconds: 5);
       return false;
     }
   }
@@ -317,14 +327,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _syncLocationWatch();
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Deleted ${alarm.label}'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => _restoreAlarm(alarm, index),
-        ),
+    _notify(
+      'Deleted ${alarm.label}',
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () => _restoreAlarm(alarm, index),
       ),
+      seconds: 5,
     );
   }
 
@@ -422,14 +431,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _showAlarmPreview(LocationAlarm alarm) {
     final distance = _distanceTo(alarm);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          distance == null
-              ? '${alarm.label} · rings within ${formatDistance(alarm.radiusMeters)}'
-              : '${alarm.label} · ${formatDistance(distance)} away',
-        ),
-      ),
+    _notify(
+      distance == null
+          ? '${alarm.label} · rings within ${formatDistance(alarm.radiusMeters)}'
+          : '${alarm.label} · ${formatDistance(distance)} away',
     );
   }
 
@@ -514,63 +519,73 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
+            _buildMapControls(context),
             _buildAlarmSheet(context),
           ],
         ),
       ),
-      // Rides just above the collapsed sheet, and gets out of the way as the
-      // sheet is dragged open: past that point the user is reading the list,
-      // not working the map, and three buttons floating over the rows are
-      // just something to hit by accident.
-      // Rides just above the collapsed sheet, and gets out of the way as the
-      // sheet is dragged open: past that point the user is reading the list,
-      // not working the map, and three buttons floating over the rows are
-      // just something to hit by accident.
-      floatingActionButton: IgnorePointer(
+    );
+  }
+
+  /// The map controls, positioned in the stack rather than handed to
+  /// [Scaffold.floatingActionButton].
+  ///
+  /// The slot would be the obvious home for them, but a floating SnackBar is
+  /// laid out *above* whatever occupies it, and this is a 240-pixel column of
+  /// three buttons, not one. Every message the app showed was therefore
+  /// launched into the middle of the map, nowhere near the bottom edge people
+  /// look at. Owning the position here puts messages back where they belong.
+  ///
+  /// They ride just above the collapsed sheet and get out of the way as it is
+  /// dragged open: past that point the user is reading the list, not working
+  /// the map, and buttons floating over the rows are just something to hit by
+  /// accident.
+  Widget _buildMapControls(BuildContext context) {
+    return Positioned(
+      right: 16,
+      bottom: _mapControlsBottomInset(context),
+      child: IgnorePointer(
         ignoring: _mapControlsHidden,
         child: AnimatedOpacity(
           opacity: _mapControlsHidden ? 0 : 1,
           duration: const Duration(milliseconds: 160),
           curve: Curves.easeOut,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: _mapControlsBottomInset(context)),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              // End, not the default centre: the wide "Add alarm" button sets
-              // the column's width, so centred small buttons sit inset from
-              // the screen edge and read as misaligned against it.
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'style',
-                  tooltip: 'Map style',
-                  onPressed: _pickMapStyle,
-                  child: const Icon(Icons.layers_outlined),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'locate',
-                  tooltip: 'Centre on my location',
-                  // Getting a real fix can take a few seconds, so the button
-                  // has to show it is working rather than looking inert.
-                  onPressed: _locating ? null : () => _locateUser(recenter: true),
-                  child: _locating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.extended(
-                  heroTag: 'add',
-                  onPressed: _addAlarm,
-                  icon: const Icon(Icons.add_location_alt),
-                  label: const Text('Add alarm'),
-                ),
-              ],
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            // End, not the default centre: the wide "Add alarm" button sets
+            // the column's width, so centred small buttons sit inset from
+            // the screen edge and read as misaligned against it.
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'style',
+                tooltip: 'Map style',
+                onPressed: _pickMapStyle,
+                child: const Icon(Icons.layers_outlined),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton.small(
+                heroTag: 'locate',
+                tooltip: 'Centre on my location',
+                // Getting a real fix can take a few seconds, so the button
+                // has to show it is working rather than looking inert.
+                onPressed: _locating ? null : () => _locateUser(recenter: true),
+                child: _locating
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton.extended(
+                heroTag: 'add',
+                onPressed: _addAlarm,
+                icon: const Icon(Icons.add_location_alt),
+                label: const Text('Add alarm'),
+              ),
+            ],
           ),
         ),
       ),
@@ -600,7 +615,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               color: Theme.of(context).colorScheme.surface,
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: _addAlarm,
+                onTap: () => _addAlarm(fromSearch: true),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   child: Row(

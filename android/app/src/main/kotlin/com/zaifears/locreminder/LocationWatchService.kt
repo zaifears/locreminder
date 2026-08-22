@@ -37,9 +37,12 @@ class LocationWatchService : Service() {
     private var nearestLabel: String? = null
     private var nearestDistance: Double? = null
 
-    /** Alarms the user was already inside, which must be exited before they can trigger. */
-    private val suppressedUntilExit = mutableSetOf<String>()
-    private var hadFirstFix = false
+    /**
+     * Which alarms have been seen from outside, and so may ring on the way
+     * back in. Persisted rather than held in fields: see [ArrivalState] for
+     * the missed alarm that taught us the difference.
+     */
+    private val arrivalState by lazy { ArrivalState(this) }
 
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) = onLocation(location)
@@ -171,6 +174,8 @@ class LocationWatchService : Service() {
             return
         }
 
+        arrivalState.forgetAllExcept(entries.map { it.id })
+
         var closest: Pair<AlarmEntry, Double>? = null
 
         for (entry in entries) {
@@ -192,30 +197,30 @@ class LocationWatchService : Service() {
                 // proximity has already tightened the polling interval.
                 if (!canConfirmArrival(location, entry.radius)) {
                     Log.i(TAG, "Ignoring ${location.accuracy}m fix for ${entry.label}")
-                } else if (!hadFirstFix || entry.id in suppressedUntilExit) {
+                } else if (arrivalState.shouldSuppress(entry.id)) {
                     // Arrival means crossing *into* the radius. Being inside
-                    // already when watching starts is not an arrival, so an
-                    // alarm set for where you're standing doesn't ring at once.
-                    suppressedUntilExit.add(entry.id)
+                    // already the first time this alarm is seen is not an
+                    // arrival, so an alarm set for where you're standing
+                    // doesn't ring at once.
+                    Log.i(TAG, "Inside ${entry.label} but not arrived; awaiting exit")
                 } else {
                     triggerAlarm(entry)
                     return
                 }
             } else {
-                suppressedUntilExit.remove(entry.id)
+                arrivalState.markOutside(entry.id)
             }
 
             if (closest == null || distance < closest.second) {
                 closest = entry to distance
             }
         }
-        hadFirstFix = true
 
         closest?.let { (entry, distance) ->
             nearestLabel = entry.label
             nearestDistance = distance
             updateNotification()
-            adaptIntervalTo(distance)
+            adaptIntervalTo(distance, location)
         }
     }
 
@@ -239,14 +244,32 @@ class LocationWatchService : Service() {
      * country would flatten the battery on a long journey for no benefit,
      * while two-minute fixes 200m out would sail past the stop.
      */
-    private fun adaptIntervalTo(distanceMetres: Double) {
-        val target = when {
+    private fun adaptIntervalTo(distanceMetres: Double, location: Location) {
+        val byDistance = when {
             distanceMetres > 10_000 -> VERY_FAR_INTERVAL_MILLIS
             distanceMetres > 5_000 -> FAR_INTERVAL_MILLIS
             distanceMetres > 1_500 -> 60_000L
             distanceMetres > 500 -> 20_000L
             else -> NEAR_INTERVAL_MILLIS
         }
+
+        // Distance on its own assumes a speed, and on a highway coach or an
+        // intercity train it assumes far too low a one. At 30 m/s the 500m
+        // band's 20s interval covers 600m between consecutive fixes, so a
+        // tight radius can be crossed entirely without ever being sampled.
+        // Where the fix reports a speed, poll on time-to-arrival as well and
+        // take whichever of the two answers is tighter.
+        val speed = location.takeIf { it.hasSpeed() }?.speed?.takeIf { it > 1f }
+        val target = if (speed == null) {
+            byDistance
+        } else {
+            // A quarter of the remaining journey, so four fixes land between
+            // here and the destination however fast "here" happens to be.
+            val byEta = (distanceMetres / speed / 4 * 1000).toLong()
+                .coerceIn(NEAR_INTERVAL_MILLIS, VERY_FAR_INTERVAL_MILLIS)
+            minOf(byDistance, byEta)
+        }
+
         if (target != currentIntervalMillis) requestUpdates(target)
     }
 

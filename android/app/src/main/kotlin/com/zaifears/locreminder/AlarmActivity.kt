@@ -21,8 +21,7 @@ class AlarmActivity : Activity() {
         setupWindowFlags()
         setContentView(R.layout.activity_alarm)
 
-        val label = intent.getStringExtra(AlarmForegroundService.EXTRA_LABEL) ?: "your destination"
-        findViewById<TextView>(R.id.alarmLabel).text = getString(R.string.alarm_arrived_message, label)
+        showLabelFrom(intent)
 
         findViewById<Button>(R.id.stopButton).setOnClickListener {
             startService(
@@ -32,6 +31,25 @@ class AlarmActivity : Activity() {
             )
             finish()
         }
+    }
+
+    // Launched SINGLE_TOP, so a second arrival while this is already up
+    // arrives here rather than through onCreate. Without this the screen kept
+    // naming only the first stop while the service had already folded in the
+    // second, which reads as the new alarm having been missed.
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let {
+            setIntent(it)
+            showLabelFrom(it)
+        }
+    }
+
+    private fun showLabelFrom(source: Intent) {
+        val label = source.getStringExtra(AlarmForegroundService.EXTRA_LABEL)
+            ?: getString(R.string.alarm_default_destination)
+        findViewById<TextView>(R.id.alarmLabel).text =
+            getString(R.string.alarm_arrived_message, label)
     }
 
     private fun setupWindowFlags() {

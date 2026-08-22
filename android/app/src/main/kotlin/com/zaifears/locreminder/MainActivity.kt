@@ -363,7 +363,7 @@ class MainActivity : FlutterActivity() {
      * null rather than waiting for a fresh fix — the map has a sensible
      * default, and blocking the UI on GPS would be worse than showing it.
      */
-    private fun lastKnownLocation(): Map<String, Any>? {
+    private fun lastKnownLocation(): Map<String, Any?>? {
         val manager = getSystemService(LocationManager::class.java) ?: return null
 
         val providers = buildList {
@@ -389,10 +389,14 @@ class MainActivity : FlutterActivity() {
         return (best ?: return null).asMap()
     }
 
-    private fun android.location.Location.asMap(): Map<String, Any> = mapOf(
+    private fun android.location.Location.asMap(): Map<String, Any?> = mapOf(
         "latitude" to latitude,
         "longitude" to longitude,
         "accuracy" to accuracy.toDouble(),
+        // Metres per second, or null where the provider doesn't report it.
+        // The picker uses it to warn that a tight radius may be crossed
+        // between fixes at the speed the user is currently travelling.
+        "speed" to if (hasSpeed()) speed.toDouble() else null,
         // Lets the caller judge staleness. A cached fix can be hours old and
         // hundreds of kilometres away, which is worth showing differently
         // from a fix taken just now.
@@ -435,7 +439,7 @@ class MainActivity : FlutterActivity() {
         // won't smart-cast a var captured by a closure back to non-null.
         val registered = arrayOfNulls<android.location.LocationListener>(1)
 
-        fun settle(value: Map<String, Any>?) {
+        fun settle(value: Map<String, Any?>?) {
             if (settled) return
             settled = true
             registered[0]?.let { runCatching { manager.removeUpdates(it) } }
