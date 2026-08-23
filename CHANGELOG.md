@@ -3,7 +3,7 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.8.0] - 2026-08-23
 
 ### Fixed
 - Zooming the map out quickly could leave it frozen and take the app down with
