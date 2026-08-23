@@ -190,23 +190,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             options: MapOptions(
               initialCenter: widget.initialCenter,
               initialZoom: 15,
+              // See [mapMinZoom]: unbounded zoom is what lets a fast pinch
+              // put a non-finite value into the camera.
+              minZoom: mapMinZoom,
+              maxZoom: mapMaxZoom,
               onPositionChanged: _onMapMoved,
               onTap: (_, __) => _searchFocus.unfocus(),
             ),
             children: [
               buildTileLayer(context, style: _mapStyle),
-              CircleLayer(
-                circles: [
-                  CircleMarker(
-                    point: _center,
-                    radius: _radius,
-                    useRadiusInMeter: true,
-                    color: scheme.primary.withValues(alpha: 0.12),
-                    borderColor: scheme.primary.withValues(alpha: 0.7),
-                    borderStrokeWidth: 2,
-                  ),
-                ],
-              ),
+              _RadiusCircle(radius: _radius, color: scheme.primary),
             ],
           ),
 
@@ -495,6 +488,38 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The radius circle under the picker's fixed crosshair.
+///
+/// It reads the centre from the live [MapCamera] rather than being handed a
+/// coordinate by the screen, because the screen only learns the new centre
+/// through `onPositionChanged` and rebuilding the whole picker on every frame
+/// of a drag to pass it down would be wasteful. Taking it from the camera
+/// here rebuilds one layer instead — and fixes the circle drifting off the
+/// crosshair mid-drag and snapping back once the address lookup settled,
+/// which made the pin look like it was not where the alarm would go.
+class _RadiusCircle extends StatelessWidget {
+  const _RadiusCircle({required this.radius, required this.color});
+
+  final double radius;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleLayer(
+      circles: [
+        CircleMarker(
+          point: MapCamera.of(context).center,
+          radius: radius,
+          useRadiusInMeter: true,
+          color: color.withValues(alpha: 0.12),
+          borderColor: color.withValues(alpha: 0.7),
+          borderStrokeWidth: 2,
+        ),
+      ],
     );
   }
 }

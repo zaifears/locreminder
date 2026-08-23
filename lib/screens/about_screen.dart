@@ -27,9 +27,21 @@ class _AboutScreenState extends State<AboutScreen> {
   static final _palestine =
       Uri.parse('https://revolutionarypapers.org/journal/free-palestine/');
 
+  /// Opens a link, saying so when it cannot be opened.
+  ///
+  /// `launchUrl` reports "no" two different ways — false, and a thrown
+  /// PlatformException when nothing on the device claims the scheme at all.
+  /// The second is the likely one here: `mailto:` on a phone with no mail app
+  /// set up throws, and only the first was handled, so tapping Contact did
+  /// nothing at all and said nothing about why.
   Future<void> _open(BuildContext context, Uri uri) async {
     final messenger = ScaffoldMessenger.of(context);
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    bool launched;
+    try {
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      launched = false;
+    }
     if (!launched) {
       messenger.showSnackBar(
         SnackBar(content: Text('Could not open $uri')),
@@ -49,17 +61,28 @@ class _AboutScreenState extends State<AboutScreen> {
           Center(
             child: Column(
               children: [
+                // Solid Signal Blue with a white pin, standing in for the
+                // launcher icon: this is the one place in the app that is
+                // simply the product's mark, so it carries the accent at full
+                // strength rather than the pale container tone.
                 Container(
                   width: 96,
                   height: 96,
                   decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
+                    color: scheme.primary,
                     borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.32),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Icon(
                     Icons.location_on,
                     size: 52,
-                    color: scheme.onPrimaryContainer,
+                    color: scheme.onPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -113,7 +136,11 @@ class _AboutScreenState extends State<AboutScreen> {
                   subtitle: const Text('zaifears'),
                 ),
                 const Divider(height: 1),
+                // Signal Blue on the icons rather than the row: these three
+                // leave the app, and the accent is what marks them as links
+                // without needing underlines or a fourth type style.
                 ListTile(
+                  iconColor: scheme.primary,
                   leading: const Icon(Icons.language),
                   title: const Text('Website'),
                   subtitle: const Text('shahoriar.bd'),
@@ -122,6 +149,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
+                  iconColor: scheme.primary,
                   leading: const Icon(Icons.code),
                   title: const Text('GitHub'),
                   subtitle: const Text('github.com/zaifears/locreminder'),
@@ -130,6 +158,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
+                  iconColor: scheme.primary,
                   leading: const Icon(Icons.mail_outline),
                   title: const Text('Contact'),
                   subtitle: const Text('shahoriar.connect@gmail.com'),

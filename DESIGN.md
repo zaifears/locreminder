@@ -3,6 +3,12 @@ name: LocReminder
 description: A location alarm whose interface stays out of the way until the moment it matters.
 colors:
   primary-seed: "#2563EB"
+  signal-blue-light: "#2563EB"
+  signal-blue-dark: "#60A5FA"
+  signal-container-light: "#BFDBFE"
+  signal-container-dark: "#1E40AF"
+  aside-light: "#475569"
+  aside-dark: "#94A3B8"
   map-pin-shadow: "rgba(0, 0, 0, 0.28)"
   user-position: "#448AFF"
   banner-paper: "#F5F1EA"
@@ -99,23 +105,45 @@ A single seeded accent over Material 3's generated tonal surfaces, so light and
 dark are one system rather than two palettes.
 
 ### Primary
-- **Signal Blue** (`#2563EB`): the seed for the entire scheme, chosen to match
-  the launcher icon so app and icon read as one product. Appears on the active
-  alarm pin, the radius circle, filled buttons, the focused input border,
-  slider track and thumb, and section labels. Everything else is derived from
-  it by `ColorScheme.fromSeed`.
+- **Signal Blue** (`#2563EB`): taken from the launcher icon so app and icon
+  read as one product. Appears on the active alarm pin, the radius circle,
+  filled buttons and the "Add alarm" button, the alarm switches, the selected
+  theme segment, outlined-button labels, the focused input border, slider
+  track and thumb, links, and section labels.
+
+  It is both the seed for the scheme *and* the literal value of `primary`. The
+  second half is load-bearing: `ColorScheme.fromSeed` treats a seed as a hue
+  to harmonise rather than a colour to reproduce, and returned a muted slate
+  blue, so for several releases the accent on screen was not the icon's blue
+  at all. `AppTheme` now overrides the accent roles with the icon's own ramp
+  and lets `fromSeed` keep every neutral.
+
+  Dark mode uses `#60A5FA` — the same blue two steps lighter, because
+  `#2563EB` is too dense to carry white text on a dark surface. Containers
+  step to `#BFDBFE` / `#DBEAFE` in light and `#1E40AF` / `#1E3A8A` in dark.
 
 ### Neutral
 Surfaces are Material 3's generated tonal roles, not hand-picked greys:
 `surface` for the scaffold, `surfaceContainerLow` for cards,
 `surfaceContainerHigh` for input fills, `surfaceContainerHighest` for inactive
-slider track, `outlineVariant` at 50% for dividers. A paused alarm's pin uses
-`outline` — the same shape as an active one, drained of signal.
+slider track and switch tracks, `outlineVariant` at 50% for dividers. A paused
+alarm's pin uses `outline` — the same shape as an active one, drained of
+signal.
+
+White (and its dark-mode equivalent, `surface`) is the app's other half: the
+two small map buttons, the search bar and the menu button are surface-filled
+with a Signal Blue glyph, which is what keeps "Add alarm" the only control on
+the map reading as the primary action.
 
 ### Tertiary
 - **Position Blue** (`#448AFF`): the user's own location dot and its accuracy
   circle. Deliberately distinct from Signal Blue so "where I am" never reads as
   "where the alarm is".
+- **Slate** (`#475569` light, `#94A3B8` dark, with `#E2E8F0` / `#334155`
+  containers): the informational callouts on the onboarding and reliability
+  screens. A neutral, not a hue — Material's generated tertiary for this seed
+  lands in the pinks, which would be the second accent the system does not
+  want.
 - **Banner Paper** (`#F5F1EA`): a fixed light card behind the About screen's
   Free Palestine artwork, which is dark ink on transparency and would otherwise
   vanish in dark mode.
@@ -229,6 +257,12 @@ below its tip and would float above the radius circle it marks.
 change must keep the tip on the anchor, or the alarm appears to be somewhere it
 is not.
 
+**The Bounded Camera Rule.** Every map states a `minZoom` and a `maxZoom`.
+flutter_map's only guard on a pinch is a clamp against those two numbers, and
+leaving them unset makes it a no-op — a fast enough gesture reports a scale of
+zero, and `log(0)` puts negative infinity into the camera, from which nothing
+recovers. This is not a preference about how far out someone may zoom.
+
 ## Components
 
 ### Buttons
@@ -275,11 +309,19 @@ are inverted by a luminance matrix that preserves hue, so the map reads dark
 rather than as a glaring white rectangle. Topographic and cycle styles are left
 alone: inverting shaded relief turns hills inside out.
 
+The filter is applied once, to the assembled layer, not through `tileBuilder`.
+Per tile it would be one offscreen buffer each, every frame of every gesture.
+
+Every map holds between zoom 2 and 19, and each style declares the deepest
+zoom its server actually publishes. Both are correctness, not taste: see
+**The Bounded Camera Rule**.
+
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep Signal Blue (`#2563EB`) as the only accent, and derive everything
-  else from the seeded scheme.
+- **Do** keep Signal Blue (`#2563EB`) as the only accent, and derive every
+  neutral from the seeded scheme. Set the accent roles literally; never assume
+  `fromSeed` will hand back the colour you gave it.
 - **Do** give anything floating over the map a shadow with both offset and
   blur.
 - **Do** keep interactive targets at 48px or more even while spacing stays
@@ -301,3 +343,7 @@ alone: inverting shaded relief turns hills inside out.
   misaligned.
 - **Don't** cover the OpenStreetMap attribution. Its visibility is a licence
   condition, not a layout preference.
+- **Don't** build a `FlutterMap` without `minZoom` and `maxZoom`. See **The
+  Bounded Camera Rule** — the omission is a crash, not a looser map.
+- **Don't** filter tiles through `tileBuilder`. A colour filter is an
+  offscreen buffer; buy one for the layer, not one per tile.

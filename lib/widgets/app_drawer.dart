@@ -21,14 +21,15 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
               child: Row(
                 children: [
+                  // The same mark as the About screen's, at drawer size.
                   Container(
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
+                      color: scheme.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.location_on, color: scheme.onPrimaryContainer),
+                    child: Icon(Icons.location_on, color: scheme.onPrimary),
                   ),
                   const SizedBox(width: 14),
                   Column(
@@ -54,6 +55,7 @@ class AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListTile(
+                iconColor: scheme.primary,
                 leading: const Icon(Icons.health_and_safety_outlined),
                 title: Text(text.drawerReliability),
                 subtitle: Text(text.drawerReliabilitySubtitle),
@@ -68,6 +70,7 @@ class AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListTile(
+                iconColor: scheme.primary,
                 leading: const Icon(Icons.settings_outlined),
                 title: Text(text.drawerSettings),
                 onTap: () {
@@ -81,6 +84,7 @@ class AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: ListTile(
+                iconColor: scheme.primary,
                 leading: const Icon(Icons.info_outline),
                 title: Text(text.drawerAbout),
                 onTap: () {

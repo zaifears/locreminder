@@ -4,11 +4,30 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:http/retry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _userAgentPackageName = 'com.zaifears.locreminder';
 const _styleKey = 'map_style';
+
+/// Hard limits on how far the map may be zoomed, applied to every map in the
+/// app.
+///
+/// These are not a styling preference — they are the only thing standing
+/// between a fast pinch and a broken camera. flutter_map turns a pinch into a
+/// zoom with `startZoom + log(scale) / ln2`, and its only guard is
+/// `zoom.clamp(minZoom ?? -infinity, maxZoom ?? infinity)`. Leave the bounds
+/// unset and that clamp is a no-op, so the moment a fling drives the reported
+/// gesture scale to zero, `log(0)` puts negative infinity straight into the
+/// camera: every projection then divides by a zero world size, NaN spreads
+/// through the tile and marker maths, and the map stops responding until the
+/// process dies. With bounds set, the same gesture simply lands on [mapMinZoom].
+///
+/// 2 is a whole-world view on a phone; 19 is the deepest level the tile
+/// sources actually carry.
+const double mapMinZoom = 2;
+const double mapMaxZoom = 19;
 
 /// A raster tile source.
 ///
@@ -25,6 +44,7 @@ enum MapStyle {
     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap',
     invertsForDarkTheme: true,
+    maxNativeZoom: 19,
   ),
   humanitarian(
     id: 'humanitarian',
@@ -33,6 +53,7 @@ enum MapStyle {
     urlTemplate: 'https://tile-a.openstreetmap.fr/hot/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap · HOT',
     invertsForDarkTheme: true,
+    maxNativeZoom: 19,
   ),
   topographic(
     id: 'topographic',
@@ -42,6 +63,9 @@ enum MapStyle {
     attribution: '© OpenStreetMap · OpenTopoMap (CC-BY-SA)',
     // Inverting shaded relief turns hills inside out, so leave it alone.
     invertsForDarkTheme: false,
+    // OpenTopoMap stops at 17. Without saying so, zooming past it asked for
+    // tiles that will never exist and the map went blank rather than blurry.
+    maxNativeZoom: 17,
   ),
   cycle(
     id: 'cyclosm',
@@ -50,6 +74,7 @@ enum MapStyle {
     urlTemplate: 'https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap · CyclOSM',
     invertsForDarkTheme: false,
+    maxNativeZoom: 19,
   );
 
   const MapStyle({
@@ -59,6 +84,7 @@ enum MapStyle {
     required this.urlTemplate,
     required this.attribution,
     required this.invertsForDarkTheme,
+    required this.maxNativeZoom,
   });
 
   final String id;
@@ -67,6 +93,10 @@ enum MapStyle {
   final String urlTemplate;
   final String attribution;
   final bool invertsForDarkTheme;
+
+  /// The deepest zoom this source actually renders. Past it flutter_map
+  /// scales the last real tile instead of requesting one that 404s.
+  final int maxNativeZoom;
 
   static MapStyle fromId(String? id) =>
       values.firstWhere((s) => s.id == id, orElse: () => standard);
@@ -105,8 +135,19 @@ const _darkTileFilter = ColorFilter.matrix(<double>[
 /// 5xx and transport failures are retried; 429 deliberately is not.
 /// OpenStreetMap's tile policy treats that as "back off", and retrying
 /// through it would be the sort of behaviour that gets an app blocked.
+///
+/// The connection cap is the other half of that. Dart's `HttpClient` opens as
+/// many sockets per host as it is asked to and will wait indefinitely to
+/// connect each one, so a burst of tile requests — a fast zoom is exactly
+/// that — could put a socket per tile in flight at once. Six at a time, each
+/// with a bounded connect attempt, is what a browser does and keeps the app
+/// inside OpenStreetMap's tile policy while a gesture is being flung about.
 final http.Client _tileClient = RetryClient(
-  http.Client(),
+  IOClient(
+    HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10)
+      ..maxConnectionsPerHost = 6,
+  ),
   retries: 3,
   when: (response) => response.statusCode >= 500,
   whenError: (error, _) =>
@@ -119,23 +160,30 @@ final http.Client _tileClient = RetryClient(
 
 /// Shared tile layer, so both map screens stay consistent and neither forgets
 /// the attribution, the User-Agent or the retry behaviour.
-TileLayer buildTileLayer(BuildContext context, {MapStyle style = MapStyle.standard}) {
+Widget buildTileLayer(BuildContext context, {MapStyle style = MapStyle.standard}) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
-  final invert = isDark && style.invertsForDarkTheme;
 
-  return TileLayer(
+  final layer = TileLayer(
     urlTemplate: style.urlTemplate,
     userAgentPackageName: _userAgentPackageName,
     tileProvider: NetworkTileProvider(httpClient: _tileClient),
+    maxNativeZoom: style.maxNativeZoom,
     // Without this a tile that failed stays failed for the lifetime of the
     // map, even once the network is back. Evicting it means panning away and
     // back is enough to trigger a fresh attempt.
     evictErrorTileStrategy: EvictErrorTileStrategy.notVisibleRespectMargin,
-    tileBuilder: invert
-        ? (context, tileWidget, tile) =>
-            ColorFiltered(colorFilter: _darkTileFilter, child: tileWidget)
-        : null,
   );
+
+  if (!isDark || !style.invertsForDarkTheme) return layer;
+
+  // One filter over the assembled layer, not `tileBuilder`.
+  //
+  // `tileBuilder` runs per tile, and a colour filter is a `saveLayer` — an
+  // offscreen render target. Per tile that is dozens of them allocated and
+  // composited every frame of a pan or a pinch, and the count grows with how
+  // much map is on screen, which is precisely when there is least headroom.
+  // Filtering the layer once costs exactly one, whatever the tile count.
+  return ColorFiltered(colorFilter: _darkTileFilter, child: layer);
 }
 
 /// OpenStreetMap's licence requires visible attribution wherever tiles show,
