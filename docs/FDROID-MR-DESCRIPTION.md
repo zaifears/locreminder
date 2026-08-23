@@ -36,9 +36,14 @@ later** in [FDROID-SUBMISSION.md](FDROID-SUBMISSION.md).
 | Issue tracker and contact | ticked | `IssueTracker` and `AuthorEmail` are both set in the metadata. |
 | Fastlane metadata upstream | ticked | `fastlane/metadata/android/en-US/` holds the title, descriptions, per-versionCode changelogs, icon and six screenshots. |
 | Tagged releases, auto update | ticked | `UpdateCheckMode: Tags`, `AutoUpdateMode: Version`. |
-| Submodules instead of srclibs | **not ticked** | The build needs the Flutter SDK, which F-Droid provides as the `flutter` srclib. It cannot be a submodule of this repo. |
+| Submodules instead of srclibs | **not applicable** | The box is about external source repos the app vendors in. This app vendors none; its only srclib is the Flutter SDK toolchain, which F-Droid provides. |
 | Reproducible builds | ticked | `Binaries` and `AllowedAPKSigningKeys` are set, and releases are compiled in F-Droid's own buildserver image at F-Droid's paths so the rebuild matches. |
 | Multiple APKs | **not ticked** | One universal APK. Splitting is possible but has not been done. |
+
+The two unticked boxes are both in the template's **Suggested** section,
+which the template introduces with "These suggestions may be difficult to
+apply on your app." They are not requirements and they are not failures.
+Every box under **Required** and **Strongly Recommended** is ticked.
 
 Do not tick a box to make the list look complete. An unticked box with a
 reason beside it costs nothing; a false tick costs the reviewer's trust.
@@ -74,7 +79,7 @@ I am the app's author, submitting my own app.
 
 ## Suggested
 
-* [ ] External repos are added as git submodules instead of srclibs <!-- The build needs the Flutter SDK, which F-Droid provides as the `flutter` srclib. It cannot be a submodule of the app repo. -->
+* [ ] External repos are added as git submodules instead of srclibs <!-- Not applicable: the app vendors no external source repos. Its only srclib is the Flutter SDK itself, which F-Droid provides and which cannot be a submodule of the app repo. -->
 * [x] Enable [Reproducible Builds](https://f-droid.org/docs/Reproducible_Builds)
 * [ ] Multiple apks for native code <!-- One universal APK for now. -->
 
