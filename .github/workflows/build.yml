@@ -117,6 +117,25 @@ jobs:
         working-directory: /home/vagrant/build/com.zaifears.locreminder
         run: python3 tool/gen_locale.py --check
 
+      # F-Droid and Play both cut the "What's New" text off at 500 characters,
+      # and neither warns you — the entry just arrives truncated. An F-Droid
+      # reviewer caught 1.8.0's at 734. Cheaper to fail here than to find out
+      # from a reviewer.
+      - name: Check the changelogs fit the store limit
+        working-directory: /home/vagrant/build/com.zaifears.locreminder
+        run: |
+          python3 - <<'PY'
+          import glob, os, sys
+          bad = []
+          for path in sorted(glob.glob('fastlane/metadata/android/*/changelogs/*.txt')):
+              n = len(open(path, encoding='utf-8').read())
+              if n > 500:
+                  bad.append((path, n))
+          for path, n in bad:
+              print(f"::error file={path}::{n} characters; the store limit is 500")
+          sys.exit(1 if bad else 0)
+          PY
+
       - name: Analyze
         working-directory: /home/vagrant/build/com.zaifears.locreminder
         run: |

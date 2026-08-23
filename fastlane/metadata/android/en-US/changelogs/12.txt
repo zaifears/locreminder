@@ -1,13 +1,11 @@
 Three fixes for alarms that could quietly fail to ring.
 
 Arming an alarm while location was switched off left the app watching
-nothing at all, while still showing "Watching for your destination". It
-now tells you, and starts working the moment you turn location on.
+nothing, while still saying it was watching. It now tells you, and starts
+the moment you turn location on.
 
-A rough position fix could set the alarm off kilometres early. Arrival
-is now confirmed against how precise the fix actually is.
+A rough position fix could set the alarm off kilometres early. Arrival is
+now confirmed against how precise the fix actually is.
 
-"Centre on my location" did nothing at all after a restart, because it
-only read a position the phone had already cached. It now asks for a
-fresh one, and says so if it can't get it. The blue dot also shows how
-accurate it is, rather than implying it is exact.
+"Centre on my location" did nothing after a restart. It now asks for a
+fresh position.

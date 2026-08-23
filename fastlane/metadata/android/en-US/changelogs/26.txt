@@ -1,13 +1,10 @@
-Fixes a crash. Zooming the map out quickly could leave it frozen and take
-the app down with it. The map now stops at a whole-world view instead of
-zooming out without limit, which is what caused it.
+Fixes a crash: zooming the map out quickly could freeze it and take the app
+down. The map now stops at a whole-world view instead of zooming out without
+limit.
 
-The blue from the app icon is now the app's colour everywhere, in both
-light and dark themes: the alarm switches, the Add alarm button, the
-About screen, the menu and the rest. It was always meant to be, but the
-colour the app actually used was a muted version of it.
+The blue from the app icon is now the app's colour everywhere, in light and
+dark themes.
 
-Also fixed: the circle no longer drifts away from the pin while you drag
-the map, one unreadable saved alarm can no longer stop the app starting
-at all, the alarm test now says so when it cannot start, and the
+Also fixed: the circle no longer drifts away from the pin while you drag the
+map, one unreadable saved alarm can no longer stop the app starting, and the
 topographic map stays readable when you zoom right in.

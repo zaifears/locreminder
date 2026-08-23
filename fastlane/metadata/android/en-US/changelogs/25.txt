@@ -1,13 +1,10 @@
 Better advice for more phones. Around fifteen more manufacturers now get
-step-by-step instructions for stopping the phone killing background
-alarms, including TCL, Alcatel, HTC, Sharp, Amazon Fire tablets, the
-MediaTek-based budget brands, and Walton, Symphony, Lava and Micromax.
-Around forty-five brands are named now.
+step-by-step instructions for stopping the phone killing background alarms,
+including TCL, Alcatel, HTC, Sharp, Amazon Fire tablets and the MediaTek
+budget brands. Around forty-five brands are named now.
 
-Phones the app did not recognise used to be told they were fine, which
-hid the general advice that was the only help available to them. They see
-it now.
+Phones the app did not recognise used to be told they were fine. They now
+get the general advice instead.
 
-Groundwork for other languages. Everything the app says now lives in one
-file per language, so translating LocReminder means editing a single file
-and nothing else. The app is still English only; this is the plumbing.
+Groundwork for other languages: everything the app says now lives in one
+file per language.

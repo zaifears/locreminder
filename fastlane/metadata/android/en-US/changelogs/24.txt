@@ -1,16 +1,11 @@
-Fixes a missed alarm. With two alarms set, the second could stay silent
-for the whole journey and then ring on the way back past it. Two separate
-faults each caused that, and both are fixed.
+Fixes a missed alarm. With two alarms set, the second could stay silent for
+the whole journey and then ring on the way back past it.
 
-Vibration now works when the phone is on silent or Do Not Disturb. It was
-being treated as an ordinary notification buzz and muted, which left the
-phone playing the tone while sitting perfectly still in a pocket.
+Vibration now works on silent and Do Not Disturb. It was treated as an
+ordinary notification buzz and muted.
 
-Location is now checked more often when you are travelling fast, and the
-alarm area starts wider if you set an alarm while already moving. At
-motorway speed the app could previously travel far enough between checks
-to cross a small alarm area without noticing.
+Location is checked more often when you travel fast, and the alarm area
+starts wider if you set one while moving. At motorway speed the app could
+cross a small area between checks without noticing.
 
-Messages appear at the bottom of the screen again instead of the middle,
-and clear after a few seconds. Tapping the search bar now opens the
-keyboard straight away.
+Messages appear at the bottom of the screen again.
