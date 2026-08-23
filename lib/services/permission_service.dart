@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
 import 'native_bridge.dart';
@@ -49,13 +50,34 @@ class PermissionService {
 
   final NativeBridge _nativeBridge;
 
+  /// Reads every permission the app depends on, degrading one answer rather
+  /// than the whole call when the platform will not say.
+  ///
+  /// Six calls across two plugins and a method channel, and this runs on the
+  /// startup path: an exception from any one of them used to propagate out of
+  /// here, leaving whichever screen asked stuck on its loading spinner with
+  /// no route forward — including the launch gate, which decides between
+  /// onboarding and the map. Treating an unanswerable check as "not granted"
+  /// is both the safe reading and a recoverable one: every caller re-checks
+  /// when the app is resumed.
   Future<PermissionStatusSummary> currentStatus() async {
-    final serviceEnabled = await _nativeBridge.isLocationEnabled();
-    final foreground = await ph.Permission.locationWhenInUse.status;
-    final background = await ph.Permission.locationAlways.status;
-    final notifications = await ph.Permission.notification.status;
-    final fullScreenIntent = await _nativeBridge.canUseFullScreenIntent();
-    final batteryOptimization = await _nativeBridge.isIgnoringBatteryOptimizations();
+    final serviceEnabled = await _ask(_nativeBridge.isLocationEnabled, false);
+    final foreground = await _ask(
+      () => ph.Permission.locationWhenInUse.status,
+      ph.PermissionStatus.denied,
+    );
+    final background = await _ask(
+      () => ph.Permission.locationAlways.status,
+      ph.PermissionStatus.denied,
+    );
+    final notifications = await _ask(
+      () => ph.Permission.notification.status,
+      ph.PermissionStatus.denied,
+    );
+    final fullScreenIntent =
+        await _ask(_nativeBridge.canUseFullScreenIntent, true);
+    final batteryOptimization =
+        await _ask(_nativeBridge.isIgnoringBatteryOptimizations, false);
 
     return PermissionStatusSummary(
       locationServiceEnabled: serviceEnabled,
@@ -65,6 +87,17 @@ class PermissionService {
       fullScreenIntentAllowed: fullScreenIntent,
       batteryOptimizationDisabled: batteryOptimization,
     );
+  }
+
+  /// Runs one platform check, falling back if it cannot be answered.
+  static Future<T> _ask<T>(Future<T> Function() check, T fallback) async {
+    try {
+      return await check();
+    } on PlatformException {
+      return fallback;
+    } on MissingPluginException {
+      return fallback;
+    }
   }
 
   Future<bool> requestForegroundLocation() async {

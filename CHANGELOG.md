@@ -3,6 +3,58 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- Zooming the map out quickly could leave it frozen and take the app down with
+  it. flutter_map turns a pinch into a zoom with `log(scale)`, and its only
+  guard is a clamp against the map's own zoom limits — which this app had
+  never set, making the clamp a no-op. A fast enough gesture reports a scale
+  of zero, `log(0)` is negative infinity, and that went straight into the
+  camera: every projection then worked from a world of zero size, and the
+  resulting NaN spread through the tile and marker maths until nothing could
+  be drawn. Both maps now hold between zoom 2 and 19.
+- The picker's radius circle drifted away from the centre crosshair while the
+  map was being dragged, then jumped back a moment after it stopped. The
+  circle was drawn at the last centre the screen had been told about, and it
+  was only told once the address lookup fired. It now follows the map itself,
+  so the circle and the pin never disagree about where the alarm will go.
+- One unreadable saved alarm — written by an older build, or truncated by the
+  system killing the app mid-write — took the whole list with it and left the
+  app on its loading spinner permanently. Bad records are skipped now, and
+  startup can no longer be stopped by anything it reads.
+- A permission check that the platform refused to answer had the same effect,
+  on the launch screen. Any single check that fails is now read as "not
+  granted" instead of stopping the screen from loading.
+- The alarm test on the reliability screen said "lock your phone now" even
+  when scheduling the test had been refused, which is the one screen where a
+  silent failure is worst. It now says what went wrong.
+- Deleting an alarm, tapping Contact on the About screen with no mail app set
+  up, and opening a vendor settings screen that does not exist could each
+  throw where nothing was catching.
+- The topographic map went blank above zoom 17 rather than blurry.
+  OpenTopoMap does not publish tiles past that level, and the app had not
+  said so, so it kept asking for tiles that will never exist.
+
+### Changed
+- The blue from the launcher icon is now the app's accent everywhere, in both
+  light and dark themes. It was already the seed for the colour scheme, but
+  Material treats a seed as a hue to harmonise rather than a colour to
+  reproduce, so the blue on screen never actually matched the icon. Surfaces
+  are still Material's generated tonal greys; the accent roles are now the
+  icon's own blue, lightened for dark mode so it can carry text.
+
+  It shows up on the alarm switches, the "Add alarm" button, the theme
+  picker, section labels, links and the About screen's app mark. The two
+  small map buttons deliberately went the other way — white with a blue
+  glyph — so that only one control on the map reads as the primary action.
+- Map tiles are darkened with a single filter over the whole layer instead of
+  one per tile. A colour filter allocates an offscreen buffer, and doing that
+  per tile meant dozens of them every frame of a pan or a pinch, at exactly
+  the moment there was least headroom.
+- Tile requests are capped at six connections at a time with a bounded
+  connect attempt, so a flung gesture cannot put a socket in flight per tile.
+
 ## [1.7.1] - 2026-08-23
 
 ### Fixed

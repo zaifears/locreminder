@@ -439,8 +439,26 @@ class OemService {
     );
   }
 
-  Future<bool> openAutoStartSettings() => _nativeBridge.openAutoStartSettings();
-  Future<bool> openAppSettings() => _nativeBridge.openAppSettings();
+  /// Both report failure rather than throwing, the same way [profile] does.
+  ///
+  /// A vendor screen that is not there, or refuses the intent, is an ordinary
+  /// outcome on the phones this page exists for — and the caller already has
+  /// somewhere to go when one of these returns false.
+  Future<bool> openAutoStartSettings() async {
+    try {
+      return await _nativeBridge.openAutoStartSettings();
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  Future<bool> openAppSettings() async {
+    try {
+      return await _nativeBridge.openAppSettings();
+    } on PlatformException {
+      return false;
+    }
+  }
 
   _VendorProfile? _lookup(String key) {
     if (key.isEmpty) return null;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/native_bridge.dart';
 import '../services/oem_service.dart';
@@ -84,7 +85,25 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
 
     if (confirmed != true || !mounted) return;
 
-    await _nativeBridge.triggerTestAlarm(delaySeconds: 15);
+    // Scheduling can be refused — an exact-alarm restriction, a vendor policy
+    // — and this is the one screen where a silent failure is the worst
+    // possible outcome: the user locks their phone, nothing rings, and they
+    // conclude the alarm is broken when it was the test that never started.
+    try {
+      await _nativeBridge.triggerTestAlarm(delaySeconds: 15);
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not start the test (${e.message ?? e.code}). Work through '
+            'the steps above, then try again.',
+          ),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

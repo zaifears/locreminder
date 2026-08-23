@@ -82,16 +82,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Everything the map needs before it can be shown.
+  ///
+  /// The `finally` is the point: each step here talks to storage or to the
+  /// platform, and anything that throws on the way used to leave `_loading`
+  /// true forever — a permanent spinner instead of a map, on a device where
+  /// one of these calls happens to misbehave. Clearing the flag regardless
+  /// means the worst case is a map missing some state, which the app already
+  /// recovers from on the next resume.
   Future<void> _bootstrap() async {
-    final style = await MapStyleStore.load();
-    if (mounted) setState(() => _mapStyle = style);
-    final alarms = await _repository.loadAll();
-    if (mounted) setState(() => _alarms = alarms);
-    await _reconcileTriggeredAlarms();
-    await _refreshRingingState();
-    await _refreshPermissions();
-    await _locateUser();
-    if (mounted) setState(() => _loading = false);
+    try {
+      final style = await MapStyleStore.load();
+      if (mounted) setState(() => _mapStyle = style);
+      final alarms = await _repository.loadAll();
+      if (mounted) setState(() => _alarms = alarms);
+      await _reconcileTriggeredAlarms();
+      await _refreshRingingState();
+      await _refreshPermissions();
+      await _locateUser();
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _refreshPermissions() async {
@@ -319,7 +330,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _deleteAlarm(LocationAlarm alarm) async {
     final index = _alarms.indexWhere((a) => a.id == alarm.id);
-    await _nativeBridge.removeAlarm(alarm.id);
+    try {
+      await _nativeBridge.removeAlarm(alarm.id);
+    } on PlatformException catch (_) {
+      // Same reasoning as _toggleAlarm: the delete still stands on this side,
+      // and the next resume reconciles the native store. Letting this throw
+      // instead left the row on screen with no explanation.
+    }
     if (!mounted) return;
 
     setState(() => _alarms = _alarms.where((a) => a.id != alarm.id).toList());
@@ -491,6 +508,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               options: MapOptions(
                 initialCenter: _initialPosition,
                 initialZoom: 14,
+                // Without these flutter_map's zoom clamp is a no-op and a
+                // fast pinch can drive the camera to negative infinity; see
+                // [mapMinZoom].
+                minZoom: mapMinZoom,
+                maxZoom: mapMaxZoom,
               ),
               children: [
                 buildTileLayer(context, style: _mapStyle),
@@ -541,6 +563,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// the map, and buttons floating over the rows are just something to hit by
   /// accident.
   Widget _buildMapControls(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Positioned(
       right: 16,
       bottom: _mapControlsBottomInset(context),
@@ -560,6 +583,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               FloatingActionButton.small(
                 heroTag: 'style',
                 tooltip: 'Map style',
+                // White with a blue glyph, the inverse of the extended button
+                // below. Only one control in this column is the primary
+                // action, and filling all three in Signal Blue would say
+                // otherwise — as well as putting three saturated blocks over
+                // a map the design system asks to keep readable.
+                backgroundColor: scheme.surface,
+                foregroundColor: scheme.primary,
                 onPressed: _pickMapStyle,
                 child: const Icon(Icons.layers_outlined),
               ),
@@ -567,14 +597,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               FloatingActionButton.small(
                 heroTag: 'locate',
                 tooltip: 'Centre on my location',
+                backgroundColor: scheme.surface,
+                foregroundColor: scheme.primary,
                 // Getting a real fix can take a few seconds, so the button
                 // has to show it is working rather than looking inert.
                 onPressed: _locating ? null : () => _locateUser(recenter: true),
                 child: _locating
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: scheme.primary,
+                        ),
                       )
                     : const Icon(Icons.my_location),
               ),
