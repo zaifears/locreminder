@@ -164,25 +164,31 @@ Doing this in the GitLab web interface is easiest — no cloning required:
 
 GitLab takes you straight to the merge-request form.
 
-1. **Title:** `New App: LocReminder`
-2. **Description:** paste this:
+1. **Title:** `New app: LocReminder`
 
-   ```
-   LocReminder is a location-based alarm: it rings a real alarm when you
-   arrive near a destination you have set, so you can sleep or read on a
-   journey without watching for your stop.
+2. **Description:** do **not** just type prose here. Open the
+   **Description template** dropdown above the description box and choose
+   **App inclusion**.
 
-   - Fully free software, MIT licensed.
-   - No Google Play Services and no proprietary dependencies.
-   - No analytics, no advertising, no network backend. Maps and place
-     search come from OpenStreetMap.
-   - Privacy policy: https://github.com/zaifears/locreminder/blob/main/PRIVACY.md
-   ```
+   This is the step that is easy to miss and the one reviewers bounce the
+   MR back for. The dropdown replaces the box with F-Droid's own checklist,
+   and a reviewer will not look at an MR that does not carry it. There is a
+   filled-in copy of that checklist for this app in
+   [FDROID-MR-DESCRIPTION.md](FDROID-MR-DESCRIPTION.md) — paste that, and it
+   is done.
 
-3. Leave the rest at its defaults.
-4. Click **Create merge request**.
+3. Delete the block of bold instructions the template puts at the top. Its
+   own last line says `**Please remove above lines!**`.
 
-Done. The rest is waiting.
+4. Tick the boxes that are actually true. Do not tick
+   `Builds with fdroid build and all pipelines pass` until the pipeline on
+   this MR is genuinely green — a reviewer checks, and a false tick costs
+   more time than an unticked box.
+
+5. Remove the `Closes rfp#` and `Closes fdroiddata#` lines unless an issue
+   for this app really exists on those trackers.
+
+6. Click **Create merge request**.
 
 ---
 
@@ -247,6 +253,34 @@ Much shorter than the first time:
 Because the metadata sets `UpdateCheckMode: Tags` and
 `AutoUpdateMode: Version`, **F-Droid notices the new tag by itself** and
 builds it. No new merge request is needed.
+
+### While the inclusion MR is still open, that is not true yet
+
+Auto-update starts working once the app has been *merged* into fdroiddata.
+Until then the open merge request carries one static metadata file, and the
+`checkupdates` job in its pipeline compares that file against the tags on
+GitHub and **fails when it has fallen behind**. Every release cut while the
+MR is open therefore turns the pipeline red until the file is updated.
+
+So while the MR is open, a release has one extra step: update
+`metadata/com.zaifears.locreminder.yml` on the `locreminder` branch of the
+GitLab fork to match `fdroid/com.zaifears.locreminder.yml` in this repo.
+
+Note that these are two different files. The copy in this repo is a
+reference; the copy in the fork is the one F-Droid reads. Updating this
+repo's copy alone changes nothing on the MR.
+
+Three fields move each time:
+
+```yaml
+Builds:
+  - versionName: <new version>
+    versionCode: <new code>
+    commit: <the commit the tag points at, from: git rev-list -n1 vX.Y.Z>
+...
+CurrentVersion: <new version>
+CurrentVersionCode: <new code>
+```
 
 ---
 
