@@ -126,10 +126,20 @@ class AlarmForegroundService : Service() {
         }.also { handler.postDelayed(it, AUTO_STOP_MILLIS) }
     }
 
-    /** An arrival alarm is one-shot: consume it so re-entering doesn't re-fire it. */
+    /**
+     * Retires a one-shot alarm so re-entering cannot re-fire it.
+     *
+     * A repeating alarm is deliberately left in the store: it has to be there
+     * next Tuesday. What stops *it* re-firing is not deletion but
+     * [ArrivalState.suppressUntilExit] plus the once-a-day check, both applied
+     * by [LocationWatchService] at the moment it rings. Deleting it here would
+     * make every repeat a one-shot with extra steps.
+     */
     private fun consumeAlarm(alarmId: String) {
         if (alarmId.isEmpty()) return
-        AlarmStore(this).remove(alarmId)
+        val store = AlarmStore(this)
+        if (store.getById(alarmId)?.repeats == true) return
+        store.remove(alarmId)
     }
 
     private fun stopAlarm() {

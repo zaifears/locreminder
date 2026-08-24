@@ -45,10 +45,16 @@ class MainActivity : FlutterActivity() {
                     val lng = call.argument<Double>("longitude")
                     val radius = call.argument<Double>("radius")
                     val label = call.argument<String>("label") ?: "Destination"
+                    // Absent from an older Dart side, and empty is the right
+                    // reading of absent: fire once, then delete.
+                    val repeatDays = call.argument<List<Int>>("repeatDays")
+                        ?.filter { it in 1..7 }
+                        ?.toSet()
+                        ?: emptySet()
                     if (id == null || lat == null || lng == null || radius == null) {
                         result.error("INVALID_ARGS", "id, latitude, longitude and radius are required", null)
                     } else {
-                        AlarmStore(this).save(AlarmEntry(id, label, lat, lng, radius))
+                        AlarmStore(this).save(AlarmEntry(id, label, lat, lng, radius, repeatDays))
                         result.success(true)
                     }
                 }

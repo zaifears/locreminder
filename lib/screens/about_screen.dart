@@ -21,19 +21,16 @@ class _AboutScreenState extends State<AboutScreen> {
     });
   }
 
-  static final _website = Uri.parse('https://shahoriar.bd/');
   static final _github = Uri.parse('https://github.com/zaifears/locreminder');
-  static final _email = Uri.parse('mailto:shahoriar.connect@gmail.com');
   static final _palestine =
       Uri.parse('https://revolutionarypapers.org/journal/free-palestine/');
 
   /// Opens a link, saying so when it cannot be opened.
   ///
-  /// `launchUrl` reports "no" two different ways — false, and a thrown
-  /// PlatformException when nothing on the device claims the scheme at all.
-  /// The second is the likely one here: `mailto:` on a phone with no mail app
-  /// set up throws, and only the first was handled, so tapping Contact did
-  /// nothing at all and said nothing about why.
+  /// `launchUrl` reports "no" two different ways — returning false, and
+  /// throwing when nothing on the device claims the scheme at all. Only the
+  /// first was handled, so on a phone with no browser set up a tap did
+  /// nothing and explained nothing.
   Future<void> _open(BuildContext context, Uri uri) async {
     final messenger = ScaffoldMessenger.of(context);
     bool launched;
@@ -102,9 +99,10 @@ class _AboutScreenState extends State<AboutScreen> {
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Text(
-                'A location-based alarm that wakes you when you approach your '
-                'destination — so you can sleep on the bus without missing '
-                'your stop.\n\n'
+                'A location-based alarm that goes off when you arrive '
+                'somewhere — so you can sleep through a bus ride without '
+                'missing your stop, or be reminded of an errand the moment '
+                'you are near enough to run it.\n\n'
                 'It keeps watching in the background, so the alarm still fires '
                 'when the app is closed, and uses OpenStreetMap for maps, so '
                 'it needs no API keys or accounts.\n\n'
@@ -136,18 +134,9 @@ class _AboutScreenState extends State<AboutScreen> {
                   subtitle: const Text('zaifears'),
                 ),
                 const Divider(height: 1),
-                // Signal Blue on the icons rather than the row: these three
-                // leave the app, and the accent is what marks them as links
-                // without needing underlines or a fourth type style.
-                ListTile(
-                  iconColor: scheme.primary,
-                  leading: const Icon(Icons.language),
-                  title: const Text('Website'),
-                  subtitle: const Text('shahoriar.bd'),
-                  trailing: const Icon(Icons.open_in_new, size: 18),
-                  onTap: () => _open(context, _website),
-                ),
-                const Divider(height: 1),
+                // GitHub only. The personal site and email address were
+                // here too; issues are a better route for anything about the
+                // app, and the two are no longer published in the app itself.
                 ListTile(
                   iconColor: scheme.primary,
                   leading: const Icon(Icons.code),
@@ -155,15 +144,6 @@ class _AboutScreenState extends State<AboutScreen> {
                   subtitle: const Text('github.com/zaifears/locreminder'),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _open(context, _github),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  iconColor: scheme.primary,
-                  leading: const Icon(Icons.mail_outline),
-                  title: const Text('Contact'),
-                  subtitle: const Text('shahoriar.connect@gmail.com'),
-                  trailing: const Icon(Icons.open_in_new, size: 18),
-                  onTap: () => _open(context, _email),
                 ),
               ],
             ),

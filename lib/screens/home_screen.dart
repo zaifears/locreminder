@@ -266,6 +266,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       radiusMeters: picked.radiusMeters,
       isActive: true,
       createdAt: DateTime.now(),
+      repeatDays: picked.repeatDays,
     );
 
     final registered = await _register(alarm);
@@ -285,11 +286,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const Distance()(here, LatLng(alarm.latitude, alarm.longitude)) <=
             alarm.radiusMeters;
 
+    final schedule = alarm.repeats ? ' · ${alarm.scheduleLabel}' : '';
     _notify(
       alreadyInside
           ? "Alarm set — but you're already inside this area, so it will ring "
               'when you leave and come back.'
-          : 'Alarm set for ${alarm.label}',
+          : 'Alarm set for ${alarm.label}$schedule',
       seconds: alreadyInside ? 5 : 3,
     );
   }
@@ -889,13 +891,18 @@ class _AlarmCard extends StatelessWidget {
     final radiusLabel = formatDistance(alarm.radiusMeters);
     final distance = distanceMetres;
 
+    // A repeating alarm outlives its ring, which is the opposite of what
+    // every alarm in this app used to do, so the row has to say so.
+    final schedule = alarm.repeats ? ' · ${alarm.scheduleLabel}' : '';
+
     final String subtitle;
     if (!alarm.isActive) {
-      subtitle = 'Paused · rings within $radiusLabel';
+      subtitle = 'Paused · rings within $radiusLabel$schedule';
     } else if (distance == null) {
-      subtitle = 'Rings within $radiusLabel';
+      subtitle = 'Rings within $radiusLabel$schedule';
     } else {
-      subtitle = '${formatDistance(distance)} away · rings within $radiusLabel';
+      subtitle =
+          '${formatDistance(distance)} away · rings within $radiusLabel$schedule';
     }
 
     return Card(
@@ -906,7 +913,9 @@ class _AlarmCard extends StatelessWidget {
           backgroundColor:
               alarm.isActive ? scheme.primaryContainer : scheme.surfaceContainerHighest,
           child: Icon(
-            alarm.isActive ? Icons.notifications_active : Icons.notifications_off,
+            alarm.isActive
+                ? (alarm.repeats ? Icons.repeat : Icons.notifications_active)
+                : Icons.notifications_off,
             color: alarm.isActive ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
           ),
         ),

@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import java.util.Calendar
 
 /**
  * Actively watches the device's location while any alarm is armed, and rings
@@ -197,6 +198,19 @@ class LocationWatchService : Service() {
                 // proximity has already tightened the polling interval.
                 if (!canConfirmArrival(location, entry.radius)) {
                     Log.i(TAG, "Ignoring ${location.accuracy}m fix for ${entry.label}")
+                } else if (!entry.ringsOn(todayIsoWeekday())) {
+                    // Armed, but not for today. Deliberately checked before
+                    // the suppression test so the alarm is not left needing
+                    // an exit it already made: the user genuinely arrived,
+                    // the schedule simply says not today, and tomorrow's
+                    // arrival should be treated as an arrival.
+                    Log.i(TAG, "Inside ${entry.label} but not scheduled today")
+                    arrivalState.suppressUntilExit(entry.id)
+                } else if (entry.repeats && arrivalState.hasRungToday(entry.id, today())) {
+                    // Left the radius and came back the same day. One ring a
+                    // day is what a repeating reminder means.
+                    Log.i(TAG, "${entry.label} already rang today")
+                    arrivalState.suppressUntilExit(entry.id)
                 } else if (arrivalState.shouldSuppress(entry.id)) {
                     // Arrival means crossing *into* the radius. Being inside
                     // already the first time this alarm is seen is not an
@@ -222,6 +236,27 @@ class LocationWatchService : Service() {
             updateNotification()
             adaptIntervalTo(distance, location)
         }
+    }
+
+    /**
+     * Today as 1 = Monday through 7 = Sunday, matching Dart's
+     * `DateTime.weekday` and so the numbers stored in [AlarmEntry.repeatDays].
+     *
+     * [Calendar.DAY_OF_WEEK] counts from Sunday = 1, which is the same range
+     * meaning different days — storing one and comparing against the other
+     * would arm every alarm one day early.
+     */
+    private fun todayIsoWeekday(): Int =
+        ((Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7) + 1
+
+    /** The local calendar date, as the key for "has this rung today". */
+    private fun today(): String {
+        val cal = Calendar.getInstance()
+        return "%04d-%02d-%02d".format(
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH),
+        )
     }
 
     /**
@@ -284,9 +319,29 @@ class LocationWatchService : Service() {
         }
         startService(alarmIntent)
 
-        // The alarm service consumes the entry itself; if that leaves nothing
-        // armed, this watch has no further work.
-        if (AlarmStore(this).loadAll().none { it.id != entry.id }) {
+        // A repeating alarm survives the ring, and the user is standing
+        // inside its radius as it does. Without this it would ring again on
+        // the very next fix, and every fix after that. See
+        // [ArrivalState.suppressUntilExit].
+        //
+        // The day is marked here rather than where it is checked, because
+        // here is the only place we know the alarm actually rang.
+        if (entry.repeats) {
+            arrivalState.markRungToday(entry.id, today())
+            arrivalState.suppressUntilExit(entry.id)
+        }
+
+        // The alarm service consumes the entry itself, so this deliberately
+        // asks only about the *other* entries: whether this one has been
+        // removed yet is a race, and whether anything else is armed is not.
+        //
+        // A repeating alarm is not consumed at all, so it still counts as
+        // armed and the watch has to stay up for it. Stopping here would have
+        // been the whole feature failing silently on the second week: the
+        // alarm survives in the store, the service that watches for it does
+        // not, and nothing restarts it until the app is next opened.
+        val othersArmed = AlarmStore(this).loadAll().any { it.id != entry.id }
+        if (!entry.repeats && !othersArmed) {
             stopWatching()
         }
     }

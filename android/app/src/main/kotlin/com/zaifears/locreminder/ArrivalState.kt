@@ -48,6 +48,53 @@ class ArrivalState(context: Context) {
         return id in read(KEY_SUPPRESSED)
     }
 
+    /**
+     * Puts [id] back to needing an exit before it may ring again.
+     *
+     * Only repeating alarms need this, and they need it badly. A one-shot
+     * alarm is deleted the moment it rings, so nothing can ring it twice. A
+     * repeating one stays in the store, and the user is still standing inside
+     * its radius when it finishes ringing — so the very next fix would find
+     * them inside, with no suppression recorded, and ring it again. And the
+     * fix after that. Re-suppressing on the way out of the ring is what makes
+     * "every Tuesday" mean once each Tuesday rather than continuously for as
+     * long as the user stays put.
+     */
+    fun suppressUntilExit(id: String) {
+        write(KEY_SEEN, read(KEY_SEEN) + id)
+        write(KEY_SUPPRESSED, read(KEY_SUPPRESSED) + id)
+    }
+
+    /**
+     * Whether [id] has already rung today.
+     *
+     * The second guard on a repeating alarm, covering what suppression cannot:
+     * leaving the radius and coming back the same afternoon is a genuine
+     * re-entry, so suppression clears and the alarm would ring a second time.
+     * Once a day is what a daily reminder means.
+     *
+     * Keyed on the local calendar date, so the boundary is the user's
+     * midnight — the one they would expect — rather than 24 hours after the
+     * last ring.
+     */
+    fun hasRungToday(id: String, today: String): Boolean =
+        prefs.getString("$KEY_LAST_RUNG_PREFIX$id", null) == today
+
+    /**
+     * Records that [id] rang on [today].
+     *
+     * Deliberately separate from [hasRungToday], which is a pure read. Folding
+     * the write into the check looked tidier and was wrong: the check runs
+     * before the suppression test, so an alarm that was inspected and then
+     * held back — the user was already standing inside it — would be filed as
+     * having rung without making a sound. Arriving properly later the same day
+     * then found the day already used up, and the alarm stayed silent. Only
+     * actually ringing may mark the day.
+     */
+    fun markRungToday(id: String, today: String) {
+        prefs.edit().putString("$KEY_LAST_RUNG_PREFIX$id", today).apply()
+    }
+
     /** Records that the user is outside [id], which clears any suppression. */
     fun markOutside(id: String) {
         val seen = read(KEY_SEEN)
@@ -68,6 +115,17 @@ class ArrivalState(context: Context) {
             val kept = read(key).intersect(live)
             if (kept.size != read(key).size) write(key, kept)
         }
+
+        // The per-alarm "last rang" keys are separate entries rather than a
+        // set, so they need sweeping separately or a deleted alarm leaves one
+        // behind for good. Harmless individually; unbounded over years of use.
+        val stale = prefs.all.keys.filter {
+            it.startsWith(KEY_LAST_RUNG_PREFIX) &&
+                it.removePrefix(KEY_LAST_RUNG_PREFIX) !in live
+        }
+        if (stale.isNotEmpty()) {
+            prefs.edit().apply { stale.forEach { remove(it) } }.apply()
+        }
     }
 
     private fun read(key: String): Set<String> =
@@ -84,5 +142,6 @@ class ArrivalState(context: Context) {
         const val PREFS_NAME = "locreminder_arrival_state"
         const val KEY_SEEN = "seen"
         const val KEY_SUPPRESSED = "suppressed"
+        const val KEY_LAST_RUNG_PREFIX = "last_rung_"
     }
 }

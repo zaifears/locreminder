@@ -19,6 +19,10 @@ class NativeBridge {
       'longitude': alarm.longitude,
       'radius': alarm.radiusMeters,
       'label': alarm.label,
+      // Which weekdays it is armed on, 1 = Monday. Empty means fire once and
+      // delete. The native side owns this decision because it is the side
+      // still running when the alarm goes off.
+      'repeatDays': (alarm.repeatDays.toList()..sort()),
     });
   }
 

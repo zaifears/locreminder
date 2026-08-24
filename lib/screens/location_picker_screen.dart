@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../models/location_alarm.dart';
 import '../models/place_result.dart';
 import '../services/geocoding_service.dart';
 import '../services/radius_advice.dart';
@@ -16,12 +17,16 @@ class PickedLocation {
     required this.latitude,
     required this.longitude,
     required this.radiusMeters,
+    required this.repeatDays,
   });
 
   final String label;
   final double latitude;
   final double longitude;
   final double radiusMeters;
+
+  /// Weekdays the alarm is armed on; empty means once. See [RepeatSchedule].
+  final Set<int> repeatDays;
 }
 
 /// Full-screen destination picker: search by name, or drag the map under a
@@ -58,6 +63,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final _geocoder = GeocodingService();
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
+  /// What the alarm is *for*, in the user's words. Left empty on purpose.
+  ///
+  /// The place name is offered as the hint rather than written into the
+  /// field, so there is nothing to clear before typing "Buy medicine" and
+  /// nothing for a reverse-geocode landing 700ms later to overwrite. Empty
+  /// simply means "call it after the place", which [_confirm] resolves.
+  final _labelController = TextEditingController();
+
+  Set<int> _repeatDays = RepeatSchedule.once;
   MapStyle _mapStyle = MapStyle.standard;
 
   late LatLng _center = widget.initialCenter;
@@ -104,6 +118,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     _addressDebounce?.cancel();
     _searchController.dispose();
     _searchFocus.dispose();
+    _labelController.dispose();
     super.dispose();
   }
 
@@ -162,18 +177,25 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     });
   }
 
-  void _confirm() {
-    final fallback = _address?.split(',').first.trim();
-    final label = _chosenName?.trim().isNotEmpty == true
-        ? _chosenName!.trim()
-        : (fallback?.isNotEmpty == true ? fallback! : 'Destination');
+  /// What to call this place when the user does not name the task themselves.
+  /// One getter so the hint and the fallback can never drift apart.
+  String get _placeName {
+    final chosen = _chosenName?.trim();
+    if (chosen != null && chosen.isNotEmpty) return chosen;
+    final first = _address?.split(',').first.trim();
+    if (first != null && first.isNotEmpty) return first;
+    return 'Destination';
+  }
 
+  void _confirm() {
+    final typed = _labelController.text.trim();
     Navigator.of(context).pop(
       PickedLocation(
-        label: label,
+        label: typed.isNotEmpty ? typed : _placeName,
         latitude: _center.latitude,
         longitude: _center.longitude,
         radiusMeters: _radius,
+        repeatDays: _repeatDays,
       ),
     );
   }
@@ -216,13 +238,33 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
           ),
 
-          // Kept clear of the bottom panel so the required OSM credit stays
-          // visible while picking.
-          Positioned(left: 8, bottom: 232, child: MapAttribution(style: _mapStyle)),
-
           _buildSearchBar(context),
           if (_showResults) _buildResultsOverlay(context),
-          _buildBottomPanel(context),
+
+          // The credit rides directly on top of the panel rather than at a
+          // measured offset from the bottom of the screen. It used to sit at
+          // a hard-coded 232, which was the panel's height at the time; adding
+          // the task field and the repeat row to that panel would have slid it
+          // underneath, and covering the OpenStreetMap credit is a licence
+          // problem, not a layout one. Stacked, it cannot happen again.
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 6),
+                  child: MapAttribution(style: _mapStyle),
+                ),
+                // Flexible, not a bare child: the Column hands an unbounded
+                // height to a non-flex child, which a SingleChildScrollView
+                // would happily grow into and overflow. Loose flex caps it at
+                // whatever the stack has left, and the panel scrolls inside.
+                Flexible(child: _buildBottomPanel(context)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -411,14 +453,18 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   Widget _buildBottomPanel(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Material(
-        elevation: 12,
-        color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: SafeArea(
-          top: false,
+    return Material(
+      elevation: 12,
+      color: scheme.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: SafeArea(
+        top: false,
+        // Scrollable because this panel is no longer a fixed height: the task
+        // field and the repeat row added roughly 140px, and with the keyboard
+        // up on a short screen there is not always that much left. Scrolling
+        // is the difference between a cramped panel and a RenderFlex overflow
+        // across the one control the user came here to press.
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
             child: Column(
@@ -447,11 +493,31 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _labelController,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.done,
+                  // Long enough for a real errand, short enough to stay one
+                  // line on the alarm screen and in the notification.
+                  maxLength: 60,
+                  decoration: InputDecoration(
+                    labelText: 'Remind me to',
+                    // The place name, so leaving it blank is visibly a
+                    // choice with a known result rather than a gap.
+                    hintText: _resolvingAddress ? 'Buy medicine…' : _placeName,
+                    prefixIcon: const Icon(Icons.edit_note),
+                    counterText: '',
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildRepeatRow(context),
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     Text(
-                      'Wake me within',
+                      'Remind me within',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const Spacer(),
@@ -490,6 +556,42 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       ),
     );
   }
+
+  /// One compact row rather than a grid of chips, because the panel already
+  /// competes with the map for the screen and most alarms are still one-shot.
+  Widget _buildRepeatRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: _pickRepeat,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(Icons.repeat, size: 20, color: scheme.primary),
+            const SizedBox(width: 12),
+            Text('Repeat', style: Theme.of(context).textTheme.bodyMedium),
+            const Spacer(),
+            Text(
+              RepeatSchedule.describe(_repeatDays),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: scheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickRepeat() async {
+    _searchFocus.unfocus();
+    final picked = await showRepeatSheet(context, _repeatDays);
+    if (picked == null || !mounted) return;
+    setState(() => _repeatDays = picked);
+  }
 }
 
 /// The radius circle under the picker's fixed crosshair.
@@ -520,6 +622,119 @@ class _RadiusCircle extends StatelessWidget {
           borderStrokeWidth: 2,
         ),
       ],
+    );
+  }
+}
+
+/// Asks how often the alarm should ring, returning the weekdays it is armed
+/// on — or null if the user backed out. See [RepeatSchedule] for the encoding.
+Future<Set<int>?> showRepeatSheet(BuildContext context, Set<int> current) {
+  return showModalBottomSheet<Set<int>>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (context) => _RepeatSheet(initial: current),
+  );
+}
+
+class _RepeatSheet extends StatefulWidget {
+  const _RepeatSheet({required this.initial});
+
+  final Set<int> initial;
+
+  @override
+  State<_RepeatSheet> createState() => _RepeatSheetState();
+}
+
+class _RepeatSheetState extends State<_RepeatSheet> {
+  late Set<int> _days = widget.initial.toSet();
+
+  void _toggle(int day) {
+    setState(() {
+      if (!_days.remove(day)) _days.add(day);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isOnce = _days.isEmpty;
+    final isDaily = RepeatSchedule.setEquals(_days, RepeatSchedule.daily);
+
+    return SafeArea(
+      // Seven chips wrap to two rows at large system text sizes, and the
+      // explanation above them grows too. Scrollable so the "Set to …" button
+      // stays reachable on a short screen instead of being pushed off it.
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Repeat', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                'A repeating alarm rings once each day it is set for, and stays '
+                'armed afterwards. A one-off deletes itself once it has rung.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.looks_one_outlined, color: scheme.primary),
+                title: const Text('Once'),
+                trailing: isOnce ? Icon(Icons.check, color: scheme.primary) : null,
+                onTap: () => Navigator.of(context).pop(RepeatSchedule.once),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.today_outlined, color: scheme.primary),
+                title: const Text('Every day'),
+                trailing: isDaily ? Icon(Icons.check, color: scheme.primary) : null,
+                onTap: () => Navigator.of(context).pop(RepeatSchedule.daily),
+              ),
+              const Divider(height: 24),
+              Text(
+                'Or pick the days',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: scheme.primary,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              // Wrap rather than Row: seven chips do not fit across a narrow
+              // phone at a large font scale, and this is exactly the screen
+              // where the system text size is likely to be turned up.
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var day = 1; day <= 7; day++)
+                    FilterChip(
+                      label: Text(RepeatSchedule.shortName(day)),
+                      selected: _days.contains(day),
+                      onSelected: (_) => _toggle(day),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).pop(_days),
+                  // Says what the choice actually means, so clearing every chip
+                  // reading as "Once" is visible before it is committed.
+                  child: Text('Set to ${RepeatSchedule.describe(_days)}'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

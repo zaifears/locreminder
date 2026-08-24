@@ -14,7 +14,19 @@ data class AlarmEntry(
     val latitude: Double,
     val longitude: Double,
     val radius: Double,
-)
+    /**
+     * Weekdays this alarm is armed on, 1 = Monday through 7 = Sunday, matching
+     * Dart's `DateTime.weekday`. Empty means it fires once and is deleted,
+     * which is what every alarm saved before repeats existed becomes.
+     */
+    val repeatDays: Set<Int> = emptySet(),
+) {
+    val repeats: Boolean get() = repeatDays.isNotEmpty()
+
+    /** Whether this alarm is allowed to ring on [isoWeekday] (1 = Monday). */
+    fun ringsOn(isoWeekday: Int): Boolean =
+        repeatDays.isEmpty() || isoWeekday in repeatDays
+}
 
 /**
  * Plain SharedPreferences-backed store, independent from the
@@ -35,6 +47,7 @@ class AlarmStore(context: Context) {
                 latitude = obj.getDouble("latitude"),
                 longitude = obj.getDouble("longitude"),
                 radius = obj.getDouble("radius"),
+                repeatDays = obj.optJSONArray("repeatDays").toWeekdaySet(),
             )
         }
     }
@@ -63,6 +76,7 @@ class AlarmStore(context: Context) {
             obj.put("latitude", e.latitude)
             obj.put("longitude", e.longitude)
             obj.put("radius", e.radius)
+            obj.put("repeatDays", JSONArray(e.repeatDays.sorted()))
             array.put(obj)
         }
         prefs.edit().putString(KEY_ENTRIES, array.toString()).apply()
@@ -74,4 +88,25 @@ class AlarmStore(context: Context) {
         private const val PREFS_NAME = "locreminder_geofences"
         private const val KEY_ENTRIES = "entries"
     }
+}
+
+/**
+ * Reads a weekday array, dropping anything outside 1..7.
+ *
+ * Absent on every record written before repeats existed, and null is the
+ * honest answer for those: they were one-shot alarms, and an empty set is
+ * exactly that.
+ *
+ * Top-level rather than a member of the companion: a member extension needs
+ * both its receivers in scope at the call site, which is a subtlety this does
+ * not need to depend on.
+ */
+private fun JSONArray?.toWeekdaySet(): Set<Int> {
+    if (this == null) return emptySet()
+    val days = mutableSetOf<Int>()
+    for (i in 0 until length()) {
+        val day = optInt(i, -1)
+        if (day in 1..7) days.add(day)
+    }
+    return days
 }
