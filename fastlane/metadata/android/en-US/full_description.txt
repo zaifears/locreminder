@@ -10,14 +10,16 @@ Drop a pin on your destination, choose how close you want to get, and put your p
 * Arriving somewhere unfamiliar, where you would not recognise your stop
 * Commuting, so you can read or work without watching the route
 * Road trips as a passenger, to be woken before the turn-off
-* Errands, as a nudge when you are near the shop or post office
+* Errands, so you are reminded at the shop or the post office rather than after passing it
 
 <b>Features</b>
 
 * A real alarm, not a quiet notification: loops on the alarm audio channel so it sounds even on silent
 * Choose your own alarm sound: any system ringtone, or an audio file of your own
 * Search for a destination by name, or drag the map to place the pin exactly
-* Multiple alarms, each with its own label and trigger radius, and live distance to each
+* Give each alarm a task in your own words — "Buy medicine" — or let it take the name of the place
+* Repeat an alarm every day, or on the weekdays you choose, for a commute or a standing errand
+* Multiple alarms, each with its own trigger radius, and live distance to each
 * Adjustable radius from 100 m to 3 km, so you get as much warning as you need
 * Light and dark themes
 * Battery-aware: checks rarely when you are far away, more often as you approach
