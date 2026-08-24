@@ -647,7 +647,10 @@ class _RepeatSheet extends StatefulWidget {
 }
 
 class _RepeatSheetState extends State<_RepeatSheet> {
-  late Set<int> _days = widget.initial.toSet();
+  // Final because it is only ever mutated in place, never reassigned. The
+  // copy matters though: mutating widget.initial directly would edit the
+  // caller's set, so backing out of the sheet would still have changed it.
+  late final Set<int> _days = widget.initial.toSet();
 
   void _toggle(int day) {
     setState(() {
