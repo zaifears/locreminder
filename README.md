@@ -4,9 +4,9 @@
 
   <h1>LocReminder</h1>
 
-  <h3>Helps you wake up at the right place</h3>
+  <h3>Reminds you at the right place</h3>
 
-  <p><em>Sleep on the bus. Read your book. We'll wake you at your stop.</em></p>
+  <p><em>Sleep on the bus. Remember the errand. It goes off when you arrive.</em></p>
 
   <br/>
 
