@@ -140,3 +140,33 @@ interchangeable.
   arrival alarm or grows adjacent features (recurring alarms, saved routes,
   journey history) has not been settled. Future work should not silently
   assume either.
+
+- **A second audience is asking for this app in different words.** A public
+  request, paraphrased: *"somewhere to save tasks with a location, that
+  reminds me when I arrive near that place — buy medicine near a pharmacy,
+  return a book near campus."* That is this app's mechanism exactly, and
+  nothing in that sentence mentions sleeping or a journey.
+
+  The README headline was widened from waking to reminding on the strength
+  of it. The product was not, and the gap between the two is now the thing
+  to watch. Two capabilities decide whether that audience is actually
+  served:
+
+  1. **A task of the user's own.** `LocationAlarm.label` is always the place
+     name, derived from the search result or reverse-geocoded address. There
+     is no free-text field and no rename, so "Buy medicine" arrives as
+     "Lazz Pharma". This is the larger gap and the smaller piece of work.
+  2. **A quieter trigger.** Every alarm fires on `USAGE_ALARM` /
+     `STREAM_ALARM` to override silent mode, with a full-screen intent over
+     the lock screen. That is correct for a sleeping passenger and wrong for
+     an errand. A per-alarm choice between ringing and notifying is what
+     makes one app serve both.
+
+  Note that the store listing already promises both in passing — "Errands,
+  as a nudge when you are near the shop or post office" and "each with its
+  own label" — while also stating "A real alarm, not a quiet notification".
+  Those cannot all be true at once. Either the features land or that copy
+  gets corrected; leaving it is the one option that misleads.
+
+  Category matching ("any pharmacy", rather than one pinned pharmacy) is a
+  different and much larger feature, and is not implied by the above.
