@@ -3,6 +3,39 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.1] - 2026-08-24
+
+### Added
+- An alarm can carry a task in your own words. The label used to be whatever
+  the place was called, so "Buy medicine" arrived as the name of the pharmacy.
+  The picker now has a field for it, left blank with the place name as its
+  hint — nothing to clear before typing, and nothing for the address lookup to
+  overwrite a moment later if you were mid-sentence.
+- Alarms can repeat: once, every day, or on the weekdays you choose. A
+  repeating alarm stays armed after it rings, so a commute or a standing
+  errand is set once rather than every morning.
+
+  It rings once per day on each day it is set for. Leaving the area and
+  coming back the same afternoon does not ring it again, and an alarm you are
+  already sitting inside when its day comes round still waits until you have
+  actually arrived.
+
+### Changed
+- The app is described by what it does rather than only by one use of it. It
+  was "helps you wake up at the right place", which tells someone looking for
+  a location-based reminder that this is not their app. It is the same
+  mechanism either way.
+- The About screen links to GitHub only; the author's email address and
+  personal website are no longer published in the app.
+- The store listing promised "errands, as a nudge" a few lines above "a real
+  alarm, not a quiet notification". Both could not be true. Every alarm is a
+  full alarm, errands included, and the listing now says so.
+
+### Fixed
+- Release notes are no longer truncated. Both stores cut the What's New text
+  off at 500 characters without warning, and four entries were over it —
+  1.8.0's worst of all, at 734. The limit is checked in the build now.
+
 ## [1.8.0] - 2026-08-23
 
 ### Fixed

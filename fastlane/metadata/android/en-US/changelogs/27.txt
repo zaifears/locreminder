@@ -1,0 +1,10 @@
+Alarms can now carry a task in your own words. The label used to be
+whatever the place was called, so "Buy medicine" arrived as the name of
+the pharmacy. Leave it blank and it still uses the place name.
+
+Alarms can also repeat: once, every day, or on the days you choose. A
+repeating alarm stays armed after it rings, so a commute or a standing
+errand is set once rather than every morning. It rings once on each day
+it is set for.
+
+The About screen now links to GitHub only.
