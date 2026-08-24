@@ -6,6 +6,7 @@ malware never reaches anyone. The results are recorded here.
 
 | Release | Detections | Report | SHA-256 of the APK |
 |---|---|---|---|
+| [`v1.8.1`](https://github.com/zaifears/locreminder/releases/tag/v1.8.1) | 0 / 67 | [report](https://www.virustotal.com/gui/file/7c8ef162f17ebd3e7f3cf1a9619017965cfcffa0b09a597ec6a54f97cee6d981) | `7c8ef162f17ebd3e7f3cf1a9619017965cfcffa0b09a597ec6a54f97cee6d981` |
 | [`v1.8.0`](https://github.com/zaifears/locreminder/releases/tag/v1.8.0) | 0 / 68 | [report](https://www.virustotal.com/gui/file/a263dc8b4f82f593409f011413cca8dae919fb7646c9ca40cd9697c2c649b336) | `a263dc8b4f82f593409f011413cca8dae919fb7646c9ca40cd9697c2c649b336` |
 | [`v1.7.1`](https://github.com/zaifears/locreminder/releases/tag/v1.7.1) | 0 / 68 | [report](https://www.virustotal.com/gui/file/cb1e254ae3216e25f914873d5c33fae15ea3b10c14e78cb6de37a3f4ca797764) | `cb1e254ae3216e25f914873d5c33fae15ea3b10c14e78cb6de37a3f4ca797764` |
 | [`v1.7.0`](https://github.com/zaifears/locreminder/releases/tag/v1.7.0) | 0 / 66 | [report](https://www.virustotal.com/gui/file/7469d9e76e2a816e9c6856b0949009aa36ee05d60993db76fb325c2bfe5161ff) | `7469d9e76e2a816e9c6856b0949009aa36ee05d60993db76fb325c2bfe5161ff` |
