@@ -63,7 +63,7 @@
 
 | | |
 |---|---|
-| **Latest version** | `v1.6.16`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.9.0`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | 56 MB (universal) — or ~18–22 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |

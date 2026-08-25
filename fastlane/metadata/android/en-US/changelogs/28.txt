@@ -1,0 +1,6 @@
+APK splits: the app is now available in smaller, device-matched builds
+(~20 MB for most phones instead of 56 MB). F-Droid users get the right
+size automatically. GitHub releases also include the split APKs if you
+prefer a smaller manual download.
+
+No functional changes.

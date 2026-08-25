@@ -3,6 +3,13 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] - 2026-08-25
+
+### Changed
+- Each GitHub release now includes smaller, architecture-specific APKs
+  (~18–22 MB) alongside the existing universal build (56 MB). F-Droid
+  users get the right-sized APK automatically. Nothing else changed.
+
 ## [1.8.1] - 2026-08-24
 
 ### Added
