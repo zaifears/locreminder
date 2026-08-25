@@ -17,39 +17,11 @@ Repo: https://github.com/zaifears/locreminder.git
 Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
 
 Builds:
-  - versionName: 1.8.1
-    versionCode: 27
-    commit: 9ec4fcd8abee324491db73a461a03eb7cccb5783
-    output: build/app/outputs/flutter-apk/app-release.apk
-    srclibs:
-      - flutter@stable
-    rm:
-      - ios
-      - linux
-      - macos
-      - web
-      - windows
-    prebuild:
-      - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\s*'(.*)'/\1/p" .github/workflows/build.yml)
-      - '[[ $flutterVersion ]]'
-      - git -C $$flutter$$ checkout -f $flutterVersion
-      - sed -i -e '/signingConfig = if (hasReleaseSigning)/d' android/app/build.gradle.kts
-      - export PUB_CACHE=$PWD/.pub-cache
-      - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get --enforce-lockfile
-    scandelete:
-      - .pub-cache
-    build:
-      - export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
-      - export PUB_CACHE=$PWD/.pub-cache
-      - $$flutter$$/bin/flutter build apk --release
-    ndk: 28.2.13676358
-
-  - versionName: 1.9.0
-    versionCode: 281
-    commit: 79a641f1784c21f82f81703eec2cf9bfd8f98325
+  - versionName: 1.9.1
+    versionCode: 291
+    commit: bdc8396f58c5bd82f18bcb593402a3547eabaf78
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-    binary:
+    binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-armeabi-v7a-release.apk
     srclibs:
       - flutter@stable
@@ -76,11 +48,11 @@ Builds:
         android-arm
     ndk: 28.2.13676358
 
-  - versionName: 1.9.0
-    versionCode: 282
-    commit: 79a641f1784c21f82f81703eec2cf9bfd8f98325
+  - versionName: 1.9.1
+    versionCode: 292
+    commit: bdc8396f58c5bd82f18bcb593402a3547eabaf78
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-    binary:
+    binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -107,11 +79,11 @@ Builds:
         android-arm64
     ndk: 28.2.13676358
 
-  - versionName: 1.9.0
-    versionCode: 283
-    commit: 79a641f1784c21f82f81703eec2cf9bfd8f98325
+  - versionName: 1.9.1
+    versionCode: 293
+    commit: bdc8396f58c5bd82f18bcb593402a3547eabaf78
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
-    binary:
+    binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-x86_64-release.apk
     srclibs:
       - flutter@stable
@@ -147,5 +119,5 @@ VercodeOperation:
   - 10*%c+2
   - 10*%c+3
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.9.0
-CurrentVersionCode: 283
+CurrentVersion: 1.9.1
+CurrentVersionCode: 293
