@@ -48,6 +48,7 @@ android/key.properties
 android/*.jks
 android/*.keystore
 android/app/google-services.json
+android/app/agconnect-services.json
 ios/Runner/GoogleService-Info.plist
 .env
 *.key

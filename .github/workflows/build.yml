@@ -191,12 +191,14 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           export PUB_CACHE="$BUILD_DIR/.pub-cache"
-          "$FLUTTER_DIR/bin/flutter" build apk --release
+          "$FLUTTER_DIR/bin/flutter" build apk --release --split-per-abi
 
       # Brought back into the workspace so the upload and release actions,
       # which expect paths under it, can reach the file.
       - name: Collect the APK
-        run: cp "$BUILD_DIR/build/app/outputs/flutter-apk/app-release.apk" "$GITHUB_WORKSPACE/app-release.apk"
+        run: |
+          ls -la "$BUILD_DIR/build/app/outputs/flutter-apk/"
+          cp "$BUILD_DIR"/build/app/outputs/flutter-apk/*.apk "$GITHUB_WORKSPACE/"
 
       # The gate above proves the secrets exist; this proves they were used.
       # Gradle's fallback to the debug key is silent, so the finished APK is
@@ -228,7 +230,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: location-alarm-apk
-          path: app-release.apk
+          path: "*.apk"
           if-no-files-found: error
 
       - name: Attach APKs to GitHub Release
