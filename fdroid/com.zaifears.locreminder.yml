@@ -30,7 +30,6 @@ Builds:
       - web
       - windows
     prebuild:
-      - sdkmanager "ndk;28.2.13676358" || true
       - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\s*'(.*)'/\1/p" .github/workflows/build.yml)
       - '[[ $flutterVersion ]]'
       - git -C $$flutter$$ checkout -f $flutterVersion
@@ -41,11 +40,10 @@ Builds:
     scandelete:
       - .pub-cache
     build:
-      - export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358
       - export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
-      - export ANDROID_NDK=$ANDROID_NDK_HOME
       - export PUB_CACHE=$PWD/.pub-cache
       - $$flutter$$/bin/flutter build apk --release
+    ndk: 28.2.13676358
 
 AllowedAPKSigningKeys: e594d95da857cb75c7abf991915722086671815b7ee105cf9e224bec48858115
 
