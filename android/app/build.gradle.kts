@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -80,6 +81,36 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    // Roughly two thirds of a universal release APK's weight is native
+    // libraries duplicated for every ABI. Splitting means each device
+    // downloads only its own copy. The universal APK is kept alongside the
+    // splits (universalApk = true) rather than replaced: it is what the
+    // existing GitHub Release link and F-Droid's already-verified Binaries:
+    // entry both point at, and neither needs to change for this.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+}
+
+// Gives each split APK a version code the universal build doesn't collide
+// with, so a device offered both installs whichever it actually matches.
+// The universal output carries no ABI filter, so it falls through untouched
+// and keeps the plain version code F-Droid's existing recipe entry expects.
+val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
+android.applicationVariants.configureEach {
+    val variant = this
+    variant.outputs.forEach { output ->
+        val abiVersionCode = abiCodes[output.filters.find { it.filterType == "ABI" }?.identifier]
+        if (abiVersionCode != null) {
+            (output as ApkVariantOutputImpl).versionCodeOverride = variant.versionCode * 10 + abiVersionCode
         }
     }
 }
