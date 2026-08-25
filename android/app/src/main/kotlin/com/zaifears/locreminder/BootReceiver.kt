@@ -16,7 +16,8 @@ import androidx.core.content.ContextCompat
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
-            intent.action != "android.intent.action.QUICKBOOT_POWERON"
+            intent.action != "android.intent.action.QUICKBOOT_POWERON" &&
+            intent.action != Intent.ACTION_MY_PACKAGE_REPLACED
         ) {
             return
         }
@@ -29,9 +30,9 @@ class BootReceiver : BroadcastReceiver() {
                 Intent(context, LocationWatchService::class.java),
             )
         } catch (e: Exception) {
-            // Some vendors block service starts immediately after boot. The
+            // Some vendors block service starts immediately after boot/update. The
             // watchdog retries later, so this is not fatal.
-            Log.e(TAG, "Could not restart location watch after boot", e)
+            Log.e(TAG, "Could not restart location watch after boot/update", e)
             WatchdogReceiver.schedule(context)
         }
     }

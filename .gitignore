@@ -65,3 +65,4 @@ secrets/
 .github/hooks/
 .github/skills/
 .impeccable/config.local.json
+.gl_token
