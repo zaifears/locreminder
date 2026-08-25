@@ -10,6 +10,10 @@ only the universal APK.
 
 | Release | APK | Detections | Report | SHA-256 of the APK |
 |---|---|---|---|---|
+| [`v1.9.0`](https://github.com/zaifears/locreminder/releases/tag/v1.9.0) | `app-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/27ae995851803a2f57f7fcd42cfc0df8ed1101eea9940fe027fdf9b934abae8f) | `27ae995851803a2f57f7fcd42cfc0df8ed1101eea9940fe027fdf9b934abae8f` |
+| [`v1.9.0`](https://github.com/zaifears/locreminder/releases/tag/v1.9.0) | `app-armeabi-v7a-release.apk` | 0 / 68 | [report](https://www.virustotal.com/gui/file/e1f4d6446fbbf93ac45b74c660b4299dcb80ed359473730dd55d7e4f564c25d9) | `e1f4d6446fbbf93ac45b74c660b4299dcb80ed359473730dd55d7e4f564c25d9` |
+| [`v1.9.0`](https://github.com/zaifears/locreminder/releases/tag/v1.9.0) | `app-arm64-v8a-release.apk` | 0 / 66 | [report](https://www.virustotal.com/gui/file/c7a95cb6b471028308f0a17629e31e076df69580bf83ca19e7c694d370890b2d) | `c7a95cb6b471028308f0a17629e31e076df69580bf83ca19e7c694d370890b2d` |
+| [`v1.9.0`](https://github.com/zaifears/locreminder/releases/tag/v1.9.0) | `app-x86_64-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/6ca811514dd7afdeb01b1b6be31a6fd32f071cacb632e03d6e274fec9730d5a2) | `6ca811514dd7afdeb01b1b6be31a6fd32f071cacb632e03d6e274fec9730d5a2` |
 | [`v1.8.1`](https://github.com/zaifears/locreminder/releases/tag/v1.8.1) | `app-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/7c8ef162f17ebd3e7f3cf1a9619017965cfcffa0b09a597ec6a54f97cee6d981) | `7c8ef162f17ebd3e7f3cf1a9619017965cfcffa0b09a597ec6a54f97cee6d981` |
 | [`v1.8.0`](https://github.com/zaifears/locreminder/releases/tag/v1.8.0) | `app-release.apk` | 0 / 68 | [report](https://www.virustotal.com/gui/file/a263dc8b4f82f593409f011413cca8dae919fb7646c9ca40cd9697c2c649b336) | `a263dc8b4f82f593409f011413cca8dae919fb7646c9ca40cd9697c2c649b336` |
 | [`v1.7.1`](https://github.com/zaifears/locreminder/releases/tag/v1.7.1) | `app-release.apk` | 0 / 68 | [report](https://www.virustotal.com/gui/file/cb1e254ae3216e25f914873d5c33fae15ea3b10c14e78cb6de37a3f4ca797764) | `cb1e254ae3216e25f914873d5c33fae15ea3b10c14e78cb6de37a3f4ca797764` |
