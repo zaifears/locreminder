@@ -1,0 +1,3 @@
+Fix: Restores background location tracking and the persistent notification
+bar immediately after app updates, so you don't have to re-open the app to keep
+armed alarms active.

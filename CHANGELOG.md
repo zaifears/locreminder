@@ -3,6 +3,11 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.1] - 2026-08-25
+
+### Fixed
+- Restores the background location watch service and persistent notification bar immediately after an app update (`MY_PACKAGE_REPLACED`), ensuring active alarms stay armed without requiring the app to be manually opened after updating.
+
 ## [1.9.0] - 2026-08-25
 
 ### Changed
