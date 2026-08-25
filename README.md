@@ -65,10 +65,12 @@
 |---|---|
 | **Latest version** | `v1.6.16`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
-| **Size** | About 53 MB |
+| **Size** | 56 MB (universal) — or ~18–22 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 
 **Installing an APK.** Open the downloaded file and Android will ask for permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store. Allow it once and you are done.
+
+**Smaller downloads.** The button above downloads the universal APK (56 MB), which works on any Android device. The [GitHub Release page](https://github.com/zaifears/locreminder/releases/latest) also has architecture-specific builds — about 18–22 MB each. If you want a smaller download, pick `app-arm64-v8a-release.apk` (right for almost all phones made after 2015). F-Droid users get the right-sized APK automatically — no choice needed.
 
 > ⚠️ **Already have an older LocReminder from GitHub, from before v1.6.6?** Please uninstall it first. Those builds went out signed with the wrong key by mistake, and Android will not replace one with the other. Your saved alarms will be lost in the swap. Sorry about that. It only affects this one upgrade.
 

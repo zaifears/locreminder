@@ -202,29 +202,90 @@ jobs:
 
       # The gate above proves the secrets exist; this proves they were used.
       # Gradle's fallback to the debug key is silent, so the finished APK is
-      # the only trustworthy evidence.
-      - name: Verify the published APK is not debug-signed
+      # the only trustworthy evidence. All four APKs are checked — a split
+      # that slips through debug-signed would still reach users who sideload.
+      - name: Verify the published APKs are not debug-signed
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort | tail -1)
           [ -n "$apksigner" ] || { echo "::error::apksigner not found"; exit 1; }
-          certs=$("$apksigner" verify --print-certs "$GITHUB_WORKSPACE/app-release.apk")
-          echo "$certs"
-          if echo "$certs" | grep -qi "CN=Android Debug"; then
-            echo "::error::APK is signed with the public Android debug key. Refusing to publish."
-            exit 1
-          fi
+          failed=0
+          for apk in "$GITHUB_WORKSPACE"/app-release.apk \
+                     "$GITHUB_WORKSPACE"/app-armeabi-v7a-release.apk \
+                     "$GITHUB_WORKSPACE"/app-arm64-v8a-release.apk \
+                     "$GITHUB_WORKSPACE"/app-x86_64-release.apk; do
+            echo "--- $apk ---"
+            certs=$("$apksigner" verify --print-certs "$apk")
+            echo "$certs"
+            if echo "$certs" | grep -qi "CN=Android Debug"; then
+              echo "::error::$(basename "$apk") is signed with the public Android debug key."
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || { echo "::error::Refusing to publish — debug-signed APK detected."; exit 1; }
 
       # Runs before the Release exists, so a build that looks like malware is
-      # never published in the first place.
-      - name: Scan the APK with VirusTotal
+      # never published in the first place. All four APKs are scanned; a split
+      # APK that is somehow tampered but identical in name would still be
+      # distributed. The universal APK drives the badge and the release body
+      # (it is what the existing download link points at); the splits each get
+      # their own row in the SECURITY-SCAN table.
+      - name: Scan the APKs with VirusTotal
         id: virustotal
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
         run: |
           chmod +x .github/scripts/virustotal-scan.sh
-          .github/scripts/virustotal-scan.sh "$GITHUB_WORKSPACE/app-release.apk"
+
+          # Scan each APK in turn. The script writes to $GITHUB_OUTPUT, so we
+          # prefix each file's outputs with a short tag to keep them separate.
+          # We read them back out of GITHUB_OUTPUT after each call.
+          declare -A VT_SHA VT_FLAGS VT_TOTAL VT_URL VT_STATUS
+
+          scan_one() {
+            local tag="$1" file="$2"
+            # Isolate outputs by temporarily redirecting GITHUB_OUTPUT
+            local tmp
+            tmp=$(mktemp)
+            GITHUB_OUTPUT="$tmp" .github/scripts/virustotal-scan.sh "$file" || true
+            VT_SHA[$tag]=$(  grep '^sha256='       "$tmp" | cut -d= -f2-)
+            VT_FLAGS[$tag]=$(grep '^detections='   "$tmp" | cut -d= -f2-)
+            VT_TOTAL[$tag]=$(grep '^total='        "$tmp" | cut -d= -f2-)
+            VT_URL[$tag]=$(  grep '^permalink='    "$tmp" | cut -d= -f2-)
+            VT_STATUS[$tag]=$(grep '^status='      "$tmp" | cut -d= -f2-)
+            rm -f "$tmp"
+          }
+
+          scan_one universal   "$GITHUB_WORKSPACE/app-release.apk"
+          scan_one armeabi_v7a "$GITHUB_WORKSPACE/app-armeabi-v7a-release.apk"
+          scan_one arm64_v8a   "$GITHUB_WORKSPACE/app-arm64-v8a-release.apk"
+          scan_one x86_64      "$GITHUB_WORKSPACE/app-x86_64-release.apk"
+
+          # Forward the universal APK's results as the step outputs that
+          # downstream steps already expect (release note, badge colour, etc.)
+          flags="${VT_FLAGS[universal]:-0}"
+          total="${VT_TOTAL[universal]:-0}"
+          sha="${VT_SHA[universal]:-}"
+          url="${VT_URL[universal]:-}"
+          status="${VT_STATUS[universal]:-unavailable}"
+
+          echo "status=$status"                              >> "$GITHUB_OUTPUT"
+          echo "detections=$flags"                          >> "$GITHUB_OUTPUT"
+          echo "total=$total"                               >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha"                                >> "$GITHUB_OUTPUT"
+          echo "permalink=$url"                             >> "$GITHUB_OUTPUT"
+          note="**VirusTotal:** $flags of $total engines flagged this build — [full report]($url) · \`SHA-256: $sha\`"
+          echo "release_note=$note"                         >> "$GITHUB_OUTPUT"
+
+          # Also export all per-APK values for the SECURITY-SCAN recording step.
+          for tag in universal armeabi_v7a arm64_v8a x86_64; do
+            echo "vt_sha_${tag}=${VT_SHA[$tag]:-}"         >> "$GITHUB_ENV"
+            echo "vt_flags_${tag}=${VT_FLAGS[$tag]:-0}"    >> "$GITHUB_ENV"
+            echo "vt_total_${tag}=${VT_TOTAL[$tag]:-0}"    >> "$GITHUB_ENV"
+            echo "vt_url_${tag}=${VT_URL[$tag]:-}"         >> "$GITHUB_ENV"
+            echo "vt_status_${tag}=${VT_STATUS[$tag]:-}"   >> "$GITHUB_ENV"
+          done
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -237,7 +298,15 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app-release.apk
+          # All four APKs are attached. app-release.apk is the universal build
+          # (same as before this change — the existing download link still works).
+          # The three split APKs are extra, optional assets: ~18–22 MB each vs
+          # the 56 MB universal, for users who want the smaller download.
+          files: |
+            app-release.apk
+            app-armeabi-v7a-release.apk
+            app-arm64-v8a-release.apk
+            app-x86_64-release.apk
           generate_release_notes: true
           # Carries the hash as well as the verdict: the hash is what lets a
           # reader confirm the file they downloaded is the file that was
@@ -246,14 +315,17 @@ jobs:
 
       # A tiny JSON the README badge reads, plus a page recording every scan.
       # A few hundred bytes each, so unlike the APK they cost nothing to keep.
+      # The table now has 5 columns: Release, APK, Detections, Report, SHA-256.
+      # Four rows are inserted per release (one per APK), newest-first under the
+      # header separator, the same way the single-row version worked.
       - name: Record the scan result
         if: startsWith(github.ref, 'refs/tags/v') && steps.virustotal.outputs.status == 'completed'
         env:
-          FLAGGED: ${{ steps.virustotal.outputs.detections }}
-          TOTAL: ${{ steps.virustotal.outputs.total }}
-          SHA256: ${{ steps.virustotal.outputs.sha256 }}
+          FLAGGED:   ${{ steps.virustotal.outputs.detections }}
+          TOTAL:     ${{ steps.virustotal.outputs.total }}
+          SHA256:    ${{ steps.virustotal.outputs.sha256 }}
           PERMALINK: ${{ steps.virustotal.outputs.permalink }}
-          VERSION: ${{ github.ref_name }}
+          VERSION:   ${{ github.ref_name }}
         run: |
           # This job checks out a tag, detached, and the build leaves tracked
           # files modified behind it. Start from a clean copy of current main
@@ -268,10 +340,34 @@ jobs:
           printf '{"schemaVersion":1,"label":"VirusTotal","message":"%s/%s","color":"%s"}\n' \
             "$FLAGGED" "$TOTAL" "$colour" > .github/badges/virustotal.json
 
-          row="| [\`$VERSION\`](https://github.com/${GITHUB_REPOSITORY}/releases/tag/$VERSION) | $FLAGGED / $TOTAL | [report]($PERMALINK) | \`$SHA256\` |"
-          awk -v row="$row" '
+          # Build 4 rows (universal last so it appears closest to the header,
+          # since awk inserts them all right after the |--- separator line).
+          # Order: x86_64, arm64-v8a, armeabi-v7a, universal — reversed so
+          # that after four insertions the universal row ends up on top.
+          ref="https://github.com/${GITHUB_REPOSITORY}/releases/tag/$VERSION"
+          rows=""
+          for tag_label in \
+              "x86_64:app-x86_64-release.apk" \
+              "arm64_v8a:app-arm64-v8a-release.apk" \
+              "armeabi_v7a:app-armeabi-v7a-release.apk" \
+              "universal:app-release.apk"; do
+            tag="${tag_label%%:*}"
+            apk="${tag_label##*:}"
+            sha_var="vt_sha_${tag}"
+            flags_var="vt_flags_${tag}"
+            total_var="vt_total_${tag}"
+            url_var="vt_url_${tag}"
+            sha="${!sha_var}"
+            flags="${!flags_var:-0}"
+            total="${!total_var:-0}"
+            url="${!url_var}"
+            row="| [\`$VERSION\`]($ref) | \`$apk\` | $flags / $total | [report]($url) | \`$sha\` |"
+            rows="$row"$'\n'"$rows"
+          done
+          # rows now starts with the universal row (inserted last into the file)
+          awk -v rows="$rows" '
             {print}
-            /^\|---/ && !done {print row; done=1}
+            /^\|---/ && !done {printf "%s", rows; done=1}
           ' docs/SECURITY-SCAN.md > docs/SECURITY-SCAN.md.tmp
           mv docs/SECURITY-SCAN.md.tmp docs/SECURITY-SCAN.md
 
