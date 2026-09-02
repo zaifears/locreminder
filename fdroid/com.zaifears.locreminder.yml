@@ -17,9 +17,9 @@ Repo: https://github.com/zaifears/locreminder.git
 Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
 
 Builds:
-  - versionName: 1.9.1
-    versionCode: 291
-    commit: bdc8396f58c5bd82f18bcb593402a3547eabaf78
+  - versionName: 1.9.2
+    versionCode: 301
+    commit: ed9d6e21cc624272d9a525240683a05d92699d47
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-armeabi-v7a-release.apk
@@ -48,9 +48,9 @@ Builds:
         android-arm
     ndk: 28.2.13676358
 
-  - versionName: 1.9.1
-    versionCode: 292
-    commit: bdc8396f58c5bd82f18bcb593402a3547eabaf78
+  - versionName: 1.9.2
+    versionCode: 302
+    commit: ed9d6e21cc624272d9a525240683a05d92699d47
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-arm64-v8a-release.apk
@@ -79,9 +79,9 @@ Builds:
         android-arm64
     ndk: 28.2.13676358
 
-  - versionName: 1.9.1
-    versionCode: 293
-    commit: bdc8396f58c5bd82f18bcb593402a3547eabaf78
+  - versionName: 1.9.2
+    versionCode: 303
+    commit: ed9d6e21cc624272d9a525240683a05d92699d47
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-x86_64-release.apk
@@ -119,5 +119,5 @@ VercodeOperation:
   - 10*%c+2
   - 10*%c+3
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.9.1
-CurrentVersionCode: 293
+CurrentVersion: 1.9.2
+CurrentVersionCode: 303
