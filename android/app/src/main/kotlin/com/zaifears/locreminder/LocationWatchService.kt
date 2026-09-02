@@ -184,8 +184,9 @@ class LocationWatchService : Service() {
             return
         }
 
-        arrivalState.forgetAllExcept(entries.map { it.id })
-        ignoredSince.keys.retainAll(entries.map { it.id }.toSet())
+        val liveIds = entries.map { it.id }
+        arrivalState.forgetAllExcept(liveIds)
+        ignoredSince.keys.retainAll(liveIds.toSet())
 
         var closest: Pair<AlarmEntry, Double>? = null
 
@@ -213,11 +214,15 @@ class LocationWatchService : Service() {
                 // real arrival reported minutes late, once the phone reaches
                 // open sky again. A run of fixes that all land inside the same
                 // radius for a full minute is not one bad reading, so past
-                // that point the fix is trusted regardless of its accuracy.
-                val confirmed = canConfirmArrival(location, entry.radius) ||
-                    SystemClock.elapsedRealtime() -
-                    ignoredSince.getOrPut(entry.id) { SystemClock.elapsedRealtime() } >=
-                    ACCURACY_FALLBACK_MILLIS
+                // that point the fix is trusted — provided it is merely
+                // imprecise and not a cell-ID-only guess tens of kilometres
+                // wide, which persisting for a minute does nothing to make
+                // trustworthy.
+                val confirmed = canConfirmArrival(location, entry.radius) || run {
+                    val since = ignoredSince.getOrPut(entry.id) { SystemClock.elapsedRealtime() }
+                    val overdue = SystemClock.elapsedRealtime() - since >= ACCURACY_FALLBACK_MILLIS
+                    overdue && location.accuracy <= ACCURACY_FALLBACK_CEILING_METRES
+                }
 
                 if (!confirmed) {
                     Log.i(TAG, "Ignoring ${location.accuracy}m fix for ${entry.label}")
@@ -462,6 +467,12 @@ class LocationWatchService : Service() {
         private const val NEAR_INTERVAL_MILLIS = 10_000L
         private const val ACCURACY_FLOOR_METRES = 500.0
         private const val ACCURACY_FALLBACK_MILLIS = 60_000L
+
+        // Bad-but-plausible GPS or network accuracy under a viaduct or roof
+        // is in the hundreds to low thousands of metres. Far past that is not
+        // a degraded fix, it is cell-ID-only noise with no real position in
+        // it, and no amount of waiting makes it worth trusting.
+        private const val ACCURACY_FALLBACK_CEILING_METRES = 3_000.0
 
         var isWatching: Boolean = false
             private set
