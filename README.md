@@ -57,20 +57,26 @@
     <img src="https://img.shields.io/badge/⬇️_Download_the_latest_APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" height="38"/>
   </a>
   <br/><br/>
-  <img src="https://img.shields.io/badge/📥_Also_coming_to_F--Droid-9E9E9E?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid coming soon" height="28"/>
+  <a href="https://locreminder.en.uptodown.com/android">
+    <img src="https://img.shields.io/badge/📲_Get_it_on-Uptodown-1FAB4D?style=for-the-badge" alt="Get it on Uptodown" height="30"/>
+  </a>
+  &nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/📥_Also_coming_to_F--Droid-9E9E9E?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid coming soon" height="30"/>
   <br/><br/>
 </div>
 
 | | |
 |---|---|
-| **Latest version** | `v1.9.0`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.9.1`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
-| **Size** | 56 MB (universal) — or ~18–22 MB if you pick a device-matched build (see below) |
+| **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 
 **Installing an APK.** Open the downloaded file and Android will ask for permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store. Allow it once and you are done.
 
-**Smaller downloads.** The button above downloads the universal APK (56 MB), which works on any Android device. The [GitHub Release page](https://github.com/zaifears/locreminder/releases/latest) also has architecture-specific builds — about 18–22 MB each. If you want a smaller download, pick `app-arm64-v8a-release.apk` (right for almost all phones made after 2015). F-Droid users get the right-sized APK automatically — no choice needed.
+**Smaller downloads.** The button above downloads the universal APK (53 MB), which works on any Android device. The [GitHub Release page](https://github.com/zaifears/locreminder/releases/latest) also has architecture-specific builds, about 16-20 MB each. If you want a smaller download, pick `app-arm64-v8a-release.apk` (right for almost all phones made after 2015). F-Droid users get the right-sized APK automatically, no choice needed.
+
+**Prefer auto-updates?** LocReminder is also on [Uptodown](https://locreminder.en.uptodown.com/android). Install it through their app store client (or just the APK from the page) and you will not have to come back here for every new version, the same convenience F-Droid will offer once it lands.
 
 > ⚠️ **Already have an older LocReminder from GitHub, from before v1.6.6?** Please uninstall it first. Those builds went out signed with the wrong key by mistake, and Android will not replace one with the other. Your saved alarms will be lost in the swap. Sorry about that. It only affects this one upgrade.
 
@@ -148,6 +154,16 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
     <td><strong>🔍</strong></td>
     <td><strong>Search by name</strong></td>
     <td>Type "Kamalapur Railway Station" instead of hunting across the map for it.</td>
+  </tr>
+  <tr>
+    <td><strong>📝</strong></td>
+    <td><strong>Give it a task</strong></td>
+    <td>Type what you're there to do, like "Buy medicine". Leave it blank and the place name is used instead.</td>
+  </tr>
+  <tr>
+    <td><strong>🔁</strong></td>
+    <td><strong>Repeat it</strong></td>
+    <td>Set an alarm once, every day, or just on the days you pick. Good for a regular commute or a standing errand.</td>
   </tr>
   <tr>
     <td><strong>📍</strong></td>
