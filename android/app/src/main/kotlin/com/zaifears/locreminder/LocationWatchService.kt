@@ -10,6 +10,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import java.util.Calendar
@@ -37,6 +38,14 @@ class LocationWatchService : Service() {
     private var currentIntervalMillis: Long = FAR_INTERVAL_MILLIS
     private var nearestLabel: String? = null
     private var nearestDistance: Double? = null
+
+    /**
+     * When each alarm was first seen inside its radius by a fix too
+     * imprecise to trust on its own. In-memory only: if the service is
+     * killed and restarted the count starts over, which just means the
+     * fallback below waits its full duration again rather than misfiring.
+     */
+    private val ignoredSince = mutableMapOf<String, Long>()
 
     /**
      * Which alarms have been seen from outside, and so may ring on the way
@@ -176,6 +185,7 @@ class LocationWatchService : Service() {
         }
 
         arrivalState.forgetAllExcept(entries.map { it.id })
+        ignoredSince.keys.retainAll(entries.map { it.id }.toSet())
 
         var closest: Pair<AlarmEntry, Double>? = null
 
@@ -196,32 +206,50 @@ class LocationWatchService : Service() {
                 // acting on one rings the alarm nowhere near the stop. Wait for
                 // a sharper fix instead; one is normally seconds away, since
                 // proximity has already tightened the polling interval.
-                if (!canConfirmArrival(location, entry.radius)) {
+                //
+                // But "normally" fails under an elevated rail viaduct or a
+                // covered platform, where multipath can keep every fix above
+                // the accuracy floor for as long as the phone stays there — a
+                // real arrival reported minutes late, once the phone reaches
+                // open sky again. A run of fixes that all land inside the same
+                // radius for a full minute is not one bad reading, so past
+                // that point the fix is trusted regardless of its accuracy.
+                val confirmed = canConfirmArrival(location, entry.radius) ||
+                    SystemClock.elapsedRealtime() -
+                    ignoredSince.getOrPut(entry.id) { SystemClock.elapsedRealtime() } >=
+                    ACCURACY_FALLBACK_MILLIS
+
+                if (!confirmed) {
                     Log.i(TAG, "Ignoring ${location.accuracy}m fix for ${entry.label}")
-                } else if (!entry.ringsOn(todayIsoWeekday())) {
-                    // Armed, but not for today. Deliberately checked before
-                    // the suppression test so the alarm is not left needing
-                    // an exit it already made: the user genuinely arrived,
-                    // the schedule simply says not today, and tomorrow's
-                    // arrival should be treated as an arrival.
-                    Log.i(TAG, "Inside ${entry.label} but not scheduled today")
-                    arrivalState.suppressUntilExit(entry.id)
-                } else if (entry.repeats && arrivalState.hasRungToday(entry.id, today())) {
-                    // Left the radius and came back the same day. One ring a
-                    // day is what a repeating reminder means.
-                    Log.i(TAG, "${entry.label} already rang today")
-                    arrivalState.suppressUntilExit(entry.id)
-                } else if (arrivalState.shouldSuppress(entry.id)) {
-                    // Arrival means crossing *into* the radius. Being inside
-                    // already the first time this alarm is seen is not an
-                    // arrival, so an alarm set for where you're standing
-                    // doesn't ring at once.
-                    Log.i(TAG, "Inside ${entry.label} but not arrived; awaiting exit")
                 } else {
-                    triggerAlarm(entry)
-                    return
+                    ignoredSince.remove(entry.id)
+
+                    if (!entry.ringsOn(todayIsoWeekday())) {
+                        // Armed, but not for today. Deliberately checked before
+                        // the suppression test so the alarm is not left needing
+                        // an exit it already made: the user genuinely arrived,
+                        // the schedule simply says not today, and tomorrow's
+                        // arrival should be treated as an arrival.
+                        Log.i(TAG, "Inside ${entry.label} but not scheduled today")
+                        arrivalState.suppressUntilExit(entry.id)
+                    } else if (entry.repeats && arrivalState.hasRungToday(entry.id, today())) {
+                        // Left the radius and came back the same day. One ring a
+                        // day is what a repeating reminder means.
+                        Log.i(TAG, "${entry.label} already rang today")
+                        arrivalState.suppressUntilExit(entry.id)
+                    } else if (arrivalState.shouldSuppress(entry.id)) {
+                        // Arrival means crossing *into* the radius. Being inside
+                        // already the first time this alarm is seen is not an
+                        // arrival, so an alarm set for where you're standing
+                        // doesn't ring at once.
+                        Log.i(TAG, "Inside ${entry.label} but not arrived; awaiting exit")
+                    } else {
+                        triggerAlarm(entry)
+                        return
+                    }
                 }
             } else {
+                ignoredSince.remove(entry.id)
                 arrivalState.markOutside(entry.id)
             }
 
@@ -433,6 +461,7 @@ class LocationWatchService : Service() {
         private const val FAR_INTERVAL_MILLIS = 120_000L
         private const val NEAR_INTERVAL_MILLIS = 10_000L
         private const val ACCURACY_FLOOR_METRES = 500.0
+        private const val ACCURACY_FALLBACK_MILLIS = 60_000L
 
         var isWatching: Boolean = false
             private set
