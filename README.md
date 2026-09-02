@@ -10,7 +10,24 @@
 
   <br/>
 
-  <a href="#-download"><img src="https://img.shields.io/badge/⬇️_Download-APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download"/></a>
+  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
+    <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download APK directly from GitHub" height="56"/>
+  </a>
+  <br/><br/>
+  <a href="https://locreminder.en.uptodown.com/android" title="Download LocReminder">
+    <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="46"/>
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299" title="Track the F-Droid submission">
+    <img src="https://i.ibb.co.com/HTcdVbNr/Coming-to-F-droid.png" alt="Coming to F-Droid" height="46"/>
+  </a>
+
+  <br/><br/>
+
+  <a href="https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Ffdroid.json&style=flat-square&logo=fdroid&logoColor=white" alt="F-Droid status"/></a>
+
+  <br/><br/>
+
   <a href="#-how-to-use-it"><img src="https://img.shields.io/badge/📖_How_to-Use_it-475569?style=for-the-badge" alt="How to use"/></a>
 
   <br/><br/>
@@ -35,22 +52,6 @@
 
 ## 📱 Download
 
-<div align="center">
-  <br/>
-  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
-    <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download APK directly from GitHub" height="56"/>
-  </a>
-  <br/><br/>
-  <a href="https://locreminder.en.uptodown.com/android" title="Download LocReminder">
-    <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="46"/>
-  </a>
-  &nbsp;&nbsp;
-  <a href="https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299" title="Track the F-Droid submission">
-    <img src="https://i.ibb.co.com/HTcdVbNr/Coming-to-F-droid.png" alt="Coming to F-Droid" height="46"/>
-  </a>
-  <br/><br/>
-</div>
-
 | | |
 |---|---|
 | **Latest version** | `v1.9.1`, see [what changed](CHANGELOG.md) |
@@ -61,7 +62,7 @@
 
 **Installing an APK.** Open the downloaded file and Android will ask for permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store. Allow it once and you are done.
 
-**Smaller downloads.** The button above downloads the universal APK (53 MB), which works on any Android device. The [GitHub Release page](https://github.com/zaifears/locreminder/releases/latest) also has architecture-specific builds, about 16-20 MB each. If you want a smaller download, pick `app-arm64-v8a-release.apk` (right for almost all phones made after 2015). F-Droid users get the right-sized APK automatically, no choice needed.
+**Smaller downloads.** The GitHub button at the top of the page downloads the universal APK (53 MB), which works on any Android device. The [GitHub Release page](https://github.com/zaifears/locreminder/releases/latest) also has architecture-specific builds, about 16-20 MB each. If you want a smaller download, pick `app-arm64-v8a-release.apk` (right for almost all phones made after 2015). F-Droid users get the right-sized APK automatically, no choice needed.
 
 **Prefer auto-updates?** LocReminder is also on [Uptodown](https://locreminder.en.uptodown.com/android). Install it through their app store client (or just the APK from the page) and you will not have to come back here for every new version, the same convenience F-Droid will offer once it lands.
 
