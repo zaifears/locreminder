@@ -57,8 +57,8 @@
     <img src="https://img.shields.io/badge/⬇️_Download_the_latest_APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" height="38"/>
   </a>
   <br/><br/>
-  <a href="https://locreminder.en.uptodown.com/android">
-    <img src="https://img.shields.io/badge/📲_Get_it_on-Uptodown-1FAB4D?style=for-the-badge" alt="Get it on Uptodown" height="30"/>
+  <a href="https://locreminder.en.uptodown.com/android" title="Download LocReminder">
+    <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="46"/>
   </a>
   &nbsp;&nbsp;
   <img src="https://img.shields.io/badge/📥_Also_coming_to_F--Droid-9E9E9E?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid coming soon" height="30"/>
