@@ -54,11 +54,13 @@
 
 | | |
 |---|---|
-| **Latest version** | `v1.9.1`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.9.2`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 | **F-Droid** | [![F-Droid status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Ffdroid.json&style=flat-square&logo=fdroid&logoColor=white)](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299) — this badge tracks the submission live, no need to keep checking back |
+
+**What's new in v1.9.2.** The alarm could ring several minutes late when GPS accuracy stayed poor near your stop — an elevated rail platform or a covered station being the clearest case. It now trusts a fix that has consistently placed you inside the radius for a short while, instead of holding out indefinitely for a sharper one. If you're on an older version, this update is worth grabbing. See the [changelog](CHANGELOG.md) for the full history.
 
 **Installing an APK.** Open the downloaded file and Android will ask for permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store. Allow it once and you are done.
 
