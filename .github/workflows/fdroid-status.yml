@@ -1,0 +1,33 @@
+name: Update F-Droid status badge
+
+on:
+  schedule:
+    - cron: '0 6,18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check F-Droid submission status
+        run: |
+          chmod +x .github/scripts/fdroid-status.sh
+          .github/scripts/fdroid-status.sh \
+            com.zaifears.locreminder \
+            fdroid/fdroiddata \
+            46299 \
+            .github/badges/fdroid.json
+
+      - name: Commit badge if it changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/fdroid.json
+          git diff --cached --quiet && { echo "No change to record."; exit 0; }
+          git commit -m "Update F-Droid status badge [skip ci]"
+          git push origin HEAD:main

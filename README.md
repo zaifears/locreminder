@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="store/playstore-icon.png" alt="LocReminder Logo" width="140" />
+  <img src="https://i.ibb.co.com/xK4dptyr/icon.png" alt="LocReminder Logo" width="140" />
 
   <h1>LocReminder</h1>
 
@@ -33,22 +33,6 @@
 
 <br/>
 
-## 🛡️ Safe to install
-
-| | | |
-|---|---|---|
-| 🔬 | **Scanned by VirusTotal** | Every release gets checked by around 70 antivirus engines before it is published, so a build that looks like malware never reaches you. [See every scan, with checksums](docs/SECURITY-SCAN.md) |
-| ✍️ | **Signed and verifiable** | Each release carries LocReminder's own signature, and its SHA-256 checksum is published so you can confirm your download is the exact file that was scanned. |
-| 👀 | **Open source, all of it** | Every line is public and MIT licensed. Nothing is hidden, and you can build the app yourself from the same source. |
-| 🚫 | **No tracking, no accounts, no server** | No analytics, no ads, no sign up. There is nowhere for your locations to go, so they never leave your phone. |
-| 🧩 | **No Google Play Services** | Runs fine on de-Googled phones, Huawei and Honor devices, and LineageOS. Maps come from OpenStreetMap. |
-
-<br/>
-
----
-
-<br/>
-
 ## 📱 Download
 
 <div align="center">
@@ -61,7 +45,9 @@
     <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="46"/>
   </a>
   &nbsp;&nbsp;
-  <img src="https://i.ibb.co.com/HTcdVbNr/Coming-to-F-droid.png" alt="Coming to F-Droid" height="46"/>
+  <a href="https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299" title="Track the F-Droid submission">
+    <img src="https://i.ibb.co.com/HTcdVbNr/Coming-to-F-droid.png" alt="Coming to F-Droid" height="46"/>
+  </a>
   <br/><br/>
 </div>
 
@@ -71,6 +57,7 @@
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
+| **F-Droid** | [![F-Droid status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Ffdroid.json&style=flat-square&logo=fdroid&logoColor=white)](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299) — this badge tracks the submission live, no need to keep checking back |
 
 **Installing an APK.** Open the downloaded file and Android will ask for permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store. Allow it once and you are done.
 
@@ -110,6 +97,22 @@
 > Open **Menu → Alarm reliability** and tap **Run alarm test**. It rings the alarm after 15 seconds, so you can lock your phone and check that it gets through.
 >
 > Much better to find out at home than on a train.
+
+<br/>
+
+---
+
+<br/>
+
+## 🛡️ Safe to install
+
+| | | |
+|---|---|---|
+| 🔬 | **Scanned by VirusTotal** | Every release gets checked by around 70 antivirus engines before it is published, so a build that looks like malware never reaches you. [See every scan, with checksums](docs/SECURITY-SCAN.md) |
+| ✍️ | **Signed and verifiable** | Each release carries LocReminder's own signature, and its SHA-256 checksum is published so you can confirm your download is the exact file that was scanned. |
+| 👀 | **Open source, all of it** | Every line is public and MIT licensed. Nothing is hidden, and you can build the app yourself from the same source. |
+| 🚫 | **No tracking, no accounts, no server** | No analytics, no ads, no sign up. There is nowhere for your locations to go, so they never leave your phone. |
+| 🧩 | **No Google Play Services** | Runs fine on de-Googled phones, Huawei and Honor devices, and LineageOS. Maps come from OpenStreetMap. |
 
 <br/>
 
@@ -271,7 +274,7 @@ So geofencing was dropped entirely in favour of a foreground service that watche
 | **Foreground watcher** | The whole detection mechanism. Polls adaptively, every 5 minutes beyond 10 km and every 10 seconds within 500 m. Holding a foreground service keeps the process out of the idle state that defers everything else. It ignores fixes too imprecise to confirm arrival, so a coarse cell tower fix cannot ring the alarm kilometres early. |
 | **Alarm service** | Looping `USAGE_ALARM` audio, vibration, wake lock, full screen activity. Stops itself after 10 minutes. |
 | **Watchdog** | An inexact allow-while-idle alarm. Restarts the watcher if a vendor power manager killed it, or if it is running but receiving no fixes, which is the state left behind when location is switched off at the OS level. |
-| **Boot receiver** | Restores alarms and the watcher after a restart. |
+| **Boot receiver** | Restores alarms and the watcher after a restart, or after the app itself is updated. |
 
 </details>
 
