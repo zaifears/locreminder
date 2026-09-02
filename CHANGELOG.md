@@ -3,6 +3,11 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.2] - 2026-09-02
+
+### Fixed
+- The location watcher could wait indefinitely for a fix accurate enough to confirm arrival. Under an elevated rail viaduct or a covered station platform, GPS accuracy can stay poor for as long as the phone is there, so the alarm could ring several minutes after the stop was actually reached, once the phone was back in open sky. A fix that lands inside the radius but fails the accuracy check is now trusted after a bounded wait, capped against wildly inaccurate fixes so a single bad reading still cannot trigger an early alarm.
+
 ## [1.9.1] - 2026-08-25
 
 ### Fixed

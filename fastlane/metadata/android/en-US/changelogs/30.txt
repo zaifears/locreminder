@@ -1,0 +1,4 @@
+Fix: The alarm could ring several minutes late when GPS accuracy stayed poor
+near your stop, such as under an elevated rail platform. It now trusts a
+persistent in-range fix after a short, bounded wait instead of holding out
+indefinitely for a sharper one.
