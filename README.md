@@ -54,14 +54,14 @@
 <div align="center">
   <br/>
   <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
-    <img src="https://img.shields.io/badge/⬇️_Download_the_latest_APK-2563EB?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" height="38"/>
+    <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download APK directly from GitHub" height="56"/>
   </a>
   <br/><br/>
   <a href="https://locreminder.en.uptodown.com/android" title="Download LocReminder">
     <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="46"/>
   </a>
   &nbsp;&nbsp;
-  <img src="https://img.shields.io/badge/📥_Also_coming_to_F--Droid-9E9E9E?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid coming soon" height="30"/>
+  <img src="https://i.ibb.co.com/HTcdVbNr/Coming-to-F-droid.png" alt="Coming to F-Droid" height="46"/>
   <br/><br/>
 </div>
 
