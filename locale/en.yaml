@@ -101,8 +101,13 @@ store:
     * Multiple alarms, each with its own trigger radius, and live distance to each
     * Adjustable radius from 100 m to 3 km, so you get as much warning as you need
     * Light and dark themes
-    * Battery-aware: checks rarely when you are far away, more often as you approach
+    * Works with no signal: the alarm runs on GPS alone and never needs a connection, and the map is kept on your phone so it still draws in a dead spot
+    * Battery-aware: checks rarely when you are far away, more often as you approach, and not at all on days none of your alarms are set for
     * Reliability screen that detects your phone's manufacturer and shows the exact settings needed, plus a test that proves the alarm gets through a locked screen
+
+    <b>No signal? No problem</b>
+
+    The alarm never needs the internet. GPS is a receive-only radio, and the arrival check happens on your phone, so it rings in a tunnel, in a village with no data, or with no SIM card at all. Only the map pictures and searching a place by name need a connection — so every part of the map you look at is kept on the phone for a month, and the streets around each alarm are saved the moment you set it.
 
     <b>Privacy</b>
 

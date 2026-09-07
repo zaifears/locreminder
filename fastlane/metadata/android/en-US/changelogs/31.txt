@@ -1,0 +1,8 @@
+The map now works without a connection. Tiles you have viewed are kept for a
+month and still draw with no signal, and the streets around an alarm are saved
+when you set it. The alarm itself never needed a connection and still does not.
+
+Better on battery: no location checks on days none of your alarms are set for,
+and the checking interval now follows your distance and speed.
+
+Fixes a watcher that could report itself working while location was off.

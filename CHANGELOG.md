@@ -3,7 +3,7 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.9.3] - 2026-09-07
 
 ### Added
 - **The map now works without a connection.** Every tile you look at is kept
