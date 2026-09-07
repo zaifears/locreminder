@@ -177,9 +177,14 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
     <td>Each with its own label and radius. Pause one without deleting it, and see live distance to each.</td>
   </tr>
   <tr>
+    <td><strong>📶</strong></td>
+    <td><strong>Works with no signal</strong></td>
+    <td>The alarm runs on GPS alone and never needs a connection. Maps you have looked at are kept on the phone for a month, and the streets around a new alarm are saved the moment you set it, so the map still draws in a signal hole.</td>
+  </tr>
+  <tr>
     <td><strong>🔋</strong></td>
     <td><strong>Easy on the battery</strong></td>
-    <td>Checks rarely when you are far away and more often as you get close, so a three hour journey does not flatten your phone.</td>
+    <td>Checks rarely when you are far away and more often as you get close, and not at all on days none of your alarms are set for, so a three hour journey does not flatten your phone.</td>
   </tr>
   <tr>
     <td><strong>🛡️</strong></td>
@@ -192,6 +197,27 @@ LocReminder fixes that. Drop a pin on your destination, choose how close you wan
     <td>Material 3 throughout, with map tiles tuned so dark mode is not a white rectangle at night.</td>
   </tr>
 </table>
+
+<br/>
+
+---
+
+<br/>
+
+## 📶 Does it need the internet?
+
+**The alarm does not.** Not for a moment of it.
+
+GPS is a receive-only radio. The satellites broadcast, your phone listens, and nothing is sent anywhere. LocReminder compares the position that comes back against the spot you saved, both on the phone. It rings in a tunnel, on aeroplane mode, on a phone with no SIM card in it, on the 2G edge of a village cell. There is no server in this app to be out of reach of.
+
+**Two things do need a connection, and only while you are using them:**
+
+| What | Why | What happens without it |
+|---|---|---|
+| **The map pictures** | Map tiles are images held on OpenStreetMap's servers. Nobody can send you a picture of a street your phone has never seen without a connection to send it over — this is true of Google Maps and every other map app, which is why they all have an offline-areas feature. | Everywhere you have looked at is kept on the phone for a month and still draws. So is the area around each alarm, saved when you set it. Outside that, the map goes blank — but the alarm, the distance readout and the arrival check all carry on. |
+| **Searching by name** | "Kamalapur Railway Station" has to be looked up somewhere. | Drag the map to the spot instead. The pin shows its coordinates, and the alarm is set exactly the same way. |
+
+So the bus journey works like this: set the alarm before you go, or at the stop, while you still have signal. Then put the phone away. Whether the signal dies after that makes no difference to whether it rings.
 
 <br/>
 
@@ -274,7 +300,9 @@ So geofencing was dropped entirely in favour of a foreground service that watche
 
 | Layer | Role |
 |---|---|
-| **Foreground watcher** | The whole detection mechanism. Polls adaptively, every 5 minutes beyond 10 km and every 10 seconds within 500 m. Holding a foreground service keeps the process out of the idle state that defers everything else. It ignores fixes too imprecise to confirm arrival, so a coarse cell tower fix cannot ring the alarm kilometres early. |
+| **Foreground watcher** | The whole detection mechanism. Holding a foreground service keeps the process out of the idle state that defers everything else. It ignores fixes too imprecise to confirm arrival, so a coarse cell tower fix cannot ring the alarm kilometres early. |
+| **Polling interval** | Derived rather than tabulated: a gap between fixes is safe as long as it cannot cover the distance to the far side of your destination circle at the speed you are travelling, so the interval is that time divided by three. Ten seconds on the final approach, a quarter of an hour two hundred kilometres out, and every step between arrived at continuously. On Android 12+ it also asks for the cheaper of the platform's location tiers whenever the destination is far enough that the expensive one buys nothing. |
+| **Days off** | On a day when every armed alarm is set for other days of the week, the watcher asks for no fixes at all. A weekday commute alarm used to hold the GPS open all weekend for something that could not ring until Monday. |
 | **Alarm service** | Looping `USAGE_ALARM` audio, vibration, wake lock, full screen activity. Stops itself after 10 minutes. |
 | **Watchdog** | An inexact allow-while-idle alarm. Restarts the watcher if a vendor power manager killed it, or if it is running but receiving no fixes, which is the state left behind when location is switched off at the OS level. |
 | **Boot receiver** | Restores alarms and the watcher after a restart, or after the app itself is updated. |
@@ -291,6 +319,7 @@ So geofencing was dropped entirely in favour of a foreground service that watche
 │  Native engine    Kotlin (watcher, alarm, watchdog, boot)   │
 ├─────────────────────────────────────────────────────────────┤
 │  Maps             OpenStreetMap via flutter_map, no key     │
+│                   tiles kept on device for offline use      │
 │  Search           Nominatim geocoding, no key               │
 │  Location         Platform LocationManager, no Play Services│
 ├─────────────────────────────────────────────────────────────┤

@@ -3,6 +3,71 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **The map now works without a connection.** Every tile you look at is kept
+  on the phone for a month and served from there without asking the network at
+  all, and when the network is unreachable even expired tiles are drawn rather
+  than leaving the grey grid that made the app look broken. Setting an alarm
+  also saves the streets around it straight away — normally while you still
+  have the signal you used to search for the place — so the map around your
+  stop is on the phone before the journey starts.
+
+  To be clear about what changed and what did not: **arrival detection never
+  needed the internet and still does not.** GNSS is a receive-only radio, and
+  the arrival test compares two coordinates held on the phone. What used to
+  fail offline was the picture of the map, the search box and the address
+  under the pin — enough, understandably, to look like the whole app had
+  stopped working.
+
+  Settings gains an Offline maps section: how much is saved, a button to clear
+  it, and a switch for saving the area around new alarms.
+- The map screen says so when it goes offline, and says in the same breath
+  that the alarm does not need a connection.
+- The blue dot and the distance on each alarm card now update while the app is
+  open, rather than freezing wherever they were when the screen was opened.
+  They read the fix the watcher has already taken, so following your own
+  progress costs nothing — and with the tiles missing, that distance readout is
+  what tells you how far the stop still is.
+- Dragging the pin somewhere with no connection shows its coordinates instead
+  of "Dropped pin", so the alarm can still be placed exactly and checked
+  against any other map.
+
+### Changed
+- **Battery: nothing is watched on days nothing can ring.** A weekday commute
+  alarm used to hold the GPS open all weekend for an alarm that could not fire
+  until Monday. The watcher now stands down on days when every armed alarm is
+  set for other days of the week, and comes back on its own.
+- **Battery: the polling interval is now derived rather than tabulated.** The
+  gap between fixes is safe as long as it cannot cover the distance to the far
+  side of your destination circle at the speed you are travelling, so that is
+  what it is set to, divided by three. Two hours into a 300 km coach journey
+  the old fixed ladder was still waking the receiver every five minutes for a
+  stop an hour away; it now waits a quarter of an hour there, and tightens
+  continuously as you approach, reaching the same ten-second fixes for the
+  final approach.
+- **Battery: on Android 12 and newer the watcher asks for the cheaper location
+  tier** whenever the destination is far enough that the expensive one buys
+  nothing, batches fixes at the longest intervals so the processor can sleep
+  between them, and listens for fixes other apps have already paid for. The
+  power-saving tier that gives up on GNSS entirely is deliberately never asked
+  for: it is the one that cannot work without a data connection.
+- The ongoing notification is only redrawn when its text actually changes,
+  rather than on every fix.
+
+### Fixed
+- On Android 12 and newer, the watcher registered on the platform's fused
+  location provider without checking it was switched on. With location turned
+  off at the OS level it therefore reported itself as watching, held its
+  notification, and could never have rung — the "Location is off" warning that
+  exists for exactly this could not appear.
+- The watcher now notices when registration succeeds but no fixes ever
+  arrive, and falls back to GPS and network directly. The fused provider
+  prefers the network half of its blend on some builds, so with no data
+  connection it could sit answering nothing at all while GPS — which needs no
+  connection whatsoever — would have had a fix in seconds.
+
 ## [1.9.2] - 2026-09-02
 
 ### Fixed

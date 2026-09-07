@@ -59,7 +59,13 @@ interchangeable.
   override. A dedicated reliability screen detects the manufacturer, gives the
   exact settings to change, and offers a test alarm.
 - **Network is unreliable in transit**, including wifi/mobile handovers that
-  kill in-flight tile requests.
+  kill in-flight tile requests, and long stretches with no usable data at all.
+  Detection is unaffected by this by construction — GNSS is receive-only and
+  the arrival test is a comparison between two coordinates held on the phone —
+  but the map and the place search are not, and a blank map reads to users as
+  the whole app having failed. Tiles are therefore kept on the device for a
+  month, served even when expired if the network is unreachable, and the area
+  around each new alarm is fetched at the moment it is set.
 
 ## Capabilities and Constraints
 
@@ -70,8 +76,10 @@ interchangeable.
   promise precision the underlying data cannot support.
 - Custom alarm sound (system ringtone or a user's own audio file); vibration
   toggle.
-- Adaptive polling — roughly 5 minutes beyond 10 km, 10 seconds within 500 m —
-  so a three-hour journey does not flatten the battery.
+- Adaptive polling, derived from the time it would take to cross the far side
+  of the destination circle at the speed being travelled: a quarter of an hour
+  at two hundred kilometres out, ten seconds on the final approach, and no
+  polling at all on a day when no armed alarm is scheduled to ring.
 - Arrival is only confirmed by a fix precise enough to place the user inside
   the radius (floored at 500 m), because a coarse cell-tower fix could
   otherwise ring kilometres early.
