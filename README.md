@@ -215,7 +215,7 @@ GPS is a receive-only radio. The satellites broadcast, your phone listens, and n
 | What | Why | What happens without it |
 |---|---|---|
 | **The map pictures** | Map tiles are images held on OpenStreetMap's servers. Nobody can send you a picture of a street your phone has never seen without a connection to send it over — this is true of Google Maps and every other map app, which is why they all have an offline-areas feature. | Everywhere you have looked at is kept on the phone for a month and still draws. So is the area around each alarm, saved when you set it. Outside that, the map goes blank — but the alarm, the distance readout and the arrival check all carry on. |
-| **Searching by name** | "Kamalapur Railway Station" has to be looked up somewhere. | Drag the map to the spot instead. The pin shows its coordinates, and the alarm is set exactly the same way. |
+| **Searching by name** | "Kamalapur Railway Station" has to be looked up somewhere. | Type the coordinates into the same box instead — `23.8103, 90.4125`, or a `geo:` link somebody sent you — and the map goes straight there with no request at all. Or drag the pin, which shows its coordinates. Either way the alarm is set exactly the same. |
 
 So the bus journey works like this: set the alarm before you go, or at the stop, while you still have signal. Then put the phone away. Whether the signal dies after that makes no difference to whether it rings.
 

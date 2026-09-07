@@ -6,7 +6,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/location_alarm.dart';
 import '../models/place_result.dart';
+import '../services/coordinate_input.dart';
 import '../services/geocoding_service.dart';
+import '../services/offline_maps.dart';
 import '../services/radius_advice.dart';
 import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
@@ -81,6 +83,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   bool _searchFailed = false;
   Timer? _searchDebounce;
 
+  /// Set when what has been typed is a coordinate pair rather than a name.
+  ///
+  /// Held separately from [_results] because it is not a search result: it
+  /// needs no server, cannot fail, and is offered instead of a search rather
+  /// than alongside one.
+  LatLng? _coordinateMatch;
+
   String? _address;
   bool _resolvingAddress = false;
   Timer? _addressDebounce;
@@ -127,11 +136,31 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     if (query.trim().length < 3) {
       setState(() {
         _results = const [];
+        _coordinateMatch = null;
         _showResults = false;
       });
       return;
     }
-    setState(() => _showResults = true);
+
+    // Checked before anything is sent anywhere. A coordinate is already the
+    // answer a search would come back with, so asking a server to confirm it
+    // would be a request that can fail for a question that cannot.
+    final typed = parseCoordinates(query);
+    if (typed != null) {
+      setState(() {
+        _coordinateMatch = typed;
+        _results = const [];
+        _searching = false;
+        _searchFailed = false;
+        _showResults = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _coordinateMatch = null;
+      _showResults = true;
+    });
     _searchDebounce = Timer(const Duration(milliseconds: 600), () async {
       setState(() => _searching = true);
       final outcome = await _geocoder.search(query);
@@ -157,6 +186,26 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     });
   }
 
+  /// Moves to a coordinate the user typed.
+  ///
+  /// Unlike [_selectResult] this does not name the place, because a number is
+  /// not a name. It asks for the address instead, which fills one in when
+  /// there is a connection to ask over and leaves the coordinates showing
+  /// when there is not — either way the pin is exactly where it was asked to
+  /// be, which is the whole point of typing one.
+  void _selectCoordinate(LatLng target) {
+    _searchFocus.unfocus();
+    _mapController.move(target, 16);
+    setState(() {
+      _center = target;
+      _chosenName = null;
+      _address = null;
+      _showResults = false;
+      _coordinateMatch = null;
+    });
+    _resolveAddress();
+  }
+
   void _onMapMoved(MapCamera camera, bool hasGesture) {
     _center = camera.center;
     if (!hasGesture) return;
@@ -167,7 +216,23 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     _addressDebounce = Timer(const Duration(milliseconds: 700), _resolveAddress);
   }
 
+  /// Names the spot under the pin, when there is anything to name it with.
+  ///
+  /// Skipped outright once the map has established there is no connection.
+  /// Reverse geocoding is a request to a server like any other, and without
+  /// one it spends ten seconds timing out — ten seconds during which the
+  /// panel says "Finding this place…" about a place it is not going to find,
+  /// every single time the map is nudged. Showing the coordinates straight
+  /// away is both faster and truer.
   Future<void> _resolveAddress() async {
+    if (OfflineMaps.offline.value) {
+      setState(() {
+        _address = null;
+        _resolvingAddress = false;
+      });
+      return;
+    }
+
     setState(() => _resolvingAddress = true);
     final address = await _geocoder.reverse(_center.latitude, _center.longitude);
     if (!mounted) return;
@@ -185,7 +250,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   /// exactly where the alarm is going, and can be read back against any other
   /// map later.
   String get _coordinateLabel =>
-      '${_center.latitude.toStringAsFixed(5)}, ${_center.longitude.toStringAsFixed(5)}';
+      formatCoordinates(_center.latitude, _center.longitude);
 
   /// What to call this place when the user does not name the task themselves.
   /// One getter so the hint and the fallback can never drift apart.
@@ -403,62 +468,87 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           clipBehavior: Clip.antiAlias,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 320),
-            child: _searching && _results.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : _results.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _searchFailed ? Icons.wifi_off : Icons.search_off,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _searchFailed
-                                    ? "Couldn't reach the search service — "
-                                        'searching by name needs a connection. '
-                                        'Drag the map to the spot instead: the '
-                                        'alarm itself works without one.'
-                                    : 'No places found. Try a different search.',
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: _results.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final place = _results[index];
-                          return ListTile(
-                            leading: const Icon(Icons.place_outlined),
-                            title: Text(
-                              place.shortName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: place.context.isEmpty
-                                ? null
-                                : Text(
-                                    place.context,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                            onTap: () => _selectResult(place),
-                          );
-                        },
-                      ),
+            child: _buildResultsBody(context),
           ),
         ),
       ),
+    );
+  }
+
+  /// What sits inside the results panel: a typed coordinate, a spinner, an
+  /// explanation of why there is nothing, or the results themselves.
+  ///
+  /// Four states written as four returns rather than nested conditionals in
+  /// the widget tree, which is where they were heading.
+  Widget _buildResultsBody(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    final typed = _coordinateMatch;
+    if (typed != null) {
+      return ListTile(
+        leading: Icon(Icons.my_location, color: scheme.primary),
+        title: Text(formatCoordinates(typed.latitude, typed.longitude)),
+        subtitle: const Text('Go to these coordinates · needs no connection'),
+        onTap: () => _selectCoordinate(typed),
+      );
+    }
+
+    if (_searching && _results.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_results.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Icon(
+              _searchFailed ? Icons.wifi_off : Icons.search_off,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _searchFailed
+                    ? "Couldn't reach the search service — searching by name "
+                        'needs a connection. Drag the map to the spot instead, '
+                        'or type its coordinates: the alarm itself works '
+                        'without one.'
+                    : 'No places found. Try a different search.',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      itemCount: _results.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final place = _results[index];
+        return ListTile(
+          leading: const Icon(Icons.place_outlined),
+          title: Text(
+            place.shortName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: place.context.isEmpty
+              ? null
+              : Text(
+                  place.context,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+          onTap: () => _selectResult(place),
+        );
+      },
     );
   }
 

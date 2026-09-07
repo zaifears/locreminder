@@ -16,7 +16,7 @@ Drop a pin on your destination, choose how close you want to get, and put your p
 
 * A real alarm, not a quiet notification: loops on the alarm audio channel so it sounds even on silent
 * Choose your own alarm sound: any system ringtone, or an audio file of your own
-* Search for a destination by name, or drag the map to place the pin exactly
+* Search for a destination by name, drag the map to place the pin exactly, or type coordinates straight in — the last of those needs no connection
 * Give each alarm a task in your own words — "Buy medicine" — or let it take the name of the place
 * Repeat an alarm every day, or on the weekdays you choose, for a commute or a standing errand
 * Multiple alarms, each with its own trigger radius, and live distance to each

@@ -33,6 +33,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Dragging the pin somewhere with no connection shows its coordinates instead
   of "Dropped pin", so the alarm can still be placed exactly and checked
   against any other map.
+- **The search box now takes coordinates**, which closes the last hole in
+  setting an alarm with no connection at all. Searching by name is a question
+  for a server, so it is the one part of the app that genuinely needs data;
+  coordinates are already the answer that search would return. Type or paste
+  `23.8103, 90.4125` — or a `geo:` link somebody shared — and the map goes
+  there without a single request, even with the tiles blank around it.
+
+  Deliberately strict about what counts: "Sector 10, Road 5" is a place name,
+  not a coordinate, and still goes to the search where it belongs.
 
 ### Changed
 - **Battery: nothing is watched on days nothing can ring.** A weekday commute
