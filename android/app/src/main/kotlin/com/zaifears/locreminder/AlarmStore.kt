@@ -36,10 +36,23 @@ data class AlarmEntry(
 class AlarmStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    /**
+     * Every armed alarm.
+     *
+     * Called on every location fix, and on every notification redraw that
+     * follows one, so the JSON parse is cached against the raw text it came
+     * from. Reading the raw text itself is already free — SharedPreferences
+     * keeps the whole file in memory for the process, and every component
+     * here shares that one process — so comparing it is both the cheapest and
+     * the most honest invalidation available: any write, from any of them,
+     * changes the string and the cache misses.
+     */
     fun loadAll(): List<AlarmEntry> {
         val raw = prefs.getString(KEY_ENTRIES, null) ?: return emptyList()
+        parsed[raw]?.let { return it }
+
         val array = JSONArray(raw)
-        return (0 until array.length()).map { i ->
+        val entries = (0 until array.length()).map { i ->
             val obj = array.getJSONObject(i)
             AlarmEntry(
                 id = obj.getString("id"),
@@ -50,6 +63,12 @@ class AlarmStore(context: Context) {
                 repeatDays = obj.optJSONArray("repeatDays").toWeekdaySet(),
             )
         }
+
+        // One entry, replaced wholesale: the previous text is of no further
+        // use the moment the store is written to.
+        parsed.clear()
+        parsed[raw] = entries
+        return entries
     }
 
     fun getById(id: String): AlarmEntry? = loadAll().find { it.id == id }
@@ -83,6 +102,9 @@ class AlarmStore(context: Context) {
     }
 
     companion object {
+        /** Parsed entries, keyed by the raw JSON they were parsed from. */
+        private val parsed = mutableMapOf<String, List<AlarmEntry>>()
+
         // Legacy name kept deliberately: renaming it would orphan the
         // alarms of anyone upgrading from an earlier version.
         private const val PREFS_NAME = "locreminder_geofences"

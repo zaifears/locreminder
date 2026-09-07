@@ -54,6 +54,12 @@ alarm:
 
   watch_title_active: Watching for your destination
   watch_title_inactive: Not watching
+
+  # Shown on days when every saved alarm is set for other days of the week.
+  # The app stops checking your location on those days to save battery.
+  watch_title_dormant: Nothing to watch for today
+  watch_dormant_body: Your alarms are set for other days. Checking resumes on its own.
+
   watch_location_off: "Turn on location — the alarm can't ring without it"
   watch_distance_km: "{distance} km from {place}"
   watch_distance_m: "{distance} m from {place}"

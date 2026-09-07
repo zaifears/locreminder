@@ -7,8 +7,10 @@ import android.content.Intent
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.location.LocationRequest
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
@@ -31,6 +33,12 @@ import java.util.Calendar
  * with no Google services at all — Huawei's HMS phones and de-Googled ROMs
  * included. On Android 12+ the platform exposes its own fused provider,
  * giving the same sensor-blended efficiency without the dependency.
+ *
+ * Nothing here touches the network. GNSS is a receive-only radio: the
+ * satellites broadcast, the phone listens, and no data connection is involved
+ * at any point. That is what lets the alarm ring on a bus with no signal —
+ * only the map tiles and the place search need the internet, and neither is
+ * part of detection.
  */
 class LocationWatchService : Service() {
 
@@ -38,6 +46,27 @@ class LocationWatchService : Service() {
     private var currentIntervalMillis: Long = FAR_INTERVAL_MILLIS
     private var nearestLabel: String? = null
     private var nearestDistance: Double? = null
+
+    /** Last text put on the ongoing notification, so identical ones are skipped. */
+    private var lastNotificationText: String? = null
+
+    /**
+     * When a fix last arrived, on the monotonic clock. Registration succeeding
+     * says nothing about fixes actually being delivered — see
+     * [onStarvationCheck] for the case where it silently is not.
+     */
+    private var lastFixElapsed: Long = 0
+
+    /**
+     * Whether the platform's own fused provider has been given up on for this
+     * run, and the raw providers registered instead. Sticky on purpose: a
+     * provider that starved once will starve again, and flapping between the
+     * two costs more than staying on the one that works.
+     */
+    private var escalatedToRawProviders = false
+
+    private val handler by lazy { Handler(mainLooper) }
+    private val starvationCheck = Runnable { onStarvationCheck() }
 
     /**
      * When each alarm was first seen inside its radius by a fix too
@@ -101,10 +130,65 @@ class LocationWatchService : Service() {
         // alive either way; what the watchdog needs to know is whether fixes
         // are actually arriving, which isReceivingUpdates carries separately.
         isWatching = true
-        requestUpdates(currentIntervalMillis)
+        applyTodaysSchedule()
 
         WatchdogReceiver.schedule(this)
         return START_STICKY
+    }
+
+    /**
+     * Watches only on days something can actually ring.
+     *
+     * A weekday commute alarm used to hold the GPS open all weekend for an
+     * alarm that could not fire until Monday — two days of polling for
+     * nothing, which is a large share of what people mean when they say this
+     * app drains their battery. On a day when no armed alarm is scheduled the
+     * service stays alive, keeps its notification and stays out of Doze, but
+     * asks for no fixes at all.
+     *
+     * Both edges of that are the watchdog's ordinary 15-minute tick, which
+     * pokes the service whether or not anything looks wrong precisely so this
+     * runs again: the day rolls over in the middle of a run, in both
+     * directions, and nothing else would notice. A quarter of an hour either
+     * side of midnight is ample for a journey nobody has started yet.
+     *
+     * Which is why this only re-registers when the state actually has to
+     * change. Called every fifteen minutes for the life of an alarm, tearing
+     * the registration down and building it back up each time would restart
+     * the receiver's acquisition cycle four times an hour for nothing.
+     */
+    private fun applyTodaysSchedule() {
+        val weekday = todayIsoWeekday()
+        val ringsToday = AlarmStore(this).loadAll().any { it.ringsOn(weekday) }
+
+        if (ringsToday) {
+            if (isDormant) {
+                isDormant = false
+                // Yesterday's distance is not today's. Clearing it keeps the
+                // notification from showing a stale number until the first
+                // fix lands.
+                nearestLabel = null
+                nearestDistance = null
+            } else if (isReceivingUpdates) {
+                // Already watching, and watching correctly. The armed count
+                // may have changed, which the notification says when it has
+                // no distance to show yet; nothing else here has.
+                updateNotification()
+                return
+            }
+            requestUpdates(currentIntervalMillis)
+            return
+        }
+
+        if (isDormant) return
+
+        Log.i(TAG, "Nothing is scheduled to ring today; standing down until it is")
+        isDormant = true
+        isReceivingUpdates = false
+        handler.removeCallbacks(starvationCheck)
+        runCatching { locationManager.removeUpdates(locationListener) }
+        NotificationHelper.clearLocationOffNotification(this)
+        updateNotification()
     }
 
     /**
@@ -114,6 +198,11 @@ class LocationWatchService : Service() {
      * sensors the way Play Services does — preferred where present. Below
      * that, GPS and network are used together: network gives cheap coarse
      * fixes indoors, GPS the accuracy needed near the destination.
+     *
+     * The enabled check matters as much as the availability one. A provider
+     * that exists but is switched off delivers nothing, and registering on it
+     * regardless left the service claiming to watch while location was off at
+     * the OS level — armed, notified, and incapable of ever ringing.
      */
     private fun activeProviders(): List<String> {
         val available = try {
@@ -122,8 +211,11 @@ class LocationWatchService : Service() {
             emptyList<String>()
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            available.contains(LocationManager.FUSED_PROVIDER)
+        if (!escalatedToRawProviders &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            available.contains(LocationManager.FUSED_PROVIDER) &&
+            runCatching { locationManager.isProviderEnabled(LocationManager.FUSED_PROVIDER) }
+                .getOrDefault(false)
         ) {
             return listOf(LocationManager.FUSED_PROVIDER)
         }
@@ -145,6 +237,7 @@ class LocationWatchService : Service() {
             // possibly ring.
             Log.w(TAG, "No location provider is enabled; cannot watch")
             isReceivingUpdates = false
+            handler.removeCallbacks(starvationCheck)
             updateNotification()
             NotificationHelper.postLocationOffNotification(this)
             return
@@ -153,15 +246,26 @@ class LocationWatchService : Service() {
         try {
             locationManager.removeUpdates(locationListener)
             for (provider in providers) {
-                locationManager.requestLocationUpdates(
-                    provider,
-                    intervalMillis,
-                    0f,
-                    locationListener,
-                    mainLooper,
+                register(provider, intervalMillis)
+            }
+
+            // Fixes another app has already paid for are free to read, so at
+            // the long intervals of a journey's early hours it is worth
+            // listening for them: a mapping app running alongside this one
+            // keeps the distance current at no cost in battery at all.
+            if (intervalMillis >= PASSIVE_PIGGYBACK_FROM_MILLIS &&
+                runCatching { locationManager.allProviders }
+                    .getOrDefault(emptyList<String>())
+                    .contains(LocationManager.PASSIVE_PROVIDER)
+            ) {
+                register(
+                    LocationManager.PASSIVE_PROVIDER,
+                    maxOf(NEAR_INTERVAL_MILLIS, intervalMillis / 4),
                 )
             }
+
             currentIntervalMillis = intervalMillis
+            armStarvationCheck()
             if (!isReceivingUpdates) {
                 isReceivingUpdates = true
                 NotificationHelper.clearLocationOffNotification(this)
@@ -177,7 +281,117 @@ class LocationWatchService : Service() {
         }
     }
 
+    /**
+     * Registers one provider, asking for as little power as the current
+     * distance allows.
+     *
+     * Android 12 added a way to say what a request is actually for, and the
+     * platform bills accordingly: [LocationRequest.QUALITY_HIGH_ACCURACY]
+     * turns the GNSS receiver on for every fix, while
+     * [LocationRequest.QUALITY_BALANCED_POWER_ACCURACY] lets it answer from
+     * whatever it already knows when that is good enough. Only the last few
+     * hundred metres need the expensive answer, so only they ask for it.
+     *
+     * [LocationRequest.QUALITY_LOW_POWER] is deliberately never used: it is
+     * the tier that gives up on GNSS entirely, and on a phone with no data
+     * connection — the exact situation this alarm exists for — that is a
+     * request for fixes that can never arrive.
+     */
+    private fun register(provider: String, intervalMillis: Long) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val request = LocationRequest.Builder(intervalMillis)
+                .setQuality(
+                    if (intervalMillis <= HIGH_ACCURACY_UP_TO_MILLIS) {
+                        LocationRequest.QUALITY_HIGH_ACCURACY
+                    } else {
+                        LocationRequest.QUALITY_BALANCED_POWER_ACCURACY
+                    },
+                )
+                .apply {
+                    // Letting the hardware hold a couple of fixes back and
+                    // deliver them together lets the processor stay asleep
+                    // between them. Only offered when the next fix is minutes
+                    // out anyway, where the delay it adds cannot matter.
+                    if (intervalMillis >= BATCHING_FROM_MILLIS) {
+                        setMaxUpdateDelayMillis(intervalMillis)
+                    }
+                }
+                .build()
+            locationManager.requestLocationUpdates(provider, request, mainExecutor, locationListener)
+        } else {
+            locationManager.requestLocationUpdates(
+                provider,
+                intervalMillis,
+                0f,
+                locationListener,
+                mainLooper,
+            )
+        }
+    }
+
+    /** Re-checks, after a generous grace period, that fixes are still arriving. */
+    private fun armStarvationCheck() {
+        handler.removeCallbacks(starvationCheck)
+        handler.postDelayed(starvationCheck, starvationDeadlineMillis())
+    }
+
+    /**
+     * How long silence has to last before it counts as a provider failing
+     * rather than a phone indoors.
+     *
+     * Three missed intervals is the signal, but with a floor under it: near
+     * the destination the interval is ten seconds, and a GNSS receiver in a
+     * building can easily take longer than thirty to produce anything at all.
+     * Treating that as a fault would mean tearing down a working registration
+     * every time somebody waits inside a shop.
+     */
+    private fun starvationDeadlineMillis(): Long =
+        maxOf(currentIntervalMillis * 3, MIN_STARVATION_MILLIS) + STARVATION_GRACE_MILLIS
+
+    /**
+     * Handles a registration that succeeded but delivers nothing.
+     *
+     * The fused provider is the usual cause. It is a blend, and on some
+     * builds — de-Googled ROMs especially, but also ordinary phones with no
+     * data connection — the half of the blend it prefers is the network one,
+     * so with no internet it can sit there answering nothing at all while
+     * GPS, which needs no internet whatsoever, would have had a fix in
+     * seconds. Falling back to the raw providers is what makes the alarm work
+     * on a bus with no signal.
+     */
+    private fun onStarvationCheck() {
+        if (isDormant || !isWatching) return
+
+        val silentFor = SystemClock.elapsedRealtime() - lastFixElapsed
+        if (lastFixElapsed != 0L && silentFor < starvationDeadlineMillis()) {
+            armStarvationCheck()
+            return
+        }
+
+        if (!escalatedToRawProviders && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.w(TAG, "No fix in ${silentFor}ms; falling back to GPS and network")
+            escalatedToRawProviders = true
+            requestUpdates(currentIntervalMillis)
+            return
+        }
+
+        // Already on the raw providers and still nothing. Deliberately *not*
+        // reported as a fault: on the raw providers, prolonged silence is
+        // usually a phone that is simply indoors, and saying "location is off"
+        // to somebody whose location is plainly on would be a lie that also
+        // sends the watchdog into restarting a registration that is working
+        // as well as it can. Logged, and left alone.
+        Log.w(TAG, "No fix in ${silentFor}ms on raw providers")
+        armStarvationCheck()
+    }
+
     private fun onLocation(location: Location) {
+        lastFixElapsed = SystemClock.elapsedRealtime()
+        if (!isReceivingUpdates) {
+            isReceivingUpdates = true
+            NotificationHelper.clearLocationOffNotification(this)
+        }
+
         val entries = AlarmStore(this).loadAll()
         if (entries.isEmpty()) {
             stopWatching()
@@ -188,18 +402,13 @@ class LocationWatchService : Service() {
         arrivalState.forgetAllExcept(liveIds)
         ignoredSince.keys.retainAll(liveIds.toSet())
 
+        // Named for the day of the week, not the date: [today] is the date,
+        // and the two are used a few lines apart.
+        val weekday = todayIsoWeekday()
         var closest: Pair<AlarmEntry, Double>? = null
 
         for (entry in entries) {
-            val results = FloatArray(1)
-            Location.distanceBetween(
-                location.latitude,
-                location.longitude,
-                entry.latitude,
-                entry.longitude,
-                results,
-            )
-            val distance = results[0].toDouble()
+            val distance = distanceBetween(location, entry)
 
             if (distance <= entry.radius) {
                 // A fix far vaguer than the radius cannot actually place the
@@ -229,7 +438,7 @@ class LocationWatchService : Service() {
                 } else {
                     ignoredSince.remove(entry.id)
 
-                    if (!entry.ringsOn(todayIsoWeekday())) {
+                    if (!entry.ringsOn(weekday)) {
                         // Armed, but not for today. Deliberately checked before
                         // the suppression test so the alarm is not left needing
                         // an exit it already made: the user genuinely arrived,
@@ -267,8 +476,20 @@ class LocationWatchService : Service() {
             nearestLabel = entry.label
             nearestDistance = distance
             updateNotification()
-            adaptIntervalTo(distance, location)
         }
+        adaptIntervalTo(location, entries, weekday)
+    }
+
+    private fun distanceBetween(location: Location, entry: AlarmEntry): Double {
+        val results = FloatArray(1)
+        Location.distanceBetween(
+            location.latitude,
+            location.longitude,
+            entry.latitude,
+            entry.longitude,
+            results,
+        )
+        return results[0].toDouble()
     }
 
     /**
@@ -308,37 +529,47 @@ class LocationWatchService : Service() {
     }
 
     /**
-     * Polls harder the closer the user gets. Ten-second fixes from across the
-     * country would flatten the battery on a long journey for no benefit,
-     * while two-minute fixes 200m out would sail past the stop.
+     * Sets the polling interval from the one thing that actually decides
+     * whether an alarm can be missed: how long the user could still be far
+     * enough away for the next fix to be worth waiting for.
+     *
+     * The gap between two fixes is safe as long as it cannot cover the whole
+     * distance to the far side of the destination circle — that is
+     * `distance + radius` metres. Divided by the speed being travelled and by
+     * [SAMPLES_BEFORE_ARRIVAL], it gives an interval that keeps several fixes
+     * between here and the stop no matter what the numbers are, and it does
+     * so without a table of hand-picked distance bands that were each only
+     * ever right for one kind of journey.
+     *
+     * Where the fix reports a speed, that speed is used. Where it does not —
+     * or reports a bus sitting at a light — [CRUISE_SPEED_MPS] stands in for
+     * how fast the journey could resume, so a stationary phone is never
+     * lulled into an interval it cannot get out of.
+     *
+     * What this changes in practice: two hours into a 300 km coach journey
+     * the old fixed ladder was still waking the GNSS receiver every five
+     * minutes, for a stop that could not physically arrive for another hour.
+     * It now waits a quarter of an hour, and tightens continuously as the
+     * distance falls, reaching ten-second fixes for the final approach
+     * exactly as before.
      */
-    private fun adaptIntervalTo(distanceMetres: Double, location: Location) {
-        val byDistance = when {
-            distanceMetres > 10_000 -> VERY_FAR_INTERVAL_MILLIS
-            distanceMetres > 5_000 -> FAR_INTERVAL_MILLIS
-            distanceMetres > 1_500 -> 60_000L
-            distanceMetres > 500 -> 20_000L
-            else -> NEAR_INTERVAL_MILLIS
+    private fun adaptIntervalTo(location: Location, entries: List<AlarmEntry>, weekday: Int) {
+        val reported = if (location.hasSpeed() && location.speed > 1f) location.speed else 0f
+        val planned = maxOf(reported, CRUISE_SPEED_MPS)
+
+        var target = MAX_INTERVAL_MILLIS
+        for (entry in entries) {
+            if (!entry.ringsOn(weekday)) continue
+            val reach = distanceBetween(location, entry) + entry.radius
+            val safe = (reach / planned / SAMPLES_BEFORE_ARRIVAL * 1000).toLong()
+            target = minOf(target, safe)
         }
 
-        // Distance on its own assumes a speed, and on a highway coach or an
-        // intercity train it assumes far too low a one. At 30 m/s the 500m
-        // band's 20s interval covers 600m between consecutive fixes, so a
-        // tight radius can be crossed entirely without ever being sampled.
-        // Where the fix reports a speed, poll on time-to-arrival as well and
-        // take whichever of the two answers is tighter.
-        val speed = location.takeIf { it.hasSpeed() }?.speed?.takeIf { it > 1f }
-        val target = if (speed == null) {
-            byDistance
-        } else {
-            // A quarter of the remaining journey, so four fixes land between
-            // here and the destination however fast "here" happens to be.
-            val byEta = (distanceMetres / speed / 4 * 1000).toLong()
-                .coerceIn(NEAR_INTERVAL_MILLIS, VERY_FAR_INTERVAL_MILLIS)
-            minOf(byDistance, byEta)
-        }
-
-        if (target != currentIntervalMillis) requestUpdates(target)
+        // Quantised, because re-registering restarts the receiver's whole
+        // acquisition cycle. Left continuous, a target that drifted by a
+        // second between fixes would pay that cost on every single one.
+        val stepped = INTERVAL_STEPS_MILLIS.lastOrNull { it <= target } ?: NEAR_INTERVAL_MILLIS
+        if (stepped != currentIntervalMillis) requestUpdates(stepped)
     }
 
     private fun triggerAlarm(entry: AlarmEntry) {
@@ -382,6 +613,8 @@ class LocationWatchService : Service() {
     private fun stopWatching() {
         isWatching = false
         isReceivingUpdates = false
+        isDormant = false
+        handler.removeCallbacks(starvationCheck)
         NotificationHelper.clearLocationOffNotification(this)
         try {
             locationManager.removeUpdates(locationListener)
@@ -400,6 +633,8 @@ class LocationWatchService : Service() {
     override fun onDestroy() {
         isWatching = false
         isReceivingUpdates = false
+        isDormant = false
+        handler.removeCallbacks(starvationCheck)
         try {
             locationManager.removeUpdates(locationListener)
         } catch (_: Exception) {
@@ -408,17 +643,46 @@ class LocationWatchService : Service() {
         super.onDestroy()
     }
 
+    /**
+     * Re-posts the ongoing notification, but only when it would actually read
+     * differently.
+     *
+     * Every fix used to re-post it, which at ten-second fixes is a wakeup and
+     * a round trip to the notification manager six times a minute to redraw
+     * the same sentence. The distance only changes the text when the rounded
+     * number does.
+     */
     private fun updateNotification() {
+        val text = notificationText()
+        if (text == lastNotificationText) return
+
         val manager = getSystemService(android.app.NotificationManager::class.java) ?: return
+        val notification = buildNotification(text)
         try {
-            manager.notify(NOTIFICATION_ID, buildNotification())
+            manager.notify(NOTIFICATION_ID, notification)
         } catch (_: SecurityException) {
             // Notification permission revoked.
         }
     }
 
-    private fun buildNotification(): Notification {
-        val armedCount = AlarmStore(this).loadAll().size
+    private fun notificationText(): String {
+        val distance = nearestDistance
+        val label = nearestLabel
+        return when {
+            isDormant -> getString(R.string.watch_dormant_body)
+            !isReceivingUpdates -> getString(R.string.watch_location_off)
+            label == null || distance == null -> {
+                val armedCount = AlarmStore(this).loadAll().size
+                resources.getQuantityString(R.plurals.watch_armed, armedCount, armedCount)
+            }
+            distance >= 1000 ->
+                getString(R.string.watch_distance_km, "%.1f".format(distance / 1000), label)
+            else ->
+                getString(R.string.watch_distance_m, distance.toInt().toString(), label)
+        }
+    }
+
+    private fun buildNotification(text: String = notificationText()): Notification {
         val openIntent = PendingIntent.getActivity(
             this,
             0,
@@ -427,24 +691,16 @@ class LocationWatchService : Service() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-
-        val distance = nearestDistance
-        val label = nearestLabel
-        val text = when {
-            !isReceivingUpdates -> getString(R.string.watch_location_off)
-            label == null || distance == null ->
-                resources.getQuantityString(R.plurals.watch_armed, armedCount, armedCount)
-            distance >= 1000 ->
-                getString(R.string.watch_distance_km, "%.1f".format(distance / 1000), label)
-            else ->
-                getString(R.string.watch_distance_m, distance.toInt().toString(), label)
-        }
+        lastNotificationText = text
 
         return NotificationCompat.Builder(this, NotificationHelper.WATCH_CHANNEL_ID)
             .setContentTitle(
                 getString(
-                    if (isReceivingUpdates) R.string.watch_title_active
-                    else R.string.watch_title_inactive,
+                    when {
+                        isDormant -> R.string.watch_title_dormant
+                        isReceivingUpdates -> R.string.watch_title_active
+                        else -> R.string.watch_title_inactive
+                    },
                 ),
             )
             .setContentText(text)
@@ -462,11 +718,46 @@ class LocationWatchService : Service() {
         private const val TAG = "LocationWatchService"
         const val ACTION_STOP = "com.zaifears.locreminder.action.STOP_WATCH"
         private const val NOTIFICATION_ID = 4203
-        private const val VERY_FAR_INTERVAL_MILLIS = 300_000L
         private const val FAR_INTERVAL_MILLIS = 120_000L
         private const val NEAR_INTERVAL_MILLIS = 10_000L
+        private const val MAX_INTERVAL_MILLIS = 900_000L
         private const val ACCURACY_FLOOR_METRES = 500.0
         private const val ACCURACY_FALLBACK_MILLIS = 60_000L
+
+        /**
+         * The intervals actually used, so that a continuously computed target
+         * turns into a handful of stable registrations rather than a new one
+         * on every fix.
+         */
+        private val INTERVAL_STEPS_MILLIS = listOf(
+            10_000L, 15_000L, 20_000L, 30_000L, 45_000L, 60_000L,
+            90_000L, 120_000L, 180_000L, 300_000L, 600_000L, MAX_INTERVAL_MILLIS,
+        )
+
+        /**
+         * How fast to assume the journey could be moving when the fix does not
+         * say — 72 km/h, which covers a highway coach and leaves margin for an
+         * intercity train that has not reported its speed yet.
+         */
+        private const val CRUISE_SPEED_MPS = 20f
+
+        /** Fixes to fit between here and the far side of the destination. */
+        private const val SAMPLES_BEFORE_ARRIVAL = 3
+
+        /** Above this interval, the expensive always-GNSS tier is not asked for. */
+        private const val HIGH_ACCURACY_UP_TO_MILLIS = 30_000L
+
+        /** Above this interval, fixes may be batched so the processor can sleep. */
+        private const val BATCHING_FROM_MILLIS = 300_000L
+
+        /** Above this interval, other apps' fixes are worth listening for. */
+        private const val PASSIVE_PIGGYBACK_FROM_MILLIS = 60_000L
+
+        /** Slack on top of three missed intervals before calling it starvation. */
+        private const val STARVATION_GRACE_MILLIS = 60_000L
+
+        /** Floor under that, so a short interval cannot make it trigger-happy. */
+        private const val MIN_STARVATION_MILLIS = 300_000L
 
         // Bad-but-plausible GPS or network accuracy under a viaduct or roof
         // is in the hundreds to low thousands of metres. Far past that is not
@@ -485,6 +776,15 @@ class LocationWatchService : Service() {
          * separate so the watchdog can tell that case apart and retry.
          */
         var isReceivingUpdates: Boolean = false
+            private set
+
+        /**
+         * Whether the service is deliberately not asking for fixes because
+         * nothing armed is scheduled to ring today. Distinct from the state
+         * above, which is a fault: this one is the service doing its job by
+         * doing nothing, and restarting it would not be a repair.
+         */
+        var isDormant: Boolean = false
             private set
     }
 }

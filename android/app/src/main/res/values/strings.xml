@@ -19,6 +19,8 @@
     <string name="notify_location_off_body">Tap to turn location on.</string>
     <string name="watch_title_active">Watching for your destination</string>
     <string name="watch_title_inactive">Not watching</string>
+    <string name="watch_title_dormant">Nothing to watch for today</string>
+    <string name="watch_dormant_body">Your alarms are set for other days. Checking resumes on its own.</string>
     <string name="watch_location_off">Turn on location — the alarm can\'t ring without it</string>
     <string name="watch_distance_km">%1$s km from %2$s</string>
     <string name="watch_distance_m">%1$s m from %2$s</string>
