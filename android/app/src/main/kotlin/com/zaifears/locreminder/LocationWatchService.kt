@@ -118,6 +118,19 @@ class LocationWatchService : Service() {
             return START_NOT_STICKY
         }
 
+        // Before anything else, including the decision to stop again.
+        //
+        // Every caller that can reach this from the background — the
+        // watchdog's tick, the boot receiver — arrives via
+        // startForegroundService, which is a promise to the system that this
+        // notification appears within five seconds. Breaking that promise is
+        // not an error code, it is an app kill. So the promise is kept first
+        // and the question of whether there is anything to watch asked
+        // second: an alarm deleted in the moment between the watchdog reading
+        // the store and this running is a race nobody would ever reproduce,
+        // and a crash is a poor way to find out about it.
+        startForeground(NOTIFICATION_ID, buildNotification())
+
         // Nothing armed means nothing to watch; don't hold a notification for
         // no reason.
         if (AlarmStore(this).loadAll().isEmpty()) {
@@ -125,7 +138,6 @@ class LocationWatchService : Service() {
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification())
         // Deliberately reported even when registration fails. The service is
         // alive either way; what the watchdog needs to know is whether fixes
         // are actually arriving, which isReceivingUpdates carries separately.

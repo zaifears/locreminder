@@ -55,12 +55,18 @@ class OfflineMaps {
   /// least recently used tiles are dropped past it.
   static const _maxCacheBytes = 200 * 1024 * 1024;
 
-  /// How long one failed tile request stands as evidence of being offline.
+  /// A backstop on how long one failed tile request stands as evidence of
+  /// being offline.
   ///
-  /// Long enough that a whole screenful of tiles is not each individually
-  /// re-attempted against a network that is not there, short enough that the
-  /// map goes back to fetching soon after signal returns.
-  static const _offlineWindow = Duration(minutes: 2);
+  /// The flag is normally cleared by a tile actually arriving — see
+  /// [_OfflineTolerantCachingProvider.putTile] — which is a far better
+  /// signal than a clock, because it is the thing we actually want to know.
+  /// This only covers the case where nothing is being fetched at all, and it
+  /// is deliberately not short: while the flag is set, expired tiles are
+  /// served from disk instead of being re-validated, so clearing it early
+  /// means a screenful of doomed requests and a map that briefly fills with
+  /// holes again, every time it expires, for as long as the journey lasts.
+  static const _offlineWindow = Duration(minutes: 15);
 
   /// Zoom levels saved around a new alarm, and how far around it.
   ///
@@ -139,9 +145,15 @@ class OfflineMaps {
     // with the app's own data instead, capped, and clearable from Settings.
     String? directory;
     try {
-      directory = await _nativeBridge.offlineMapDirectory();
+      // Timed out rather than simply awaited: this runs before `runApp`, so
+      // a platform channel that never answers is not a missing cache, it is
+      // an app that never draws its first frame.
+      directory = await _nativeBridge
+          .offlineMapDirectory()
+          .timeout(const Duration(seconds: 5));
     } on Exception {
-      // No native side (tests, desktop): flutter_map's own default is fine.
+      // No native side (tests, desktop), or it did not answer in time:
+      // flutter_map's own default directory is fine.
       directory = null;
     }
 
@@ -159,6 +171,14 @@ class OfflineMaps {
       error is HttpException ||
       error is TimeoutException ||
       error is http.ClientException;
+
+  /// Records that the network is working again, and lets the map go back to
+  /// checking tiles against the server.
+  static void markOnline() {
+    _offlineExpiry?.cancel();
+    _offlineExpiry = null;
+    offline.value = false;
+  }
 
   /// Called for every tile that fails to load.
   ///
@@ -364,8 +384,15 @@ class OfflineMaps {
   static Future<void> clearCache() async {
     final builtIn = _builtIn;
     if (builtIn == null) return;
-    await builtIn.destroy(deleteCache: true);
+
+    // Detached before it is torn down, not after. A map on screen keeps
+    // asking for tiles throughout, and a store whose worker isolate has been
+    // killed is a worse thing to ask than no store at all — the wrapper
+    // answers "not cached" for a null one, which is exactly right here.
+    _tolerant.inner = null;
     _builtIn = null;
+
+    await builtIn.destroy(deleteCache: true);
     await initialise();
     _resetController.add(null);
   }
@@ -432,6 +459,12 @@ class _OfflineTolerantCachingProvider implements MapCachingProvider {
     required CachedMapTileMetadata metadata,
     Uint8List? bytes,
   }) async {
+    // Only reached when a tile has just come back from the server, which is
+    // better evidence that the network is working than any timer or
+    // connectivity flag could be: not "is there an interface up" but "did a
+    // request just succeed".
+    if (OfflineMaps.offline.value) OfflineMaps.markOnline();
+
     await inner?.putTile(url: url, metadata: metadata, bytes: bytes);
   }
 }
