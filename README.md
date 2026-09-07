@@ -81,7 +81,7 @@
 <table>
   <tr>
     <td width="70" align="center"><h2>1</h2></td>
-    <td><strong>Search for where you are going</strong><br/><sub>Type a place name, or drag the map under the pin. No account needed.</sub></td>
+    <td><strong>Search for where you are going</strong><br/><sub>Type a place name, paste coordinates, or drag the map under the pin. No account needed.</sub></td>
   </tr>
   <tr>
     <td align="center"><h2>2</h2></td>
