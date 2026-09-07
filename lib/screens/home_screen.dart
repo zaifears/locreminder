@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -6,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/location_alarm.dart';
 import '../services/alarm_repository.dart';
 import '../services/native_bridge.dart';
+import '../services/offline_maps.dart';
 import '../services/permission_service.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/map_pin.dart';
@@ -59,6 +62,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   double _sheetExtent = _sheetCollapsed;
   bool _alarmRinging = false;
 
+  /// Keeps the blue dot and the distance on each alarm card moving while the
+  /// app is open and something is armed.
+  ///
+  /// It reads the fix the watch service has already taken rather than asking
+  /// the platform for one of its own, so watching your own progress costs no
+  /// battery beyond what the alarm was spending anyway. Without it the dot
+  /// was frozen wherever it stood when the screen was opened — which nobody
+  /// notices while the map is drawing, and everybody notices when the map is
+  /// blank and this readout is the only thing left saying how far the stop
+  /// still is.
+  Timer? _tracker;
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _stopTracking();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -79,7 +95,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _refreshRingingState();
       _refreshPermissions();
       _locateUser();
+      _updateTracking();
+    } else {
+      // Nothing on screen to follow. The native watch service carries on
+      // regardless — it is the thing that actually rings.
+      _stopTracking();
     }
+  }
+
+  /// Follows the user's position while, and only while, there is something
+  /// armed to follow it for.
+  void _updateTracking() {
+    if (_alarms.any((a) => a.isActive)) {
+      _tracker ??= Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => _locateUser(),
+      );
+    } else {
+      _stopTracking();
+    }
+  }
+
+  void _stopTracking() {
+    _tracker?.cancel();
+    _tracker = null;
   }
 
   /// Everything the map needs before it can be shown.
@@ -100,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _refreshRingingState();
       await _refreshPermissions();
       await _locateUser();
+      _updateTracking();
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -135,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// with nothing to watch, and never stops while an alarm still needs it.
   Future<void> _syncLocationWatch() async {
     final shouldWatch = _alarms.any((a) => a.isActive);
+    _updateTracking();
     try {
       if (shouldWatch) {
         await _nativeBridge.startLocationWatch();
@@ -175,12 +216,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (!mounted) return;
 
       final located = LatLng(latitude, longitude);
-      setState(() {
-        _userLocation = located;
-        _userAccuracy = (fix?['accuracy'] as num?)?.toDouble();
-        _userSpeed = (fix?['speed'] as num?)?.toDouble();
-        _initialPosition = located;
-      });
+      final accuracy = (fix?['accuracy'] as num?)?.toDouble();
+      // Five times a minute, most of them reporting the same fix the watch
+      // service has not replaced yet. Rebuilding the map for one of those is
+      // work for no visible change.
+      final moved = _userLocation != located || _userAccuracy != accuracy;
+      if (moved) {
+        setState(() {
+          _userLocation = located;
+          _userAccuracy = accuracy;
+          _userSpeed = (fix?['speed'] as num?)?.toDouble();
+          _initialPosition = located;
+        });
+      }
       if (recenter) _mapController.move(located, 15);
     } catch (_) {
       // Keep the default position; the user can still pan and search.
@@ -275,6 +323,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _alarms = [..._alarms, alarm]);
     await _repository.saveAll(_alarms);
     await _syncLocationWatch();
+    unawaited(_saveOfflineArea(alarm));
     _mapController.move(LatLng(alarm.latitude, alarm.longitude), 14);
     if (!mounted) return;
 
@@ -293,6 +342,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               'when you leave and come back.'
           : 'Alarm set for ${alarm.label}$schedule',
       seconds: alreadyInside ? 5 : 3,
+    );
+  }
+
+  /// Puts the map around a new alarm on the phone while there is still a
+  /// connection to fetch it with.
+  ///
+  /// Deliberately unawaited and deliberately silent. The alarm is armed and
+  /// working before this starts and stays that way if it fails; what it buys
+  /// is the map still drawing around the stop later, in the signal hole where
+  /// nobody can go and fetch it. The moment an alarm is set is the right
+  /// moment to do it, because setting one nearly always follows a search,
+  /// which needed a connection anyway.
+  Future<void> _saveOfflineArea(LocationAlarm alarm) async {
+    if (!await OfflineMaps.prefetchEnabled()) return;
+    await OfflineMaps.saveArea(
+      latitude: alarm.latitude,
+      longitude: alarm.longitude,
+      urlTemplate: _mapStyle.urlTemplate,
     );
   }
 
@@ -539,6 +606,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _buildTopBar(context),
                     if (_alarmRinging) _buildRingingBanner(context),
                     if (!_alarmRinging) _buildPermissionWarning(context),
+                    _buildOfflineNotice(context),
                   ],
                 ),
               ),
@@ -737,6 +805,62 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ],
       ),
+    );
+  }
+
+  /// Says the map has gone offline — and, the part that actually matters,
+  /// that the alarm has not.
+  ///
+  /// People reasonably conclude from a blank map that the app has stopped
+  /// working, because on most apps a blank map means exactly that. Here it
+  /// means one server is out of reach. The arrival check is a comparison
+  /// between two coordinates on the phone, and the fix it compares comes off
+  /// a receive-only satellite radio, so it carries on in a tunnel, in
+  /// aeroplane mode, on a phone with no SIM in it.
+  Widget _buildOfflineNotice(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: OfflineMaps.offline,
+      builder: (context, offline, _) {
+        if (!offline) return const SizedBox.shrink();
+
+        final scheme = Theme.of(context).colorScheme;
+        return Container(
+          margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: scheme.secondaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.wifi_off, size: 20, color: scheme.onSecondaryContainer),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No connection — showing the saved map',
+                      style: TextStyle(
+                        color: scheme.onSecondaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Your alarm does not need one. It rings on GPS alone.',
+                      style: TextStyle(
+                        color: scheme.onSecondaryContainer,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

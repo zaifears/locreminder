@@ -163,6 +163,16 @@ class NativeBridge {
     return _channel.invokeMapMethod<Object?, Object?>('getCurrentLocation');
   }
 
+  /// A directory the app owns where saved map tiles survive.
+  ///
+  /// Deliberately not the OS cache directory: Android may empty that whenever
+  /// it wants the space, and "whenever it wants" includes the night before
+  /// the journey the tiles were saved for. Null where the platform has no
+  /// answer, which leaves the map library to pick its own default.
+  Future<String?> offlineMapDirectory() async {
+    return _channel.invokeMethod<String>('getOfflineMapDirectory');
+  }
+
   Future<bool> isAlarmRinging() async {
     final result = await _channel.invokeMethod<bool>('isAlarmRinging');
     return result ?? false;

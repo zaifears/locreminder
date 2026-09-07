@@ -95,6 +95,21 @@ class MainActivity : FlutterActivity() {
                 }
                 "getLastKnownLocation" -> result.success(lastKnownLocation())
                 "getCurrentLocation" -> currentLocation(result)
+                // Saved map tiles live in the app's own files, not its cache.
+                // Android empties the cache directory whenever it wants the
+                // space and whenever the user taps "clear cache" — neither of
+                // which should be able to take the map for tomorrow's journey
+                // with it. Bounded and clearable from Settings instead.
+                "getOfflineMapDirectory" -> {
+                    val directory = java.io.File(filesDir, "map_tiles")
+                    result.success(
+                        if (directory.exists() || directory.mkdirs()) {
+                            directory.absolutePath
+                        } else {
+                            null
+                        },
+                    )
+                }
                 "isIgnoringBatteryOptimizations" -> {
                     val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
                     result.success(powerManager.isIgnoringBatteryOptimizations(packageName))

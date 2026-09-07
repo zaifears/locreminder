@@ -177,6 +177,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     });
   }
 
+  /// The pin's position, written out.
+  ///
+  /// Shown where the address would be when there is nothing to show one from,
+  /// which offline is always: reverse geocoding is a request to a server like
+  /// any other. "Dropped pin" said nothing at all; coordinates at least say
+  /// exactly where the alarm is going, and can be read back against any other
+  /// map later.
+  String get _coordinateLabel =>
+      '${_center.latitude.toStringAsFixed(5)}, ${_center.longitude.toStringAsFixed(5)}';
+
   /// What to call this place when the user does not name the task themselves.
   /// One getter so the hint and the fallback can never drift apart.
   String get _placeName {
@@ -411,9 +421,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             Expanded(
                               child: Text(
                                 _searchFailed
-                                    ? "Couldn't reach the search service. Check "
-                                        'your connection, or drag the map to '
-                                        'pick the spot manually.'
+                                    ? "Couldn't reach the search service — "
+                                        'searching by name needs a connection. '
+                                        'Drag the map to the spot instead: the '
+                                        'alarm itself works without one.'
                                     : 'No places found. Try a different search.',
                               ),
                             ),
@@ -485,7 +496,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                                   ),
                             )
                           : Text(
-                              _address ?? 'Dropped pin',
+                              _address ?? _coordinateLabel,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodyMedium,

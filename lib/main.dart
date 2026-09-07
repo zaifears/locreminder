@@ -3,12 +3,19 @@ import 'package:flutter/material.dart';
 import 'l10n/strings.g.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/offline_maps.dart';
 import 'services/permission_service.dart';
 import 'services/theme_controller.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Before the first map is built, not lazily: flutter_map creates its own
+  // tile store the first time a tile is asked for, and whichever store exists
+  // first is the one it keeps for the run. Losing that race would mean tiles
+  // cached where Android may delete them, expiring after a day instead of a
+  // month — the offline map quietly not working.
+  await OfflineMaps.initialise();
   final themeController = ThemeController();
   await themeController.load();
   runApp(LocReminderApp(themeController: themeController));

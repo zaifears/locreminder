@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../services/app_version.dart';
+import '../services/offline_maps.dart';
 import '../services/permission_service.dart';
 import '../widgets/alarm_sound_section.dart';
 import 'reliability_screen.dart';
@@ -199,6 +200,9 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             label: const Text('Open system app settings'),
           ),
           const SizedBox(height: 24),
+          const _SectionHeader(label: 'Offline maps'),
+          const _OfflineMapsSection(),
+          const SizedBox(height: 24),
           const _SectionHeader(label: 'About this build'),
           Card(
             child: ListTile(
@@ -208,6 +212,109 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             ),
           ),
           const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+/// Explains — and gives control over — the one part of this app that does
+/// need the internet.
+///
+/// Worth a section of its own because the question behind it comes up
+/// constantly and the answer is not obvious: the alarm has never needed a
+/// connection, and the map always will, because a map is pictures held on
+/// somebody else's server. What can be done is to keep the pictures, which is
+/// what this does.
+class _OfflineMapsSection extends StatefulWidget {
+  const _OfflineMapsSection();
+
+  @override
+  State<_OfflineMapsSection> createState() => _OfflineMapsSectionState();
+}
+
+class _OfflineMapsSectionState extends State<_OfflineMapsSection> {
+  bool? _prefetch;
+  int? _bytes;
+  bool _clearing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final prefetch = await OfflineMaps.prefetchEnabled();
+    final bytes = await OfflineMaps.cacheSizeBytes();
+    if (mounted) {
+      setState(() {
+        _prefetch = prefetch;
+        _bytes = bytes;
+      });
+    }
+  }
+
+  String get _sizeLabel {
+    final bytes = _bytes;
+    if (bytes == null) return 'Saved as you use the map';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB saved';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB saved';
+  }
+
+  Future<void> _clear() async {
+    setState(() => _clearing = true);
+    await OfflineMaps.clearCache();
+    if (!mounted) return;
+    setState(() => _clearing = false);
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'The alarm never needs a connection — it works off GPS, which '
+              'is a receive-only radio. Only the map pictures and searching '
+              'by name do. Everywhere you look at on the map is kept for a '
+              'month so it still draws with no signal.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+          SwitchListTile(
+            value: _prefetch ?? true,
+            title: const Text('Save the map around new alarms'),
+            subtitle: const Text(
+              'Fetches the streets around a stop when you set it, so they are '
+              'already on the phone for the journey',
+            ),
+            onChanged: _prefetch == null
+                ? null
+                : (value) async {
+                    setState(() => _prefetch = value);
+                    await OfflineMaps.setPrefetchEnabled(value);
+                  },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.sd_storage_outlined),
+            title: const Text('Saved map data'),
+            subtitle: Text(_sizeLabel),
+            trailing: _clearing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : TextButton(onPressed: _clear, child: const Text('Clear')),
+          ),
         ],
       ),
     );

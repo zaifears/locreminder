@@ -1,12 +1,8 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
-import 'package:http/retry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../services/offline_maps.dart';
 
 const _userAgentPackageName = 'com.zaifears.locreminder';
 const _styleKey = 'map_style';
@@ -124,38 +120,15 @@ const _darkTileFilter = ColorFilter.matrix(<double>[
   0, 0, 0, 1, 0, //
 ]);
 
-/// One retrying client shared by every tile layer.
+/// One tile provider shared by every map in the app.
 ///
-/// A tile that fails once used to stay blank until the app was restarted,
-/// which is what made the map look broken after switching between wifi and
-/// mobile data: the handover kills in-flight requests, and nothing tried
-/// again. Retries cover that, with a widening delay so a genuinely
-/// unreachable server is not hammered.
-///
-/// 5xx and transport failures are retried; 429 deliberately is not.
-/// OpenStreetMap's tile policy treats that as "back off", and retrying
-/// through it would be the sort of behaviour that gets an app blocked.
-///
-/// The connection cap is the other half of that. Dart's `HttpClient` opens as
-/// many sockets per host as it is asked to and will wait indefinitely to
-/// connect each one, so a burst of tile requests — a fast zoom is exactly
-/// that — could put a socket per tile in flight at once. Six at a time, each
-/// with a bounded connect attempt, is what a browser does and keeps the app
-/// inside OpenStreetMap's tile policy while a gesture is being flung about.
-final http.Client _tileClient = RetryClient(
-  IOClient(
-    HttpClient()
-      ..connectionTimeout = const Duration(seconds: 10)
-      ..maxConnectionsPerHost = 6,
-  ),
-  retries: 3,
-  when: (response) => response.statusCode >= 500,
-  whenError: (error, _) =>
-      error is SocketException ||
-      error is HttpException ||
-      error is TimeoutException ||
-      error is http.ClientException,
-  delay: (retry) => Duration(milliseconds: 400 * (1 << retry)),
+/// Built once rather than per rebuild, because it owns the connection pool
+/// and the tile store, and a fresh one per frame would own neither for long.
+/// The store is what makes the map work without a connection: see
+/// [OfflineMaps].
+final TileProvider _tileProvider = NetworkTileProvider(
+  httpClient: OfflineMaps.client,
+  cachingProvider: OfflineMaps.cachingProvider,
 );
 
 /// Shared tile layer, so both map screens stay consistent and neither forgets
@@ -166,12 +139,19 @@ Widget buildTileLayer(BuildContext context, {MapStyle style = MapStyle.standard}
   final layer = TileLayer(
     urlTemplate: style.urlTemplate,
     userAgentPackageName: _userAgentPackageName,
-    tileProvider: NetworkTileProvider(httpClient: _tileClient),
+    tileProvider: _tileProvider,
     maxNativeZoom: style.maxNativeZoom,
     // Without this a tile that failed stays failed for the lifetime of the
     // map, even once the network is back. Evicting it means panning away and
     // back is enough to trigger a fresh attempt.
     evictErrorTileStrategy: EvictErrorTileStrategy.notVisibleRespectMargin,
+    // A failed tile is the app's only evidence that the phone has no working
+    // connection, and the cue to start serving expired tiles from disk
+    // instead of drawing holes.
+    errorTileCallback: (_, error, __) => OfflineMaps.reportTileError(error),
+    // Fired when that switch happens, so the tiles that failed a moment ago
+    // are re-read from the cache rather than waiting for a pan.
+    reset: OfflineMaps.refresh,
   );
 
   if (!isDark || !style.invertsForDarkTheme) return layer;
