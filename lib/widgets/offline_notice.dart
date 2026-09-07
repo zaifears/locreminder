@@ -47,8 +47,14 @@ class OfflineNotice extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Deliberately not "showing the saved map". That is true
+                    // on the journey it was written for and a lie on the
+                    // first run, where nothing has been saved yet and the
+                    // sentence sits over an empty grid promising a map that
+                    // is not there. What is true in both cases is which half
+                    // of the app the missing connection actually affects.
                     Text(
-                      'No connection — showing the saved map',
+                      'No connection',
                       style: TextStyle(
                         color: scheme.onSecondaryContainer,
                         fontWeight: FontWeight.bold,
@@ -56,7 +62,7 @@ class OfflineNotice extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Your alarm does not need one. It rings on GPS alone.',
+                      'Only the map needs one. Your alarm rings on GPS alone.',
                       style: TextStyle(
                         color: scheme.onSecondaryContainer,
                         fontSize: 12,
