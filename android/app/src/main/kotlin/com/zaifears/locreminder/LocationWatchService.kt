@@ -722,6 +722,26 @@ class LocationWatchService : Service() {
             .setOngoing(true)
             .setSilent(true)
             .setShowWhen(false)
+            // Shown the moment the service starts, rather than ten seconds
+            // later.
+            //
+            // Android 12 defers foreground-service notifications by ten
+            // seconds, so that a service which starts and finishes quickly
+            // does not flash a notification nobody needed to read. Sensible
+            // in general, wrong here: this notification is the receipt for
+            // "your alarm is armed", and a person who has just set one and
+            // sees nothing in the status bar concludes it did not work — then
+            // leaves the app and comes back to check, by which time the ten
+            // seconds have quietly passed and it is there.
+            //
+            // The deferral only applies to notifications with nothing urgent
+            // about them: no action buttons, a low-importance channel, an
+            // unremarkable category. This one is all three, deliberately —
+            // it is a status line, not an alert — so it qualifies on every
+            // count and this is the way out. The ringing alarm's own
+            // notification was never affected: it is MAX priority, on an
+            // ALARM category, with a button on it.
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(openIntent)
             .build()
     }
