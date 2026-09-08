@@ -17,9 +17,9 @@ Repo: https://github.com/zaifears/locreminder.git
 Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-release.apk
 
 Builds:
-  - versionName: 1.9.3
-    versionCode: 311
-    commit: v1.9.3
+  - versionName: 1.9.4
+    versionCode: 321
+    commit: v1.9.4
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-armeabi-v7a-release.apk
@@ -48,9 +48,9 @@ Builds:
         android-arm
     ndk: 28.2.13676358
 
-  - versionName: 1.9.3
-    versionCode: 312
-    commit: v1.9.3
+  - versionName: 1.9.4
+    versionCode: 322
+    commit: v1.9.4
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-arm64-v8a-release.apk
@@ -79,9 +79,9 @@ Builds:
         android-arm64
     ndk: 28.2.13676358
 
-  - versionName: 1.9.3
-    versionCode: 313
-    commit: v1.9.3
+  - versionName: 1.9.4
+    versionCode: 323
+    commit: v1.9.4
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-x86_64-release.apk
@@ -119,5 +119,5 @@ VercodeOperation:
   - 10*%c+2
   - 10*%c+3
 UpdateCheckData: pubspec.yaml|version:\s*[\d.]+\+(\d+)|.|version:\s*([\d.]+)\+\d+
-CurrentVersion: 1.9.3
-CurrentVersionCode: 313
+CurrentVersion: 1.9.4
+CurrentVersionCode: 323
