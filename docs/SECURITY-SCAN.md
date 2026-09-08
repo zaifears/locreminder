@@ -10,6 +10,10 @@ only the universal APK.
 
 | Release | APK | Detections | Report | SHA-256 of the APK |
 |---|---|---|---|---|
+| [`v1.9.4`](https://github.com/zaifears/locreminder/releases/tag/v1.9.4) | `app-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/7b2abc160d3b21e345dedfa059bfb28165987e8cf16cebf401c3cf359d480690) | `7b2abc160d3b21e345dedfa059bfb28165987e8cf16cebf401c3cf359d480690` |
+| [`v1.9.4`](https://github.com/zaifears/locreminder/releases/tag/v1.9.4) | `app-armeabi-v7a-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/f766630cb515521187a7643f432f9102845e24186235bd531c86a5b2e5b45fe3) | `f766630cb515521187a7643f432f9102845e24186235bd531c86a5b2e5b45fe3` |
+| [`v1.9.4`](https://github.com/zaifears/locreminder/releases/tag/v1.9.4) | `app-arm64-v8a-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/2a6a8532b8feb96ae935169a6c3ed3ef02b7c9be56ceb89387bd21064e6c8200) | `2a6a8532b8feb96ae935169a6c3ed3ef02b7c9be56ceb89387bd21064e6c8200` |
+| [`v1.9.4`](https://github.com/zaifears/locreminder/releases/tag/v1.9.4) | `app-x86_64-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/091c2afc131961282c0fb19f9e792de8516e90d15a34bdd0a368397332134217) | `091c2afc131961282c0fb19f9e792de8516e90d15a34bdd0a368397332134217` |
 | [`v1.9.3`](https://github.com/zaifears/locreminder/releases/tag/v1.9.3) | `app-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/97369a6fa4d10184c8916797199f21b9f0d48672ed85694938a087daa016b222) | `97369a6fa4d10184c8916797199f21b9f0d48672ed85694938a087daa016b222` |
 | [`v1.9.3`](https://github.com/zaifears/locreminder/releases/tag/v1.9.3) | `app-armeabi-v7a-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/0194cc2f6433e5f0c2aeefe03da9bf8278045b10f696fc0e2367a1af5cc7fd34) | `0194cc2f6433e5f0c2aeefe03da9bf8278045b10f696fc0e2367a1af5cc7fd34` |
 | [`v1.9.3`](https://github.com/zaifears/locreminder/releases/tag/v1.9.3) | `app-arm64-v8a-release.apk` | 0 / 63 | [report](https://www.virustotal.com/gui/file/88346707e7522adcc57a4aac909de5ea60377c9f0ab603e6c6b130bcd947b58f) | `88346707e7522adcc57a4aac909de5ea60377c9f0ab603e6c6b130bcd947b58f` |
