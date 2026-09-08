@@ -3,6 +3,21 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.4] - 2026-09-07
+
+### Fixed
+- The "watching for your destination" notification took ten seconds to appear
+  after setting an alarm, so it looked as though nothing had happened —
+  long enough to leave the app, come back to check, and find it there by
+  then. Android 12 defers foreground-service notifications by ten seconds
+  unless they look urgent, judged on having action buttons, a high-importance
+  channel, or a category like a call or an alarm. This one is deliberately
+  none of those, because it is a status line rather than an alert, so it was
+  deferred every time. It now asks to be shown immediately, which is what the
+  notification is for: it is the receipt that says the alarm is armed.
+
+  The ringing alarm itself was never affected, on any version.
+
 ## [1.9.3] - 2026-09-07
 
 ### Added

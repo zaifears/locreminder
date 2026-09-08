@@ -1,0 +1,5 @@
+Fixes the "watching for your destination" notification taking ten seconds to
+appear after you set an alarm, which made it look as though nothing had
+happened. It now shows straight away.
+
+The alarm itself was never affected.
