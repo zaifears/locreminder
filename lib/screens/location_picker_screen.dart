@@ -83,6 +83,20 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   bool _searchFailed = false;
   Timer? _searchDebounce;
 
+  /// Counts searches so a slow answer to an old query cannot overwrite a
+  /// fast answer to the current one.
+  ///
+  /// Two requests can be in flight at once — the debounce makes it unlikely,
+  /// not impossible — and nothing guaranteed they came back in order. Losing
+  /// that race means the results for "kam" replacing the results for
+  /// "kamalapur", which reads as the search being broken.
+  int _searchSeq = 0;
+
+  /// The push transition, while this screen is waiting for it to finish so it
+  /// can raise the keyboard. See [_focusSearchOnceSettled].
+  Animation<double>? _routeAnimation;
+  bool _focusListenerAttached = false;
+
   /// Set when what has been typed is a coordinate pair rather than a name.
   ///
   /// Held separately from [_results] because it is not a search result: it
@@ -122,7 +136,54 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.autofocusSearch) _focusSearchOnceSettled();
+  }
+
+  /// Raises the keyboard, but not until this screen has finished sliding in.
+  ///
+  /// `autofocus: true` looks like the right answer and is not. It asks for
+  /// focus during the first build, which happens while the push transition is
+  /// still running, and Android's input method will not open for a field that
+  /// takes focus mid-animation — it hands over the cursor and no keyboard.
+  /// Tapping the field again asks the IME directly and it obeys, which is why
+  /// this looked like "the search box needs two taps".
+  ///
+  /// Waiting for the animation to finish and asking then is the whole fix.
+  void _focusSearchOnceSettled() {
+    if (_focusListenerAttached) return;
+
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation == null || animation.isCompleted) {
+      // Already settled — pushed without a transition, or restored.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocus.requestFocus();
+      });
+      return;
+    }
+
+    _focusListenerAttached = true;
+    _routeAnimation = animation;
+    animation.addStatusListener(_onRouteAnimation);
+  }
+
+  void _onRouteAnimation(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    _detachFocusListener();
+    if (mounted) _searchFocus.requestFocus();
+  }
+
+  void _detachFocusListener() {
+    if (!_focusListenerAttached) return;
+    _focusListenerAttached = false;
+    _routeAnimation?.removeStatusListener(_onRouteAnimation);
+    _routeAnimation = null;
+  }
+
+  @override
   void dispose() {
+    _detachFocusListener();
     _searchDebounce?.cancel();
     _addressDebounce?.cancel();
     _searchController.dispose();
@@ -134,9 +195,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   void _onSearchChanged(String query) {
     _searchDebounce?.cancel();
     if (query.trim().length < 3) {
+      _searchSeq++;
       setState(() {
         _results = const [];
         _coordinateMatch = null;
+        _searching = false;
         _showResults = false;
       });
       return;
@@ -147,6 +210,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     // would be a request that can fail for a question that cannot.
     final typed = parseCoordinates(query);
     if (typed != null) {
+      _searchSeq++;
       setState(() {
         _coordinateMatch = typed;
         _results = const [];
@@ -162,9 +226,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       _showResults = true;
     });
     _searchDebounce = Timer(const Duration(milliseconds: 600), () async {
+      final seq = ++_searchSeq;
       setState(() => _searching = true);
-      final outcome = await _geocoder.search(query);
-      if (!mounted) return;
+      // Biased towards what the map is showing, which is the best guess
+      // available at what part of the world the user means.
+      final outcome = await _geocoder.search(query, near: _center);
+      if (!mounted || seq != _searchSeq) return;
       setState(() {
         _results = outcome.results;
         _searchFailed = !outcome.reachedService;
@@ -409,7 +476,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocus,
-                  autofocus: widget.autofocusSearch,
                   textInputAction: TextInputAction.search,
                   onChanged: _onSearchChanged,
                   onTap: () {

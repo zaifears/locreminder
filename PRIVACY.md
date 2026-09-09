@@ -34,18 +34,46 @@ a destination you have saved, and to ring an alarm when you arrive.
 
 ## Network connections
 
-The app makes network requests to exactly one third party:
+**The alarm makes none.** Working out that you have arrived uses GPS, which
+is a receive-only radio, and the comparison happens on your phone. It rings
+with no connection at all.
 
-**OpenStreetMap** (`tile.openstreetmap.org`, `nominatim.openstreetmap.org`)
-— to download map tiles and to search for places by name. These requests
-necessarily reveal your IP address and the map area or search term to the
-OpenStreetMap Foundation, as with any map application. See the
+Two parts of the app do use the network, and only while you are using them.
+Both are free OpenStreetMap-based services run by other people:
+
+**OpenStreetMap Foundation** (`tile.openstreetmap.org`,
+`nominatim.openstreetmap.org`) — map images, converting a coordinate you
+have picked into an address, and place search when Photon is unavailable or
+finds nothing. See the
 [OpenStreetMap privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
 
-Map tiles are only requested for areas you actually look at, and a search
-is only sent when you type one. Your saved destinations are never sent.
+**Photon** (`photon.komoot.io`) — place search as you type. Photon is free
+software (Apache 2.0) and its public instance is provided by Komoot. See the
+[Photon project](https://github.com/komoot/photon).
 
-No other network connections are made. There is no LocReminder server.
+As with any map application, these requests necessarily reveal your IP
+address to whoever runs the service, along with the map area you are looking
+at or the words you typed. When you search, the app also sends the
+approximate centre of the map you are looking at, so that nearby places rank
+above distant ones with similar names.
+
+Be clear about what that last part means: the map opens centred on you, so
+if you search without panning first, the coordinate sent as the search bias
+is roughly where you are. It is sent as a hint for ranking, not stored, and
+it moves wherever you move the map.
+
+What is **not** sent, to either of them or anywhere else:
+
+- your saved destinations
+- your GPS position itself, at any point, to anybody
+- anything at all once a search is over
+
+Map images are only requested for areas you actually look at, and are then
+kept on your phone for a month so the same ones are not fetched again. A
+search is only sent while you are typing one. Typing coordinates directly
+sends nothing at all.
+
+There is no LocReminder server, and no other network connection is made.
 
 ## Permissions and why each is needed
 
