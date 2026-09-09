@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**LocReminder** · last updated 15 August 2026
+**LocReminder** · last updated 9 September 2026
 
 ## The short version
 
