@@ -54,13 +54,13 @@
 
 | | |
 |---|---|
-| **Latest version** | `v1.9.4`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.9.5`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 | **F-Droid** | [![F-Droid status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Ffdroid.json&style=flat-square&logo=fdroid&logoColor=white)](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299) — this badge tracks the submission live, no need to keep checking back |
 
-**What's new in v1.9.4.** The "watching for your destination" notification took ten seconds to appear after you set an alarm, which made it look as though nothing had happened. It shows straight away now. The alarm itself was never affected.
+**What's new in v1.9.5.** Place search finds far more than it used to. Typing now goes to Photon, an OpenStreetMap search engine built for search-as-you-type — it matches part of a word, forgives a misspelling, and puts places near you above better-known ones elsewhere with the same name. Nominatim still turns a dropped pin into an address and still answers when Photon finds nothing. Also fixes the search box needing two taps before the keyboard came up.
 
 **What v1.9.3 brought.** The map now works without a connection: every tile you look at is kept on the phone for a month, the streets around an alarm are saved the moment you set it, and when there is no signal the saved map is drawn rather than a blank grid. You can also type coordinates straight into the search box, which needs no connection at all — see [does it need the internet?](#-does-it-need-the-internet) for what does and what doesn't. It is also easier on the battery: nothing is checked at all on days none of your alarms are set for, and the checking interval is now worked out from how far and how fast you are travelling instead of fixed steps. See the [changelog](CHANGELOG.md) for the full history.
 

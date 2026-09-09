@@ -1,0 +1,6 @@
+Place search is much better at finding things. Typing now goes to Photon, an
+OpenStreetMap search engine built for search-as-you-type: it matches on a
+prefix, forgives a misspelling, and ranks places near you first. Nominatim
+still handles addresses and answers when Photon finds nothing.
+
+Fixes the search box needing two taps before the keyboard appeared.

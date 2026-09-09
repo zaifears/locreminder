@@ -3,6 +3,38 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.5] - 2026-09-09
+
+### Changed
+- **Place search is much better at finding things.** Typing now goes to
+  Photon, an OpenStreetMap search engine built for search-as-you-type: it
+  matches on a prefix, tolerates a misspelling, and can be told where you are
+  looking so nearby places outrank distant ones with similar names. Nominatim,
+  which handled this before, is explicit in its own documentation that it is
+  not built for autocomplete — it wants a complete, correctly spelled query,
+  which is not what a half-typed bus stand is. That mismatch was most of "lots
+  of places don't show up".
+
+  Nominatim has not gone anywhere. It still turns a dropped pin into an
+  address, it still answers when Photon cannot be reached, and it is asked
+  again when Photon finds nothing — the two indexes differ, and a second look
+  costs one request in exactly the case you were already unhappy about.
+
+  Both are free, keyless and OpenStreetMap-based. `PRIVACY.md` says what each
+  one is sent.
+- Searches are now biased towards the part of the map you are looking at, so
+  a local place beats a better-known one with the same name somewhere else.
+
+### Fixed
+- The search box needed two taps before the keyboard appeared. The field asked
+  for focus while the screen was still sliding in, and Android will not open
+  the keyboard for a field that takes focus mid-animation — it handed over the
+  cursor and nothing else, and your second tap asked the keyboard directly. It
+  now waits for the screen to settle and then asks.
+- A slow answer to an old search could arrive after a fast answer to the
+  current one and replace it, so the results for "kam" could land on top of
+  the results for "kamalapur".
+
 ## [1.9.4] - 2026-09-07
 
 ### Fixed
