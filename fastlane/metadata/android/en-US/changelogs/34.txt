@@ -1,0 +1,5 @@
+Adds a welcome guide on first launch explaining how the app works before permissions.
+
+Map tiles now load reliably during fast zooms and abroad without blank screens, with faster offline recovery and reduced data usage.
+
+Fixes search overlay layout in landscape orientation, adds full TalkBack screen reader labels to map controls, and virtualizes the alarm list for smoother scrolling.

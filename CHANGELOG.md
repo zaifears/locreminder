@@ -3,6 +3,35 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.6] - 2026-09-15
+
+### Added
+- **Welcoming introduction on first launch.** First-time users are now greeted
+  by a dedicated introduction screen with an illustrated 3-step guide explaining
+  how LocReminder works and reassuring that location data is 100% private and
+  offline before beginning the Android permission walkthrough.
+- **"Buy me a coffee" link.** Added a developer support link in the About
+  screen pointing to `https://shahoriar.bd/thanks`.
+
+### Fixed
+- **Map tiles load reliably during fast zooms and abroad.** Fastly CDN rate
+  limits triggered by rapid zooming or panning are now avoided with 150 ms
+  tile debouncing, a raised minimum zoom level of 3.0, and a connection pool
+  capped at 3 per host to respect OpenStreetMap guidelines. Removed the
+  thundering-herd layer reset loop on tile failure, shortened offline recovery
+  time from 15 minutes to 45 seconds, and unblocked address lookups so
+  navigating outside the initial region immediately restores online status.
+- **Landscape search overlay layout.** Search results overlay height is now
+  calculated dynamically against screen insets and keyboard height, preventing
+  clipping and overflow in landscape orientation.
+- **TalkBack accessibility semantics.** Added dedicated button announcements to
+  the top search bar and descriptive labels to the central map crosshair pin.
+- **Virtualized alarm list.** The alarms sheet now uses a virtualized
+  `SliverList.builder` within a `CustomScrollView`, rendering only visible
+  cards for smoother scrolling.
+- **Material 3 shadow alignment.** Replaced raw black alpha on the alarm sheet
+  with tokenized Material 3 elevation shadows.
+
 ## [1.9.5] - 2026-09-09
 
 ### Changed

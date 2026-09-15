@@ -89,6 +89,17 @@ interchangeable.
 - Map styles: standard OpenStreetMap plus Humanitarian, Topographic and Cycle.
   **No satellite view** — every provider of satellite imagery is a proprietary
   service, and depending on one would contradict the positioning above.
+- Five-step educational onboarding: introduces the app with a branded Welcome
+  card (logo, tagline, and a 3-step guide: Search, Choose radius, Put phone
+  away) before guiding the user through 4 pre-permission educational screens
+  (foreground GPS, background location "Allow all the time", full-screen
+  notification, and vendor battery exemption). System dialogs are never
+  prompted abruptly on cold start.
+- Fastly CDN & network resilience: map tile updates are debounced by 150 ms
+  during gestures to prevent intermediate socket storms and broken pipes;
+  connections are limited to 3 per host with a 4-second connect timeout, and
+  the offline recovery window is bounded to 45 seconds for rapid transit
+  recovery after tunnels or handoffs.
 
 ## Brand Commitments
 
@@ -97,6 +108,9 @@ interchangeable.
 - Zero F-Droid anti-features. No tracking, ads, accounts, analytics, or
   non-free dependencies. This is a deliberate standing constraint, not an
   accident, and any future dependency must be checked against it.
+- Voluntary developer support: a "Buy me a coffee" link
+  (`https://shahoriar.bd/thanks`) in the About screen under Developer. No
+  paywalls, locked features, or nagging donation dialogs.
 - A Free Palestine banner in the About screen, linking to Revolutionary
   Papers.
 - Voice: plain, direct, unhyped. Tells users what could go wrong (vendor app

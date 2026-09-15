@@ -292,17 +292,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   /// every single time the map is nudged. Showing the coordinates straight
   /// away is both faster and truer.
   Future<void> _resolveAddress() async {
-    if (OfflineMaps.offline.value) {
-      setState(() {
-        _address = null;
-        _resolvingAddress = false;
-      });
-      return;
-    }
-
     setState(() => _resolvingAddress = true);
     final address = await _geocoder.reverse(_center.latitude, _center.longitude);
     if (!mounted) return;
+    if (address != null && OfflineMaps.offline.value) {
+      OfflineMaps.markOnline();
+    }
     setState(() {
       _address = address;
       _resolvingAddress = false;
@@ -375,7 +370,14 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 // Lifts the pin by its own height so its tip — not its middle
                 // — rests exactly on the map centre, matching the circle.
                 padding: const EdgeInsets.only(bottom: 52),
-                child: MapPin(size: 52, color: scheme.primary, borderColor: scheme.surface),
+                child: Semantics(
+                  label:
+                      'Destination pin at map center. Pan the map to adjust location.',
+                  child: MapPin(
+                      size: 52,
+                      color: scheme.primary,
+                      borderColor: scheme.surface),
+                ),
               ),
             ),
           ),
@@ -524,6 +526,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   }
 
   Widget _buildResultsOverlay(BuildContext context) {
+    final media = MediaQuery.of(context);
+    // Dynamically calculate available height between top search bar and keyboard/bottom insets
+    final availableHeight = media.size.height -
+        76 -
+        media.viewInsets.bottom -
+        media.padding.top -
+        media.padding.bottom -
+        24;
+    final maxHeight = availableHeight.clamp(140.0, 320.0);
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 76, 12, 12),
@@ -533,7 +545,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           color: Theme.of(context).colorScheme.surface,
           clipBehavior: Clip.antiAlias,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
+            constraints: BoxConstraints(maxHeight: maxHeight),
             child: _buildResultsBody(context),
           ),
         ),

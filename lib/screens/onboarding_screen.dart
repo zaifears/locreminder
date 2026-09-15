@@ -4,10 +4,11 @@ import '../services/permission_service.dart';
 import 'home_screen.dart';
 import 'reliability_screen.dart';
 
-/// Four full-screen pages, one per permission, each explaining *why* the
-/// permission is needed before asking for it. Android only ever shows its
-/// own dialog once, so an unexplained prompt that gets dismissed leaves the
-/// app permanently broken — the explanation has to come first.
+/// Greets the user with a welcome introduction followed by four permission
+/// setup pages, each explaining *why* the permission is needed before asking
+/// for it. Android only ever shows its own dialog once, so an unexplained
+/// prompt that gets dismissed leaves the app permanently broken — the explanation
+/// has to come first.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -76,7 +77,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final pages = <_PermissionPage>[
+    final permissionPages = <_PermissionPage>[
       _PermissionPage(
         icon: Icons.location_on_outlined,
         title: 'Find where you are',
@@ -171,7 +172,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
       ),
     ];
 
-    final isLastPage = _pageIndex == pages.length - 1;
+    final allPages = <Widget>[
+      _WelcomePage(onStart: () => _goToPage(1)),
+      ...permissionPages,
+    ];
+
+    final isLastPage = _pageIndex == allPages.length - 1;
 
     return Scaffold(
       body: SafeArea(
@@ -181,15 +187,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
-                  for (int i = 0; i < pages.length; i++)
+                  for (int i = 0; i < permissionPages.length; i++)
                     Expanded(
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         height: 4,
-                        margin: EdgeInsets.only(right: i == pages.length - 1 ? 0 : 6),
+                        margin: EdgeInsets.only(
+                            right: i == permissionPages.length - 1 ? 0 : 6),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(2),
-                          color: i <= _pageIndex
+                          color: i < _pageIndex
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.surfaceContainerHighest,
                         ),
@@ -203,15 +210,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
               child: Row(
                 children: [
                   Text(
-                    'Step ${_pageIndex + 1} of ${pages.length}',
+                    _pageIndex == 0
+                        ? 'Welcome'
+                        : 'Step $_pageIndex of ${permissionPages.length}',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
                   const Spacer(),
-                  if (!isLastPage)
+                  if (!isLastPage && _pageIndex > 0)
                     TextButton(
-                      onPressed: () => _goToPage(pages.length - 1),
+                      onPressed: () => _goToPage(allPages.length - 1),
                       child: const Text('Skip'),
                     ),
                 ],
@@ -221,7 +230,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
               child: PageView(
                 controller: _pageController,
                 onPageChanged: (index) => setState(() => _pageIndex = index),
-                children: pages,
+                children: allPages,
               ),
             ),
             Padding(
@@ -235,19 +244,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
                     ),
                   if (_pageIndex > 0) const SizedBox(width: 12),
                   Expanded(
-                    child: isLastPage
+                    child: _pageIndex == 0
                         ? FilledButton(
-                            onPressed: status.isFullyReady ? _finish : null,
-                            child: Text(
-                              status.isFullyReady
-                                  ? 'Start using LocReminder'
-                                  : 'Grant the required permissions',
+                            onPressed: () => _goToPage(1),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Start setup'),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, size: 20),
+                              ],
                             ),
                           )
-                        : FilledButton(
-                            onPressed: () => _goToPage(_pageIndex + 1),
-                            child: const Text('Next'),
-                          ),
+                        : isLastPage
+                            ? FilledButton(
+                                onPressed: status.isFullyReady ? _finish : null,
+                                child: Text(
+                                  status.isFullyReady
+                                      ? 'Start using LocReminder'
+                                      : 'Grant the required permissions',
+                                ),
+                              )
+                            : FilledButton(
+                                onPressed: () => _goToPage(_pageIndex + 1),
+                                child: const Text('Next'),
+                              ),
                   ),
                 ],
               ),
@@ -255,6 +277,230 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
           ],
         ),
       ),
+    );
+  }
+}
+
+class _WelcomePage extends StatelessWidget {
+  const _WelcomePage({required this.onStart});
+
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // App Logo
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: 0.22),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Image.asset(
+              'assets/images/app_logo.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'LocReminder',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Reminds you at the right place',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              'Sleep on the bus. Remember the errand. It goes off when you arrive.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+            ),
+          ),
+          const SizedBox(height: 22),
+
+          // How to use it header
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'HOW TO USE IT',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                  ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Steps Card
+          Card(
+            elevation: 0,
+            color: scheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: scheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                children: [
+                  const _StepItem(
+                    number: '1',
+                    icon: Icons.search_rounded,
+                    title:
+                        'Search for where you are going or where do you want me to remind you',
+                    body:
+                        'Type a place name, paste coordinates, or drag the map under the pin. No account needed.',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(
+                      height: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  const _StepItem(
+                    number: '2',
+                    icon: Icons.adjust_rounded,
+                    title: 'Choose the radius you want to be notified',
+                    body:
+                        'Anywhere from 100 m to 3 km out. A bigger radius gives you more time to gather your things.',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(
+                      height: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  const _StepItem(
+                    number: '3',
+                    icon: Icons.alarm_on_rounded,
+                    title: 'Put your phone away',
+                    body: 'When you arrive, the alarm rings.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Privacy badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.shield_outlined, size: 18, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  '100% offline & private. Zero data leaves your phone.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepItem extends StatelessWidget {
+  const _StepItem({
+    required this.number,
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final String number;
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            number,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: scheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                body,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

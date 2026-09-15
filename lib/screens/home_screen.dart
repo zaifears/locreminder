@@ -715,29 +715,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Material(
-              elevation: 3,
-              borderRadius: BorderRadius.circular(16),
-              color: Theme.of(context).colorScheme.surface,
-              child: InkWell(
+            child: Semantics(
+              button: true,
+              label: 'Search for a destination',
+              excludeSemantics: true,
+              child: Material(
+                elevation: 3,
                 borderRadius: BorderRadius.circular(16),
-                onTap: () => _addAlarm(fromSearch: true),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Search for a destination',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
+                color: Theme.of(context).colorScheme.surface,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _addAlarm(fromSearch: true),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Search for a destination',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -860,80 +865,106 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           decoration: BoxDecoration(
             color: scheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black26)],
-          ),
-          child: ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: scheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 16,
+                color: scheme.shadow.withValues(alpha: 0.16),
               ),
-              if (_alarms.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 4, 4, 24),
+            ],
+          ),
+          child: CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'No alarms yet',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Tap "Add alarm" to search for where you\'re heading, '
-                        'then choose how close you want to be before it rings.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ),
-                )
-              else ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${_alarms.length} ${_alarms.length == 1 ? 'alarm' : 'alarms'}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const Spacer(),
-                      if (activeCount > 0)
-                        Text(
-                          '$activeCount armed',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: scheme.outlineVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                         ),
+                      ),
+                      if (_alarms.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 4, 4, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'No alarms yet',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Tap "Add alarm" to search for where you\'re heading, '
+                                'then choose how close you want to be before it rings.',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Row(
+                            children: [
+                              Text(
+                                '${_alarms.length} ${_alarms.length == 1 ? 'alarm' : 'alarms'}',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const Spacer(),
+                              if (activeCount > 0)
+                                Text(
+                                  '$activeCount armed',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: scheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                for (final alarm in _alarms)
-                  _AlarmCard(
-                    alarm: alarm,
-                    distanceMetres: _distanceTo(alarm),
-                    onTap: () => _focusAlarm(alarm),
-                    onToggle: () => _toggleAlarm(alarm),
-                    onDelete: () => _deleteAlarm(alarm),
+              ),
+              if (_alarms.isNotEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList.builder(
+                    itemCount: _alarms.length,
+                    itemBuilder: (context, index) {
+                      final alarm = _alarms[index];
+                      return _AlarmCard(
+                        alarm: alarm,
+                        distanceMetres: _distanceTo(alarm),
+                        onTap: () => _focusAlarm(alarm),
+                        onToggle: () => _toggleAlarm(alarm),
+                        onDelete: () => _deleteAlarm(alarm),
+                      );
+                    },
                   ),
-                const SizedBox(height: 24),
-              ],
+                ),
+              if (_alarms.isNotEmpty)
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 24),
+                ),
             ],
           ),
-          );
-        },
+        );
+      },
       ),
     );
   }

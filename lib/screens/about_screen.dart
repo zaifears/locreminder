@@ -22,6 +22,7 @@ class _AboutScreenState extends State<AboutScreen> {
   }
 
   static final _github = Uri.parse('https://github.com/zaifears/locreminder');
+  static final _coffee = Uri.parse('https://shahoriar.bd/thanks');
   static final _palestine =
       Uri.parse('https://revolutionarypapers.org/journal/free-palestine/');
 
@@ -144,6 +145,15 @@ class _AboutScreenState extends State<AboutScreen> {
                   subtitle: const Text('github.com/zaifears/locreminder'),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _open(context, _github),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  iconColor: scheme.primary,
+                  leading: const Icon(Icons.coffee),
+                  title: const Text('Buy me a coffee'),
+                  subtitle: const Text('shahoriar.bd/thanks'),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () => _open(context, _coffee),
                 ),
               ],
             ),

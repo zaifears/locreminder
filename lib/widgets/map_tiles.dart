@@ -20,9 +20,9 @@ const _styleKey = 'map_style';
 /// through the tile and marker maths, and the map stops responding until the
 /// process dies. With bounds set, the same gesture simply lands on [mapMinZoom].
 ///
-/// 2 is a whole-world view on a phone; 19 is the deepest level the tile
+/// 3 is a continental view on a phone; 19 is the deepest level the tile
 /// sources actually carry.
-const double mapMinZoom = 2;
+const double mapMinZoom = 3;
 const double mapMaxZoom = 19;
 
 /// A raster tile source.
@@ -141,6 +141,11 @@ Widget buildTileLayer(BuildContext context, {MapStyle style = MapStyle.standard}
     userAgentPackageName: _userAgentPackageName,
     tileProvider: _tileProvider,
     maxNativeZoom: style.maxNativeZoom,
+    // Debounce updates during fast panning or zooming so intermediate
+    // tiles that the user immediately flies past are not requested.
+    tileUpdateTransformer: TileUpdateTransformers.debounce(
+      const Duration(milliseconds: 150),
+    ),
     // Without this a tile that failed stays failed for the lifetime of the
     // map, even once the network is back. Evicting it means panning away and
     // back is enough to trigger a fresh attempt.
@@ -149,9 +154,6 @@ Widget buildTileLayer(BuildContext context, {MapStyle style = MapStyle.standard}
     // connection, and the cue to start serving expired tiles from disk
     // instead of drawing holes.
     errorTileCallback: (_, error, __) => OfflineMaps.reportTileError(error),
-    // Fired when that switch happens, so the tiles that failed a moment ago
-    // are re-read from the cache rather than waiting for a pan.
-    reset: OfflineMaps.refresh,
   );
 
   if (!isDark || !style.invertsForDarkTheme) return layer;

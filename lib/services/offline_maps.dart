@@ -58,15 +58,10 @@ class OfflineMaps {
   /// A backstop on how long one failed tile request stands as evidence of
   /// being offline.
   ///
-  /// The flag is normally cleared by a tile actually arriving — see
-  /// [_OfflineTolerantCachingProvider.putTile] — which is a far better
-  /// signal than a clock, because it is the thing we actually want to know.
-  /// This only covers the case where nothing is being fetched at all, and it
-  /// is deliberately not short: while the flag is set, expired tiles are
-  /// served from disk instead of being re-validated, so clearing it early
-  /// means a screenful of doomed requests and a map that briefly fills with
-  /// holes again, every time it expires, for as long as the journey lasts.
-  static const _offlineWindow = Duration(minutes: 15);
+  /// Set to 45 seconds: long enough to outlast a short tunnel or handoff
+  /// between cells, while recovering quickly once a connection returns rather
+  /// than locking out features for a long period.
+  static const _offlineWindow = Duration(seconds: 45);
 
   /// Zoom levels saved around a new alarm, and how far around it.
   ///
@@ -107,28 +102,24 @@ class OfflineMaps {
   /// mobile data: the handover kills in-flight requests, and nothing tried
   /// again. Retries cover that, with a widening delay so a genuinely
   /// unreachable server is not hammered.
+  /// 5xx server responses are retried once; transport cancellations and 429s
+  /// are deliberately not. OpenStreetMap's tile policy treats 429 as "back off",
+  /// and retrying client cancellations would keep dead sockets alive in the
+  /// background.
   ///
-  /// 5xx and transport failures are retried; 429 deliberately is not.
-  /// OpenStreetMap's tile policy treats that as "back off", and retrying
-  /// through it would be the sort of behaviour that gets an app blocked.
-  ///
-  /// The connection cap is the other half of that. Dart's `HttpClient` opens
-  /// as many sockets per host as it is asked to and will wait indefinitely to
-  /// connect each one, so a burst of tile requests — a fast zoom is exactly
-  /// that — could put a socket per tile in flight at once. Six at a time,
-  /// each with a bounded connect attempt, is what a browser does and keeps
-  /// the app inside OpenStreetMap's tile policy while a gesture is being
-  /// flung about.
+  /// Sockets are capped at 3 per host to comply with OpenStreetMap's 2-thread
+  /// guideline while maintaining smooth rendering, and connection timeouts are
+  /// bounded to 4 seconds so a stalled server does not starve the socket pool.
   static final http.Client client = RetryClient(
     IOClient(
       HttpClient()
-        ..connectionTimeout = const Duration(seconds: 10)
-        ..maxConnectionsPerHost = 6,
+        ..connectionTimeout = const Duration(seconds: 4)
+        ..idleTimeout = const Duration(seconds: 15)
+        ..maxConnectionsPerHost = 3,
     ),
-    retries: 3,
-    when: (response) => response.statusCode >= 500,
-    whenError: (error, _) => isNetworkFailure(error),
-    delay: (retry) => Duration(milliseconds: 400 * (1 << retry)),
+    retries: 1,
+    when: (response) => response.statusCode >= 500 && response.statusCode < 600,
+    delay: (retry) => const Duration(milliseconds: 500),
   );
 
   /// The caching provider every tile layer reads through.
@@ -195,9 +186,6 @@ class OfflineMaps {
 
     if (offline.value) return;
     offline.value = true;
-    // Tiles that just failed are still sitting in the layer as holes. Now
-    // that stale cached copies will be accepted, ask for them again.
-    _resetController.add(null);
   }
 
   // ------------------------------------------------------------- prefetching

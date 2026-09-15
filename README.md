@@ -54,13 +54,13 @@
 
 | | |
 |---|---|
-| **Latest version** | `v1.9.5`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.9.6`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 | **F-Droid** | [![F-Droid status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Ffdroid.json&style=flat-square&logo=fdroid&logoColor=white)](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299) — this badge tracks the submission live, no need to keep checking back |
 
-**What's new in v1.9.5.** Place search finds far more than it used to. Typing now goes to Photon, an OpenStreetMap search engine built for search-as-you-type — it matches part of a word, forgives a misspelling, and puts places near you above better-known ones elsewhere with the same name. Nominatim still turns a dropped pin into an address and still answers when Photon finds nothing. Also fixes the search box needing two taps before the keyboard came up.
+**What's new in v1.9.6.** Introduces an illustrated welcome guide explaining how LocReminder works on first launch. Hardens map tile loading during rapid zooms and abroad, avoiding CDN rate limits with debounced tile updates and faster offline recovery. Refines landscape search layout, adds full TalkBack accessibility support for map controls, and virtualizes the alarm list. Adds a developer "Buy me a coffee" link.
 
 **What v1.9.3 brought.** The map now works without a connection: every tile you look at is kept on the phone for a month, the streets around an alarm are saved the moment you set it, and when there is no signal the saved map is drawn rather than a blank grid. You can also type coordinates straight into the search box, which needs no connection at all — see [does it need the internet?](#-does-it-need-the-internet) for what does and what doesn't. It is also easier on the battery: nothing is checked at all on days none of your alarms are set for, and the checking interval is now worked out from how far and how fast you are travelling instead of fixed steps. See the [changelog](CHANGELOG.md) for the full history.
 
@@ -83,17 +83,21 @@
 <table>
   <tr>
     <td width="70" align="center"><h2>1</h2></td>
-    <td><strong>Search for where you are going</strong><br/><sub>Type a place name, paste coordinates, or drag the map under the pin. No account needed.</sub></td>
+    <td><strong>Search for where you are going or where do you want me to remind you</strong><br/><sub>Type a place name, paste coordinates, or drag the map under the pin. No account needed.</sub></td>
   </tr>
   <tr>
     <td align="center"><h2>2</h2></td>
-    <td><strong>Choose how early to be woken</strong><br/><sub>Anywhere from 100 m to 3 km out. A bigger radius gives you more time to gather your things.</sub></td>
+    <td><strong>Choose the radius you want to be notified</strong><br/><sub>Anywhere from 100 m to 3 km out. A bigger radius gives you more time to gather your things.</sub></td>
   </tr>
   <tr>
     <td align="center"><h2>3</h2></td>
-    <td><strong>Put your phone away and rest</strong><br/><sub>A quiet notification shows how far you have left. When you arrive, the alarm rings.</sub></td>
+    <td><strong>Put your phone away</strong><br/><sub>When you arrive, the alarm rings.</sub></td>
   </tr>
 </table>
+
+<br/>
+
+> 🛡️ **100% offline & private.** Zero data leaves your phone.
 
 <br/>
 
@@ -421,7 +425,7 @@ Map data and search © [OpenStreetMap](https://www.openstreetmap.org/copyright) 
 
   <br/><br/>
 
-  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">Download</a> &nbsp;·&nbsp; <a href="https://github.com/zaifears/locreminder/issues">Report an issue</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/">Website</a> &nbsp;·&nbsp; <a href="mailto:shahoriar.connect@gmail.com">Contact</a>
+  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">Download</a> &nbsp;·&nbsp; <a href="https://github.com/zaifears/locreminder/issues">Report an issue</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/">Website</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/thanks">Buy me a coffee</a> &nbsp;·&nbsp; <a href="mailto:shahoriar.connect@gmail.com">Contact</a>
 
   <br/><br/>
 
