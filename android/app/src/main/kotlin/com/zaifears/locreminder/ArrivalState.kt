@@ -49,6 +49,11 @@ class ArrivalState(context: Context) {
     }
 
     /**
+     * Whether [id] is currently suppressed awaiting an exit, with no side effects.
+     */
+    fun isSuppressed(id: String): Boolean = id in read(KEY_SUPPRESSED)
+
+    /**
      * Puts [id] back to needing an exit before it may ring again.
      *
      * Only repeating alarms need this, and they need it badly. A one-shot

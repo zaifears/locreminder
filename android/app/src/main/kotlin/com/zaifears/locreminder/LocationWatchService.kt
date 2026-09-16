@@ -171,7 +171,10 @@ class LocationWatchService : Service() {
      */
     private fun applyTodaysSchedule() {
         val weekday = todayIsoWeekday()
-        val ringsToday = AlarmStore(this).loadAll().any { it.ringsOn(weekday) }
+        val todayStr = today()
+        val ringsToday = AlarmStore(this).loadAll().any {
+            it.ringsOn(weekday) && !(it.repeats && arrivalState.hasRungToday(it.id, todayStr))
+        }
 
         if (ringsToday) {
             if (isDormant) {
@@ -194,7 +197,7 @@ class LocationWatchService : Service() {
 
         if (isDormant) return
 
-        Log.i(TAG, "Nothing is scheduled to ring today; standing down until it is")
+        Log.i(TAG, "Nothing is scheduled to ring today (or all scheduled alarms have already rung); standing down until it is")
         isDormant = true
         isReceivingUpdates = false
         handler.removeCallbacks(starvationCheck)
@@ -568,12 +571,31 @@ class LocationWatchService : Service() {
     private fun adaptIntervalTo(location: Location, entries: List<AlarmEntry>, weekday: Int) {
         val reported = if (location.hasSpeed() && location.speed > 1f) location.speed else 0f
         val planned = maxOf(reported, CRUISE_SPEED_MPS)
+        val todayStr = today()
 
         var target = MAX_INTERVAL_MILLIS
         for (entry in entries) {
             if (!entry.ringsOn(weekday)) continue
+            // An alarm that has already rung today cannot ring again today.
+            // Leaving it in the calculation would pull the polling interval
+            // down to 10 seconds while the user sits at their destination for
+            // the rest of the workday.
+            if (entry.repeats && arrivalState.hasRungToday(entry.id, todayStr)) continue
+
             val reach = distanceBetween(location, entry) + entry.radius
-            val safe = (reach / planned / SAMPLES_BEFORE_ARRIVAL * 1000).toLong()
+            var safe = (reach / planned / SAMPLES_BEFORE_ARRIVAL * 1000).toLong()
+
+            // If the user is currently inside the radius and suppressed awaiting
+            // an exit (e.g. setting an alarm for Home while at home), they are
+            // moving away from the stop rather than arriving. Detecting an exit
+            // does not require sub-second GPS accuracy: floor it to 60s so the
+            // phone can sleep at balanced power rather than burning 10s fixes
+            // overnight. Once outside, markOutside clears suppression and approach
+            // intervals tighten as normal.
+            if (arrivalState.isSuppressed(entry.id)) {
+                safe = maxOf(safe, SUPPRESSED_EXIT_INTERVAL_MILLIS)
+            }
+
             target = minOf(target, safe)
         }
 
@@ -619,6 +641,12 @@ class LocationWatchService : Service() {
         val othersArmed = AlarmStore(this).loadAll().any { it.id != entry.id }
         if (!entry.repeats && !othersArmed) {
             stopWatching()
+        } else if (entry.repeats) {
+            // A repeating alarm just completed for today. If no other active
+            // alarms are scheduled to ring for the rest of today, stand down
+            // into dormancy immediately rather than polling GPS every 10s until
+            // the next watchdog check.
+            applyTodaysSchedule()
         }
     }
 
@@ -752,6 +780,7 @@ class LocationWatchService : Service() {
         private const val NOTIFICATION_ID = 4203
         private const val FAR_INTERVAL_MILLIS = 120_000L
         private const val NEAR_INTERVAL_MILLIS = 10_000L
+        private const val SUPPRESSED_EXIT_INTERVAL_MILLIS = 60_000L
         private const val MAX_INTERVAL_MILLIS = 900_000L
         private const val ACCURACY_FLOOR_METRES = 500.0
         private const val ACCURACY_FALLBACK_MILLIS = 60_000L
