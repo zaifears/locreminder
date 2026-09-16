@@ -67,7 +67,7 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
           'Lock your phone now and put it down. If the alarm sounds and its '
           'screen appears over your lock screen, background alarms work on '
           'this device.\n\n'
-          'If nothing happens, your phone is blocking the app — work through '
+          'If nothing happens, your phone is blocking the app. Follow '
           'the steps on this page.',
         ),
         actions: [
@@ -107,7 +107,7 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Lock your phone now — the alarm rings in 15 seconds.'),
+        content: Text('Lock your phone now. The alarm rings in 15 seconds.'),
         duration: Duration(seconds: 8),
       ),
     );
@@ -135,7 +135,7 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                   child: Column(
                     children: [
                       _CheckRow(
-                        title: 'Location "Allow all the time"',
+                        title: 'Background location (all the time)',
                         granted: permissions.backgroundLocationGranted,
                         onFix: () async {
                           await _permissionService.requestBackgroundLocation();
@@ -401,12 +401,12 @@ class _DeviceCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Do these by hand',
+                'Recommended settings',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 4),
               Text(
-                'Android gives apps no way to set these themselves.',
+                'These settings must be changed manually.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

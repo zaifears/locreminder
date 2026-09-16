@@ -3,6 +3,26 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.7] - 2026-09-16
+
+### Added
+- **Manufacturer-specific background setup guides.** Added dedicated background
+  execution guidance and autostart shortcuts for Xiaomi (MIUI/HyperOS), Samsung
+  (One UI), Oppo/Realme (ColorOS), Vivo/iQOO (Funtouch/OriginOS), OnePlus
+  (OxygenOS), Huawei (EMUI/HarmonyOS), Honor (MagicOS), Transsion (HiOS/XOS),
+  Asus (ZenUI), Lenovo/ZTE, and more.
+- **In-app alarm verification tool.** Added an alarm reliability test on the
+  settings screen that fires after 15 seconds, allowing you to confirm that
+  your device wakes and displays alarms when locked.
+
+### Changed
+- **Optimized background location and battery usage.** Refined foreground service
+  and location polling behavior to minimize battery consumption while
+  maintaining responsiveness and reliability.
+- **Simplified reliability settings UI.** Clearer status indicators, natural
+  language instructions, and direct deep links to vendor-specific battery and
+  autostart settings.
+
 ## [1.9.6] - 2026-09-15
 
 ### Added

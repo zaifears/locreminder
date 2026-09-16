@@ -1,0 +1,5 @@
+Adds manufacturer-specific background guidance and alarm reliability checks for Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei, Honor, Transsion, and more.
+
+Includes an in-app test alarm tool to verify background alarms and lock-screen alerts before your journey.
+
+Optimizes background location handling and battery consumption while keeping location alarms responsive.
