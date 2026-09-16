@@ -22,7 +22,7 @@ Binaries: https://github.com/zaifears/locreminder/releases/download/v%v/app-rele
 Builds:
   - versionName: 1.9.6
     versionCode: 341
-    commit: v1.9.6
+    commit: 247625773ee628a413b16f3e25f0478f93b1283c
     output: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-armeabi-v7a-release.apk
@@ -53,7 +53,7 @@ Builds:
 
   - versionName: 1.9.6
     versionCode: 342
-    commit: v1.9.6
+    commit: 247625773ee628a413b16f3e25f0478f93b1283c
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-arm64-v8a-release.apk
@@ -84,7 +84,7 @@ Builds:
 
   - versionName: 1.9.6
     versionCode: 343
-    commit: v1.9.6
+    commit: 247625773ee628a413b16f3e25f0478f93b1283c
     output: build/app/outputs/flutter-apk/app-x86_64-release.apk
     binary: 
       https://github.com/zaifears/locreminder/releases/download/v%v/app-x86_64-release.apk
