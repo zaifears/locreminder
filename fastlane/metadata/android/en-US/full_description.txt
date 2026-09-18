@@ -6,25 +6,25 @@ Drop a pin on your destination, choose how close you want to get, and put your p
 
 <b>What it is good for</b>
 
-* Long bus or train rides, so you can actually sleep
-* Arriving somewhere unfamiliar, where you would not recognise your stop
-* Commuting, so you can read or work without watching the route
-* Road trips as a passenger, to be woken before the turn-off
-* Errands, so you are reminded at the shop or the post office rather than after passing it
+🚌 Long bus or train rides, so you can actually sleep
+🗺️ Arriving somewhere unfamiliar, where you would not recognise your stop
+📚 Commuting, so you can read or work without watching the route
+🚗 Road trips as a passenger, to be woken before the turn-off
+🛍️ Errands, so you are reminded at the shop or the post office rather than after passing it
 
 <b>Features</b>
 
-* A real alarm, not a quiet notification: loops on the alarm audio channel so it sounds even on silent
-* Choose your own alarm sound: any system ringtone, or an audio file of your own
-* Search for a destination by name, drag the map to place the pin exactly, or type coordinates straight in — the last of those needs no connection
-* Give each alarm a task in your own words — "Buy medicine" — or let it take the name of the place
-* Repeat an alarm every day, or on the weekdays you choose, for a commute or a standing errand
-* Multiple alarms, each with its own trigger radius, and live distance to each
-* Adjustable radius from 100 m to 3 km, so you get as much warning as you need
-* Light and dark themes
-* Works with no signal: the alarm runs on GPS alone and never needs a connection, and the map is kept on your phone so it still draws in a dead spot
-* Battery-aware: checks rarely when you are far away, more often as you approach, and not at all on days none of your alarms are set for
-* Reliability screen that detects your phone's manufacturer and shows the exact settings needed, plus a test that proves the alarm gets through a locked screen
+🔔 A real alarm, not a quiet notification: loops on the alarm audio channel so it sounds even on silent
+🎵 Choose your own alarm sound: any system ringtone, or an audio file of your own
+📍 Search for a destination by name, drag the map to place the pin exactly, or type coordinates straight in — the last of those needs no connection
+📝 Give each alarm a task in your own words — "Buy medicine" — or let it take the name of the place
+🔁 Repeat an alarm every day, or on the weekdays you choose, for a commute or a standing errand
+📋 Multiple alarms, each with its own trigger radius, and live distance to each
+📏 Adjustable radius from 100 m to 3 km, so you get as much warning as you need
+🌗 Light and dark themes
+📶 Works with no signal: the alarm runs on GPS alone and never needs a connection, and the map is kept on your phone so it still draws in a dead spot
+🔋 Battery-aware: checks rarely when you are far away, more often as you approach, and not at all on days none of your alarms are set for
+🛡️ Reliability screen that detects your phone's manufacturer and shows the exact settings needed, plus a test that proves the alarm gets through a locked screen
 
 <b>No signal? No problem</b>
 

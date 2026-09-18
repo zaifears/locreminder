@@ -71,17 +71,14 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                           segments: const [
                             ButtonSegment(
                               value: ThemeMode.system,
-                              icon: Icon(Icons.brightness_auto),
                               label: Text('System'),
                             ),
                             ButtonSegment(
                               value: ThemeMode.light,
-                              icon: Icon(Icons.light_mode),
                               label: Text('Light'),
                             ),
                             ButtonSegment(
                               value: ThemeMode.dark,
-                              icon: Icon(Icons.dark_mode),
                               label: Text('Dark'),
                             ),
                           ],
