@@ -18,8 +18,10 @@
     <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="46"/>
   </a>
   &nbsp;&nbsp;
-  <a href="https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299" title="Track the F-Droid submission">
-    <img src="https://i.ibb.co.com/HTcdVbNr/Coming-to-F-droid.png" alt="Coming to F-Droid" height="46"/>
+  <a href="https://f-droid.org/packages/com.zaifears.locreminder">
+    <img src="https://f-droid.org/badge/get-it-on.png"
+        alt="Get it on F-Droid"
+        height="80">
   </a>
 
   <br/><br/>
