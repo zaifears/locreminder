@@ -15,7 +15,7 @@
         alt="Get it on F-Droid"
         height="80">
   </a>
-  <div>or</div>
+  <div>or<br/><br/></div>
   <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
     <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download directly from GitHub" height="56"/>
   </a>
@@ -24,7 +24,7 @@
 
   <a href="#-how-to-use-it"><img src="https://img.shields.io/badge/📖_How_to-Use_it-475569?style=for-the-badge" alt="How to use"/></a>
 
-  <br/><br/>
+  <br/>
 
   <img src="https://img.shields.io/badge/Android-6.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android"/>
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"/>
