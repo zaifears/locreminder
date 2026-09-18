@@ -11,11 +11,7 @@
   <br/>
 
   <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
-    <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download APK directly from GitHub" height="56"/>
-  </a>
-  <br/><br/>
-  <a href="https://locreminder.en.uptodown.com/android" title="Download LocReminder">
-    <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="46"/>
+    <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download APK directly from GitHub" height="80"/>
   </a>
   &nbsp;&nbsp;
   <a href="https://f-droid.org/packages/com.zaifears.locreminder">
@@ -23,10 +19,6 @@
         alt="Get it on F-Droid"
         height="80">
   </a>
-
-  <br/><br/>
-
-  <a href="https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Ffdroid.json&style=flat-square&logo=fdroid&logoColor=white" alt="F-Droid status"/></a>
 
   <br/><br/>
 
@@ -60,7 +52,7 @@
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
-| **F-Droid** | [![F-Droid status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzaifears%2Flocreminder%2Fmain%2F.github%2Fbadges%2Ffdroid.json&style=flat-square&logo=fdroid&logoColor=white)](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/46299) — this badge tracks the submission live, no need to keep checking back |
+| **F-Droid** | [Get LocReminder on F-Droid](https://f-droid.org/packages/com.zaifears.locreminder) — install it through the F-Droid client for updates |
 
 **What's new in v1.9.7.** Adds device-specific background guides and autostart shortcuts for Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei, Honor, Transsion, and more. Includes a built-in alarm verification test to check lock-screen reliability, and further optimizes background location and battery usage.
 
@@ -69,8 +61,6 @@
 **Installing an APK.** Open the downloaded file and Android will ask for permission to install from your browser or file manager. That prompt is normal for any app installed outside the Play Store. Allow it once and you are done.
 
 **Smaller downloads.** The GitHub button at the top of the page downloads the universal APK (53 MB), which works on any Android device. The [GitHub Release page](https://github.com/zaifears/locreminder/releases/latest) also has architecture-specific builds, about 16-20 MB each. If you want a smaller download, pick `app-arm64-v8a-release.apk` (right for almost all phones made after 2015). F-Droid users get the right-sized APK automatically, no choice needed.
-
-**Prefer auto-updates?** LocReminder is also on [Uptodown](https://locreminder.en.uptodown.com/android). Install it through their app store client (or just the APK from the page) and you will not have to come back here for every new version, the same convenience F-Droid will offer once it lands.
 
 > ⚠️ **Already have an older LocReminder from GitHub, from before v1.6.6?** Please uninstall it first. Those builds went out signed with the wrong key by mistake, and Android will not replace one with the other. Your saved alarms will be lost in the swap. Sorry about that. It only affects this one upgrade.
 
