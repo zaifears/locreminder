@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -78,8 +79,9 @@ class AlarmForegroundService : Service() {
             if (label !in ringingLabels) ringingLabels.add(label)
             consumeAlarm(alarmId)
             startForeground(NOTIFICATION_ID, buildNotification(ringingLabel(), alarmId))
-            // Re-delivered to the activity too, so the screen names both
-            // stops instead of only the one that got there first.
+            // The alarm activity is already visible in this path. Deliver the
+            // updated labels through onNewIntent so the screen names every
+            // destination included in the current alarm.
             launchAlarmActivity(ringingLabel(), alarmId)
             // The user has only just arrived somewhere new, so give them the
             // full ten minutes from *this* arrival rather than the first.
@@ -100,7 +102,9 @@ class AlarmForegroundService : Service() {
         NotificationHelper.ensureAlarmChannel(this)
         startForeground(NOTIFICATION_ID, buildNotification(ringingLabel(), alarmId))
         acquireWakeLock()
-        launchAlarmActivity(label, alarmId)
+        // AlarmActivity is opened by the notification's full-screen
+        // PendingIntent. Direct background activity launches are restricted
+        // by modern Android versions.
         playAlarmSound()
         startVibration()
         scheduleAutoStop()
@@ -232,41 +236,64 @@ class AlarmForegroundService : Service() {
     }
 
     private fun startVibration() {
-        if (!AlarmSettings(this).vibrationEnabled()) return
+        if (!AlarmSettings(this).vibrationEnabled()) {
+            Log.i(TAG, "Alarm vibration disabled in app settings")
+            return
+        }
 
-        // VIBRATOR_SERVICE still resolves on Android 12+, but through a
-        // compatibility shim; VibratorManager is the real accessor there.
+        // VibratorManager is the preferred accessor on Android 12 and newer.
         val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+                ?.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
             getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
 
-        if (device == null || !device.hasVibrator()) {
+        if (device == null) {
+            Log.w(TAG, "Vibrator service unavailable")
+            return
+        }
+
+        if (!device.hasVibrator()) {
             Log.i(TAG, "No vibrator available; ringing without it")
             return
         }
+
         vibrator = device
 
-        // Declared as an alarm rather than left to default to USAGE_UNKNOWN.
-        // Do Not Disturb and the silent profile suppress ordinary vibrations,
-        // so without these attributes the phone would play the tone on the
-        // alarm stream while sitting perfectly still in a pocket — which is
-        // exactly the situation the buzz exists for.
-        val attributes = AudioAttributes.Builder()
+        val audioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
 
         val pattern = longArrayOf(0, 800, 400)
+
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                device.vibrate(VibrationEffect.createWaveform(pattern, 0), attributes)
-            } else {
-                @Suppress("DEPRECATION")
-                device.vibrate(pattern, 0, attributes)
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                    val effect = VibrationEffect.createWaveform(pattern, 0)
+                    val vibrationAttributes = VibrationAttributes.Builder()
+                        .setUsage(VibrationAttributes.USAGE_ALARM)
+                        .build()
+
+                    device.vibrate(effect, vibrationAttributes)
+                }
+
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                    val effect = VibrationEffect.createWaveform(pattern, 0)
+                    device.vibrate(effect, audioAttributes)
+                }
+
+                else -> {
+                    @Suppress("DEPRECATION")
+                    device.vibrate(pattern, 0, audioAttributes)
+                }
             }
+
+            Log.i(TAG, "Alarm vibration started")
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Vibration permission was denied", e)
         } catch (e: Exception) {
             Log.w(TAG, "Vibration failed; the tone still plays", e)
         }
@@ -278,7 +305,12 @@ class AlarmForegroundService : Service() {
             putExtra(EXTRA_LABEL, label)
             putExtra(EXTRA_ALARM_ID, alarmId)
         }
-        startActivity(activityIntent)
+
+        try {
+            startActivity(activityIntent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not update the visible alarm activity", e)
+        }
     }
 
     private fun buildNotification(label: String, alarmId: String): Notification {
@@ -289,9 +321,9 @@ class AlarmForegroundService : Service() {
         }
         val fullScreenPendingIntent = PendingIntent.getActivity(
             this,
-            0,
+            alarmId.hashCode(),
             fullScreenIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
         val stopIntent = Intent(this, AlarmForegroundService::class.java).apply { action = ACTION_STOP }
@@ -308,6 +340,7 @@ class AlarmForegroundService : Service() {
             .setSmallIcon(R.drawable.ic_notification_alarm)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setContentIntent(fullScreenPendingIntent)
             .addAction(
