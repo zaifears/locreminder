@@ -10,14 +10,14 @@
 
   <br/>
 
-  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
-    <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download APK directly from GitHub" height="80"/>
-  </a>
-  &nbsp;&nbsp;
   <a href="https://f-droid.org/packages/com.zaifears.locreminder">
     <img src="https://f-droid.org/badge/get-it-on.png"
         alt="Get it on F-Droid"
         height="80">
+  </a>
+  &nbsp; or &nbsp;
+  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
+    <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download directly from GitHub" height="56"/>
   </a>
 
   <br/><br/>
