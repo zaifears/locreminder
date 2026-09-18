@@ -15,7 +15,7 @@
         alt="Get it on F-Droid"
         height="80">
   </a>
-  &nbsp; or &nbsp;
+  <div>or</div>
   <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
     <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download directly from GitHub" height="56"/>
   </a>
