@@ -116,24 +116,42 @@ class _AlarmSoundSectionState extends State<AlarmSoundSection> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pick(_nativeBridge.pickAlarmRingtone),
-                    icon: const Icon(Icons.library_music_outlined, size: 20),
-                    label: const Text('Ringtones'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pick(_nativeBridge.pickAlarmAudioFile),
-                    icon: const Icon(Icons.folder_open, size: 20),
-                    label: const Text('My files'),
-                  ),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final ringtonesButton = OutlinedButton.icon(
+                  onPressed: () => _pick(_nativeBridge.pickAlarmRingtone),
+                  icon: const Icon(Icons.library_music_outlined, size: 20),
+                  label: const Text('Ringtones'),
+                );
+
+                final filesButton = OutlinedButton.icon(
+                  onPressed: () => _pick(_nativeBridge.pickAlarmAudioFile),
+                  icon: const Icon(Icons.folder_open, size: 20),
+                  label: const Text('My files'),
+                );
+
+                // Two icon buttons do not fit reliably side by side on narrow
+                // phones or with larger accessibility text. Stack them rather
+                // than allowing their labels to split across two lines.
+                if (constraints.maxWidth < 340) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ringtonesButton,
+                      const SizedBox(height: 10),
+                      filesButton,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: ringtonesButton),
+                    const SizedBox(width: 10),
+                    Expanded(child: filesButton),
+                  ],
+                );
+              },
             ),
           ),
           if (_soundName != null)

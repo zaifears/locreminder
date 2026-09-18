@@ -232,13 +232,25 @@ class LocationWatchService : Service() {
             runCatching { locationManager.isProviderEnabled(LocationManager.FUSED_PROVIDER) }
                 .getOrDefault(false)
         ) {
-            return listOf(LocationManager.FUSED_PROVIDER)
+            // Fused location is efficient when it works, but some Android
+            // builds stop producing fused fixes without a data connection.
+            // Listen to raw GPS at the same time so an offline journey never
+            // has to wait several minutes for the starvation fallback.
+            return listOf(
+                LocationManager.FUSED_PROVIDER,
+                LocationManager.GPS_PROVIDER,
+            ).filter { provider ->
+                available.contains(provider) &&
+                    runCatching { locationManager.isProviderEnabled(provider) }
+                        .getOrDefault(false)
+            }
         }
 
         return listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
             .filter { provider ->
                 available.contains(provider) &&
-                    runCatching { locationManager.isProviderEnabled(provider) }.getOrDefault(false)
+                    runCatching { locationManager.isProviderEnabled(provider) }
+                        .getOrDefault(false)
             }
     }
 
@@ -322,15 +334,11 @@ class LocationWatchService : Service() {
                         LocationRequest.QUALITY_BALANCED_POWER_ACCURACY
                     },
                 )
-                .apply {
-                    // Letting the hardware hold a couple of fixes back and
-                    // deliver them together lets the processor stay asleep
-                    // between them. Only offered when the next fix is minutes
-                    // out anyway, where the delay it adds cannot matter.
-                    if (intervalMillis >= BATCHING_FROM_MILLIS) {
-                        setMaxUpdateDelayMillis(intervalMillis)
-                    }
-                }
+                // Do not set a maximum update delay. Location batching allows
+                // Android to hold completed fixes and deliver them later,
+                // which saves some wakeups but is the wrong trade-off for an
+                // alarm whose main failure condition is learning about an
+                // arrival several minutes late.
                 .build()
             locationManager.requestLocationUpdates(provider, request, mainExecutor, locationListener)
         } else {
@@ -360,8 +368,17 @@ class LocationWatchService : Service() {
      * Treating that as a fault would mean tearing down a working registration
      * every time somebody waits inside a shop.
      */
-    private fun starvationDeadlineMillis(): Long =
-        maxOf(currentIntervalMillis * 3, MIN_STARVATION_MILLIS) + STARVATION_GRACE_MILLIS
+    private fun starvationDeadlineMillis(): Long {
+        // Getting the first fix is the highest-risk period. Waiting the normal
+        // multi-interval deadline here can leave an offline alarm unaware of
+        // movement for several minutes.
+        if (lastFixElapsed == 0L) return FIRST_FIX_STARVATION_MILLIS
+
+        return maxOf(
+            currentIntervalMillis * 3,
+            MIN_STARVATION_MILLIS,
+        ) + STARVATION_GRACE_MILLIS
+    }
 
     /**
      * Handles a registration that succeeded but delivers nothing.
@@ -808,17 +825,22 @@ class LocationWatchService : Service() {
         /** Above this interval, the expensive always-GNSS tier is not asked for. */
         private const val HIGH_ACCURACY_UP_TO_MILLIS = 30_000L
 
-        /** Above this interval, fixes may be batched so the processor can sleep. */
-        private const val BATCHING_FROM_MILLIS = 300_000L
-
         /** Above this interval, other apps' fixes are worth listening for. */
         private const val PASSIVE_PIGGYBACK_FROM_MILLIS = 60_000L
 
-        /** Slack on top of three missed intervals before calling it starvation. */
-        private const val STARVATION_GRACE_MILLIS = 60_000L
+        /**
+         * Maximum wait for the first fix before rebuilding the registration
+         * around the raw providers. Long enough for an ordinary GNSS cold
+         * start, but short enough that an offline journey is not invisible
+         * for several minutes.
+         */
+        private const val FIRST_FIX_STARVATION_MILLIS = 90_000L
 
-        /** Floor under that, so a short interval cannot make it trigger-happy. */
-        private const val MIN_STARVATION_MILLIS = 300_000L
+        /** Slack on top of missed intervals before calling later silence starvation. */
+        private const val STARVATION_GRACE_MILLIS = 30_000L
+
+        /** Floor for later starvation checks after at least one fix has arrived. */
+        private const val MIN_STARVATION_MILLIS = 120_000L
 
         // Bad-but-plausible GPS or network accuracy under a viaduct or roof
         // is in the hundreds to low thousands of metres. Far past that is not
