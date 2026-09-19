@@ -417,7 +417,7 @@ Map data and search © [OpenStreetMap](https://www.openstreetmap.org/copyright) 
 
   <br/><br/>
 
-  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">Download</a> &nbsp;·&nbsp; <a href="https://github.com/zaifears/locreminder/issues">Report an issue</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/">Website</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/thanks">Buy me a coffee</a> &nbsp;·&nbsp; <a href="mailto:shahoriar.connect@gmail.com">Contact</a>
+  <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">Download</a> &nbsp;·&nbsp; <a href="https://github.com/zaifears/locreminder/issues">Report an issue</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/">Website</a> &nbsp;·&nbsp; <a href="https://shahoriar.bd/thanks">Buy me a coffee</a> &nbsp;·&nbsp; <a href="mailto:hello@shahoriar.bd">Contact</a>
 
   <br/><br/>
 

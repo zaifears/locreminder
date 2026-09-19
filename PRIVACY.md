@@ -101,4 +101,4 @@ project's Git history.
 
 ## Contact
 
-Shahoriar Hossain — <shahoriar.connect@gmail.com> — <https://shahoriar.bd/>
+Shahoriar Hossain — <hello@shahoriar.bd> — <https://shahoriar.bd/>
