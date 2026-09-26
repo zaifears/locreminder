@@ -19,6 +19,15 @@ class AlarmActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setupWindowFlags()
+
+        // Android 13+ predictive back gesture can bypass onBackPressed().
+        // Register a no-op callback so the alarm cannot be swiped away.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+            ) { /* no-op: alarm must be dismissed via Stop button */ }
+        }
+
         setContentView(R.layout.activity_alarm)
 
         showLabelFrom(intent)
@@ -56,6 +65,8 @@ class AlarmActivity : Activity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
+            val keyguardManager = getSystemService(android.app.KeyguardManager::class.java)
+            keyguardManager?.requestDismissKeyguard(this, null)
         } else {
             @Suppress("DEPRECATION")
             window.addFlags(

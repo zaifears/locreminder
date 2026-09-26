@@ -294,7 +294,7 @@ class AlarmForegroundService : Service() {
             Log.i(TAG, "Alarm vibration started")
         } catch (e: SecurityException) {
             Log.e(TAG, "Vibration permission was denied", e)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.w(TAG, "Vibration failed; the tone still plays", e)
         }
     }
@@ -307,7 +307,34 @@ class AlarmForegroundService : Service() {
         }
 
         try {
-            startActivity(activityIntent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Android 14+ requires explicit background activity start mode
+                val options = android.app.ActivityOptions.makeBasic().apply {
+                    pendingIntentBackgroundActivityStartMode =
+                        android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                }
+                val pending = PendingIntent.getActivity(
+                    this,
+                    alarmId.hashCode(),
+                    activityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                pending.send(this, 0, null, null, null, null, options.toBundle())
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Android 12+ restricts background activity starts. Use a
+                // full-screen-intent PendingIntent instead, which the system
+                // is obligated to launch immediately for alarm-category
+                // foreground services.
+                val pending = PendingIntent.getActivity(
+                    this,
+                    alarmId.hashCode(),
+                    activityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                pending.send()
+            } else {
+                startActivity(activityIntent)
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Could not update the visible alarm activity", e)
         }

@@ -31,6 +31,8 @@ object OemHelper {
     private val autoStartCandidates = listOf(
         // Xiaomi / Redmi / Poco (MIUI, HyperOS)
         "com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity",
+        "com.miui.securitycenter" to "com.miui.permcenter.permissions.PermissionsEditorActivity",
+        "com.miui.securitycenter" to "com.miui.permcenter.permissions.AppPermissionsEditorActivity",
         // Oppo / Realme (ColorOS)
         "com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity",
         "com.coloros.safecenter" to "com.coloros.safecenter.startupapp.StartupAppListActivity",
@@ -43,9 +45,16 @@ object OemHelper {
         // Huawei / Honor (EMUI, MagicOS)
         "com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
         "com.huawei.systemmanager" to "com.huawei.systemmanager.optimize.process.ProtectActivity",
-        // Samsung (One UI) device care
+        // Samsung (One UI) device care (modern com.samsung.android.sm + legacy com.samsung.android.lool)
+        "com.samsung.android.sm" to "com.samsung.android.sm.battery.ui.BatteryActivity",
+        "com.samsung.android.sm" to "com.samsung.android.sm.ui.battery.BatteryActivity",
+        "com.samsung.android.sm_cn" to "com.samsung.android.sm.ui.battery.BatteryActivity",
         "com.samsung.android.lool" to "com.samsung.android.sm.ui.battery.BatteryActivity",
         "com.samsung.android.lool" to "com.samsung.android.sm.battery.ui.BatteryActivity",
+        // Transsion: Tecno / Infinix / itel (HiOS / XOS)
+        "com.transsion.phonemanager" to "com.transsion.phonemanager.settings.AutoStartAppListActivity",
+        "com.transsion.phonemanager" to "com.transsion.phonemanager.view.AutoStartAppListActivity",
+        "com.transsion.smartpanel" to "com.transsion.smartpanel.settings.AutoStartAppListActivity",
         // Asus
         "com.asus.mobilemanager" to "com.asus.mobilemanager.autostart.AutoStartActivity",
         // Letv
@@ -73,6 +82,9 @@ object OemHelper {
         for ((pkg, cls) in autoStartCandidates) {
             val intent = Intent().apply {
                 component = ComponentName(pkg, cls)
+                putExtra("extra_pkgname", context.packageName)
+                putExtra("package_name", context.packageName)
+                putExtra("package", context.packageName)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             if (context.packageManager.resolveActivity(intent, 0) != null) {

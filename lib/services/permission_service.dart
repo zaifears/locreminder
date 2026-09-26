@@ -32,6 +32,7 @@ class PermissionStatusSummary {
       foregroundLocationGranted &&
       backgroundLocationGranted &&
       notificationsGranted &&
+      fullScreenIntentAllowed &&
       batteryOptimizationDisabled;
 }
 

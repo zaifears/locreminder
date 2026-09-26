@@ -191,19 +191,35 @@ class MainActivity : FlutterActivity() {
                 // idle state — the condition that actually matters.
                 "triggerTestAlarm" -> {
                     val delaySeconds = call.argument<Int>("delaySeconds") ?: 10
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        val testIntent = Intent(this, AlarmForegroundService::class.java).apply {
-                            action = AlarmForegroundService.ACTION_START
-                            putExtra(AlarmForegroundService.EXTRA_LABEL, getString(R.string.test_alarm_label))
-                            putExtra(AlarmForegroundService.EXTRA_ALARM_ID, "")
+                    val testIntent = Intent(this, TestAlarmReceiver::class.java).apply {
+                        putExtra(AlarmForegroundService.EXTRA_LABEL, getString(R.string.test_alarm_label))
+                    }
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        this,
+                        TestAlarmReceiver.REQUEST_CODE,
+                        testIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                    val alarmManager = getSystemService(android.app.AlarmManager::class.java)
+                    if (alarmManager != null) {
+                        val triggerAtMillis = android.os.SystemClock.elapsedRealtime() + delaySeconds * 1000L
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+                            alarmManager.setExactAndAllowWhileIdle(
+                                android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                                triggerAtMillis,
+                                pendingIntent,
+                            )
+                        } else {
+                            alarmManager.setAndAllowWhileIdle(
+                                android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                                triggerAtMillis,
+                                pendingIntent,
+                            )
                         }
-                        try {
-                            ContextCompat.startForegroundService(this, testIntent)
-                        } catch (e: Exception) {
-                            NotificationHelper.postFallbackAlarmNotification(this, getString(R.string.test_alarm_label))
-                        }
-                    }, delaySeconds * 1000L)
-                    result.success(true)
+                        result.success(true)
+                    } else {
+                        result.error("ALARM_UNAVAILABLE", "AlarmManager not available", null)
+                    }
                 }
                 "getAlarmSound" -> {
                     val settings = AlarmSettings(this)

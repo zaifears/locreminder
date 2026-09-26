@@ -770,6 +770,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (!permissions.foregroundLocationGranted) 'location access',
       if (!permissions.backgroundLocationGranted) '"Allow all the time"',
       if (!permissions.notificationsGranted) 'notifications',
+      if (!permissions.fullScreenIntentAllowed) 'full-screen alarm access',
+      if (!permissions.batteryOptimizationDisabled) 'unrestricted battery access',
     ];
 
     return Container(

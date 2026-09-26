@@ -135,6 +135,20 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                   child: Column(
                     children: [
                       _CheckRow(
+                        title: 'Location access & services',
+                        granted: permissions.locationServiceEnabled &&
+                            permissions.foregroundLocationGranted,
+                        onFix: () async {
+                          if (!permissions.locationServiceEnabled) {
+                            await _nativeBridge.openLocationSettings();
+                          } else {
+                            await _permissionService.requestForegroundLocation();
+                          }
+                          await _refresh();
+                        },
+                      ),
+                      const Divider(height: 1),
+                      _CheckRow(
                         title: 'Background location (all the time)',
                         granted: permissions.backgroundLocationGranted,
                         onFix: () async {

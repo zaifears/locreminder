@@ -48,13 +48,13 @@
 
 | | |
 |---|---|
-| **Latest version** | `v1.9.7`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v1.9.9`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 | **F-Droid** | [Get LocReminder on F-Droid](https://f-droid.org/packages/com.zaifears.locreminder) — install it through the F-Droid client for updates |
 
-**What's new in v1.9.7.** Adds device-specific background guides and autostart shortcuts for Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei, Honor, Transsion, and more. Includes a built-in alarm verification test to check lock-screen reliability, and further optimizes background location and battery usage.
+**What's new in v1.9.9.** Hardened full-screen alarm delivery across Samsung One UI, Xiaomi MIUI/HyperOS, and Vivo devices. Fixes secure lock-screen keyguard dismissal, display cutout handling, predictive back gesture dismissals, and background test alarm reliability.
 
 **What v1.9.3 brought.** The map now works without a connection: every tile you look at is kept on the phone for a month, the streets around an alarm are saved the moment you set it, and when there is no signal the saved map is drawn rather than a blank grid. You can also type coordinates straight into the search box, which needs no connection at all — see [does it need the internet?](#-does-it-need-the-internet) for what does and what doesn't. It is also easier on the battery: nothing is checked at all on days none of your alarms are set for, and the checking interval is now worked out from how far and how fast you are travelling instead of fixed steps. See the [changelog](CHANGELOG.md) for the full history.
 

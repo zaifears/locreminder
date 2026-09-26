@@ -1,0 +1,5 @@
+Fixes full-screen alarm delivery over secure lock screens across Android 8 through 15.
+Resolves launch mode conflicts and optimizes lock-screen display on Samsung, Xiaomi, and Vivo devices.
+Prevents background test alarm drops using AlarmManager and broadcast fallbacks.
+Improves text scaling and fits display cutouts on modern screens.
+Enhances device-specific autostart reliability settings.

@@ -3,6 +3,19 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.9] - 2026-09-26
+
+### Fixed
+- **Full-screen lock-screen alarms.** Ensured alarms reliably wake the screen and dismiss keyguards over secure lock screens (PIN, pattern, biometric) on Android 8 through 15.
+- **Display cutouts and notches.** Added cutout handling (`shortEdges`) so the alarm screen cleanly adapts to modern notched and punch-hole displays without letterboxing.
+- **Launch mode and task isolation.** Fixed `singleInstance` launch mode conflict on Samsung One UI and Xiaomi MIUI/HyperOS, isolating the alarm task with `taskAffinity=""` so it never dismisses or corrupts the main app task.
+- **Predictive back gesture protection.** Registered an `OnBackInvokedCallback` on Android 13+ to prevent swipe-to-back gestures from accidentally dismissing the ringing alarm.
+- **Reliable background test alarms.** Replaced in-memory timers with `AlarmManager` and a dedicated `TestAlarmReceiver` with fallback notification support, ensuring test alarms fire even after phone lock and system service restrictions.
+- **Vendor-specific autostart settings.** Added support for modern Samsung One UI (One UI 3–6 via `com.samsung.android.sm`), Transsion (Tecno/Infinix/itel), and Xiaomi permissions editor shortcuts.
+- **Android 14 background activity launches.** Added `ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED` for folded alarms on Android 14+.
+- **Vibration safety on budget devices.** Prevented crashes from `AbstractMethodError` on non-standard OEM vibrator implementations.
+- **UI and accessibility robustness.** Added text autosizing with bounds constraints and fixed missing permission descriptions in the home screen banner.
+
 ## [1.9.7] - 2026-09-16
 
 ### Added

@@ -83,7 +83,8 @@ class AlarmStore(context: Context) {
     }
 
     fun clear() {
-        prefs.edit().remove(KEY_ENTRIES).apply()
+        parsed.clear()
+        prefs.edit().remove(KEY_ENTRIES).commit()
     }
 
     private fun persist(entries: List<AlarmEntry>) {
@@ -98,12 +99,12 @@ class AlarmStore(context: Context) {
             obj.put("repeatDays", JSONArray(e.repeatDays.sorted()))
             array.put(obj)
         }
-        prefs.edit().putString(KEY_ENTRIES, array.toString()).apply()
+        prefs.edit().putString(KEY_ENTRIES, array.toString()).commit()
     }
 
     companion object {
         /** Parsed entries, keyed by the raw JSON they were parsed from. */
-        private val parsed = mutableMapOf<String, List<AlarmEntry>>()
+        private val parsed = java.util.concurrent.ConcurrentHashMap<String, List<AlarmEntry>>()
 
         // Legacy name kept deliberately: renaming it would orphan the
         // alarms of anyone upgrading from an earlier version.

@@ -71,6 +71,10 @@ const _vendorProfiles = <_VendorProfile>[
         title: 'Lock the app in Recents',
         path: 'Open Recents, pull down on LocReminder, tap the lock icon',
       ),
+      OemStep(
+        title: 'Allow Show on Lock screen & Pop-ups',
+        path: 'Settings > Apps > Manage apps > LocReminder > Other permissions > Show on Lock screen',
+      ),
     ],
   ),
   _VendorProfile(
@@ -89,6 +93,10 @@ const _vendorProfiles = <_VendorProfile>[
       OemStep(
         title: 'Set battery to Unrestricted',
         path: 'Settings > Apps > LocReminder > Battery > Unrestricted',
+      ),
+      OemStep(
+        title: 'Allow alarm in Do Not Disturb',
+        path: 'Settings > Notifications > Do not disturb > Apps > Add LocReminder',
       ),
     ],
   ),
@@ -123,6 +131,10 @@ const _vendorProfiles = <_VendorProfile>[
       OemStep(
         title: 'Allow autostart',
         path: 'Settings > Apps > Permission manager > Autostart > LocReminder',
+      ),
+      OemStep(
+        title: 'Allow display on lock screen',
+        path: 'Settings > Apps > Permission manager > Permissions > LocReminder > Display on lock screen',
       ),
       OemStep(
         title: 'Lock the app in Recents',

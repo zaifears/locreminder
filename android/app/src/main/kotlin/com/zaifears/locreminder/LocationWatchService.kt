@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import java.util.Calendar
 
 /**
@@ -632,7 +633,12 @@ class LocationWatchService : Service() {
             putExtra(AlarmForegroundService.EXTRA_ALARM_ID, entry.id)
             putExtra(AlarmForegroundService.EXTRA_LABEL, entry.label)
         }
-        startService(alarmIntent)
+        try {
+            ContextCompat.startForegroundService(this, alarmIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not start AlarmForegroundService; posting fallback notification", e)
+            NotificationHelper.postFallbackAlarmNotification(this, entry.label)
+        }
 
         // A repeating alarm survives the ring, and the user is standing
         // inside its radius as it does. Without this it would ring again on
