@@ -121,7 +121,7 @@ store:
 # ---------------------------------------------------------------------------
 app:
   appTitle: LocReminder
-  appTagline: Never miss your stop
+  appTagline: Reminds you at the right place
 
   # Navigation drawer
   drawerReliability: Alarm reliability

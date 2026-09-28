@@ -435,7 +435,7 @@ special about it: it needs translating like the rest.
 | Key | English | Your language |
 |---|---|---|
 | `appTitle` | LocReminder | |
-| `appTagline` | Never miss your stop | |
+| `appTagline` | Reminds you at the right place | |
 | `drawerReliability` | Alarm reliability | |
 | `drawerReliabilitySubtitle` | Make sure it will ring | |
 | `drawerSettings` | Settings | |

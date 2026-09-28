@@ -415,7 +415,7 @@ Map data and search © [OpenStreetMap](https://www.openstreetmap.org/copyright) 
 
 <div align="center">
 
-  <strong>🚏 Never miss your stop again.</strong>
+  <strong>📍 Reminds you at the right place.</strong>
 
   <br/><br/>
 

@@ -29,7 +29,7 @@ abstract class S {
   static const delegate = _SDelegate();
 
   String get appTitle => 'LocReminder';
-  String get appTagline => 'Never miss your stop';
+  String get appTagline => 'Reminds you at the right place';
   String get drawerReliability => 'Alarm reliability';
   String get drawerReliabilitySubtitle => 'Make sure it will ring';
   String get drawerSettings => 'Settings';
