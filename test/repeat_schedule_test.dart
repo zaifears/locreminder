@@ -99,5 +99,20 @@ void main() {
       expect(updated.repeatDays, {6});
       expect(updated.isActive, isFalse);
     });
+
+    test('updates location, label, and radius while preserving other fields', () {
+      final updated = _alarm().copyWith(
+        label: 'New destination',
+        latitude: 22.3569,
+        longitude: 91.7832,
+        radiusMeters: 1000,
+      );
+      expect(updated.label, 'New destination');
+      expect(updated.latitude, 22.3569);
+      expect(updated.longitude, 91.7832);
+      expect(updated.radiusMeters, 1000);
+      expect(updated.id, 'abc123');
+      expect(updated.isActive, isTrue);
+    });
   });
 }

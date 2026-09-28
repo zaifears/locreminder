@@ -3,6 +3,15 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-09-29
+
+### Added
+- **Edit alarms.** You can now edit any saved alarm directly from its card on the home screen. Tap the edit button to adjust the destination location on the map, change the geofence radius, rename the reminder note, or modify repeat schedules without deleting and re-creating the alarm. (Suggested by @kiinami, closes [#10](https://github.com/zaifears/locreminder/issues/10)).
+
+### Fixed
+- **Stuck deletion notification.** Fixed the delete-confirmation notice getting trapped behind the bottom destination sheet. Notices are now displayed as elevated floating bars with clear dismiss swipe support and immediate visual feedback.
+- **Arrival state reset on geofence update.** Arrival tracking suppression is now reset whenever an alarm's coordinates or radius are updated, ensuring that arriving at a newly edited location reliably triggers the alarm.
+
 ## [1.9.9] - 2026-09-26
 
 ### Fixed

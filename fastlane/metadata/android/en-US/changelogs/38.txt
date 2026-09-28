@@ -1,0 +1,3 @@
+• Edit existing alarms: change destination location, radius, task note, and repeat schedule anytime directly from each alarm card.
+• Fixed deletion feedback: confirmation snackbars are now elevated and floating so they don't get trapped beneath the destination sheet.
+• Instant arrival tracking refresh: resetting suppression states when geofence coordinates or radius change ensures reliable triggers.

@@ -54,6 +54,9 @@ class MainActivity : FlutterActivity() {
                     if (id == null || lat == null || lng == null || radius == null) {
                         result.error("INVALID_ARGS", "id, latitude, longitude and radius are required", null)
                     } else {
+                        // Always reset arrival tracking for this ID so that creating or
+                        // editing an alarm evaluates arrival fresh with no stale suppression.
+                        ArrivalState(this).forget(id)
                         AlarmStore(this).save(AlarmEntry(id, label, lat, lng, radius, repeatDays))
                         result.success(true)
                     }
@@ -63,11 +66,13 @@ class MainActivity : FlutterActivity() {
                     if (id == null) {
                         result.error("INVALID_ARGS", "id is required", null)
                     } else {
+                        ArrivalState(this).forget(id)
                         AlarmStore(this).remove(id)
                         result.success(true)
                     }
                 }
                 "removeAllAlarms" -> {
+                    ArrivalState(this).forgetAllExcept(emptyList())
                     AlarmStore(this).clear()
                     result.success(true)
                 }

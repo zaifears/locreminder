@@ -86,6 +86,8 @@ class LocationAlarm {
 
   LocationAlarm copyWith({
     String? label,
+    double? latitude,
+    double? longitude,
     double? radiusMeters,
     bool? isActive,
     Set<int>? repeatDays,
@@ -93,8 +95,8 @@ class LocationAlarm {
     return LocationAlarm(
       id: id,
       label: label ?? this.label,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       radiusMeters: radiusMeters ?? this.radiusMeters,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt,

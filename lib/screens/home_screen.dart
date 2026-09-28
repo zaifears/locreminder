@@ -166,6 +166,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       SnackBar(
         content: Text(message),
         action: action,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
         duration: Duration(seconds: seconds.clamp(1, _maxNoticeSeconds)),
       ),
     );
@@ -410,10 +412,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!mounted) return;
 
     setState(() => _alarms = _alarms.where((a) => a.id != alarm.id).toList());
-    await _repository.saveAll(_alarms);
-    await _syncLocationWatch();
-    if (!mounted) return;
-
     _notify(
       'Deleted ${alarm.label}',
       action: SnackBarAction(
@@ -421,6 +419,85 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onPressed: () => _restoreAlarm(alarm, index),
       ),
       seconds: 5,
+    );
+    await _repository.saveAll(_alarms);
+    await _syncLocationWatch();
+  }
+
+  /// Opens the picker pre-populated with [alarm]'s current values so the
+  /// user can change any field — including the location itself.
+  ///
+  /// On save the old native alarm is removed and a new one registered under
+  /// the same ID, which is indistinguishable from a delete + create to the
+  /// watch service. Keeping the ID preserves the alarm's position in the
+  /// list and its creation timestamp.
+  ///
+  /// Suggested by @kiinami — https://github.com/zaifears/locreminder/issues/10
+  Future<void> _editAlarm(LocationAlarm alarm) async {
+    final picked = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialCenter: LatLng(alarm.latitude, alarm.longitude),
+          travelSpeed: _userSpeed,
+          editingAlarm: alarm,
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+
+    final updated = alarm.copyWith(
+      label: picked.label,
+      latitude: picked.latitude,
+      longitude: picked.longitude,
+      radiusMeters: picked.radiusMeters,
+      repeatDays: picked.repeatDays,
+    );
+
+    // Nothing changed — no work to do.
+    if (updated.label == alarm.label &&
+        updated.latitude == alarm.latitude &&
+        updated.longitude == alarm.longitude &&
+        updated.radiusMeters == alarm.radiusMeters &&
+        updated.repeatDays.length == alarm.repeatDays.length &&
+        updated.repeatDays.containsAll(alarm.repeatDays)) {
+      return;
+    }
+
+    // Register the updated alarm on the native side. AlarmStore.save()
+    // replaces by ID and clears ArrivalState so arrival is evaluated fresh.
+    if (alarm.isActive) {
+      final registered = await _register(updated);
+      if (!registered || !mounted) return;
+    }
+
+    setState(() {
+      _alarms = _alarms.map((a) => a.id == alarm.id ? updated : a).toList();
+    });
+    await _repository.saveAll(_alarms);
+    await _syncLocationWatch();
+
+    // Re-fetch offline map tiles when the location moved.
+    if (updated.latitude != alarm.latitude ||
+        updated.longitude != alarm.longitude) {
+      unawaited(_saveOfflineArea(updated));
+    }
+
+    _mapController.move(LatLng(updated.latitude, updated.longitude), 14);
+    if (!mounted) return;
+
+    final here = _userLocation;
+    final alreadyInside = updated.isActive &&
+        here != null &&
+        const Distance()(here, LatLng(updated.latitude, updated.longitude)) <=
+            updated.radiusMeters;
+
+    final schedule = updated.repeats ? ' · ${updated.scheduleLabel}' : '';
+    _notify(
+      alreadyInside
+          ? "Alarm updated — but you're already inside this area, so it will ring "
+              'when you leave and come back.'
+          : 'Updated ${updated.label}$schedule',
+      seconds: alreadyInside ? 5 : 3,
     );
   }
 
@@ -954,6 +1031,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         distanceMetres: _distanceTo(alarm),
                         onTap: () => _focusAlarm(alarm),
                         onToggle: () => _toggleAlarm(alarm),
+                        onEdit: () => _editAlarm(alarm),
                         onDelete: () => _deleteAlarm(alarm),
                       );
                     },
@@ -978,6 +1056,7 @@ class _AlarmCard extends StatelessWidget {
     required this.distanceMetres,
     required this.onTap,
     required this.onToggle,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -985,6 +1064,7 @@ class _AlarmCard extends StatelessWidget {
   final double? distanceMetres;
   final VoidCallback onTap;
   final VoidCallback onToggle;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
@@ -1029,6 +1109,11 @@ class _AlarmCard extends StatelessWidget {
             Switch(
               value: alarm.isActive,
               onChanged: (_) => onToggle(),
+            ),
+            IconButton(
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: onEdit,
             ),
             IconButton(
               tooltip: 'Delete',

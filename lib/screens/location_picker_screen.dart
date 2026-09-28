@@ -40,6 +40,7 @@ class LocationPickerScreen extends StatefulWidget {
     required this.initialCenter,
     this.autofocusSearch = false,
     this.travelSpeed,
+    this.editingAlarm,
   });
 
   final LatLng initialCenter;
@@ -55,6 +56,10 @@ class LocationPickerScreen extends StatefulWidget {
   /// The user's current speed in metres per second, where it is known.
   /// Decides the starting radius: see [minimumRadiusForSpeed].
   final double? travelSpeed;
+
+  /// When non-null the picker is editing an existing alarm rather than
+  /// creating a new one. All fields are pre-populated from this value.
+  final LocationAlarm? editingAlarm;
 
   @override
   State<LocationPickerScreen> createState() => _LocationPickerScreenState();
@@ -128,6 +133,14 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   @override
   void initState() {
     super.initState();
+    final alarm = widget.editingAlarm;
+    if (alarm != null) {
+      _center = LatLng(alarm.latitude, alarm.longitude);
+      _labelController.text = alarm.label;
+      _radius = alarm.radiusMeters;
+      _repeatDays = alarm.repeatDays;
+      _chosenName = alarm.label;
+    }
     _resolveAddress();
     // Follows whatever the map screen is showing, rather than asking again.
     MapStyleStore.load().then((style) {
@@ -724,8 +737,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _confirm,
-                    icon: const Icon(Icons.alarm_add),
-                    label: const Text('Set alarm here'),
+                    icon: Icon(widget.editingAlarm != null
+                        ? Icons.check
+                        : Icons.alarm_add),
+                    label: Text(widget.editingAlarm != null
+                        ? 'Save changes'
+                        : 'Set alarm here'),
                   ),
                 ),
               ],

@@ -110,6 +110,22 @@ class ArrivalState(context: Context) {
     }
 
     /**
+     * Clears all tracking state for [id], as though the alarm were brand new.
+     *
+     * Called when an alarm's location or radius is edited. Without this the
+     * updated alarm inherits the old position's suppression flag: if the user
+     * was inside the previous radius, the alarm at the new location would
+     * stay suppressed despite being somewhere else entirely.
+     */
+    fun forget(id: String) {
+        val seen = read(KEY_SEEN)
+        val suppressed = read(KEY_SUPPRESSED)
+        if (id in seen) write(KEY_SEEN, seen - id)
+        if (id in suppressed) write(KEY_SUPPRESSED, suppressed - id)
+        prefs.edit().remove("$KEY_LAST_RUNG_PREFIX$id").apply()
+    }
+
+    /**
      * Drops state for alarms that no longer exist, so deleting and re-adding
      * an alarm for the same place behaves like the new alarm it is rather
      * than inheriting the old one's suppression.
