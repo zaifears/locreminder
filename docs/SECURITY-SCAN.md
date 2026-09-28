@@ -10,6 +10,10 @@ only the universal APK.
 
 | Release | APK | Detections | Report | SHA-256 of the APK |
 |---|---|---|---|---|
+| [`v2.0.0`](https://github.com/zaifears/locreminder/releases/tag/v2.0.0) | `app-release.apk` | 0 / 0 | [report](https://www.virustotal.com/gui/file/9845e85e21622ce1168720a538f0968c80095566fb4faec7bb332e58b7b99bd0) | `9845e85e21622ce1168720a538f0968c80095566fb4faec7bb332e58b7b99bd0` |
+| [`v2.0.0`](https://github.com/zaifears/locreminder/releases/tag/v2.0.0) | `app-armeabi-v7a-release.apk` | 0 / 68 | [report](https://www.virustotal.com/gui/file/4d183215af15be2738259988ecf9df5ea7e13619b0c797a8f9e41dce4767e180) | `4d183215af15be2738259988ecf9df5ea7e13619b0c797a8f9e41dce4767e180` |
+| [`v2.0.0`](https://github.com/zaifears/locreminder/releases/tag/v2.0.0) | `app-arm64-v8a-release.apk` | 0 / 0 | [report](https://www.virustotal.com/gui/file/71bfb9bf4d865a4b49a737e926cda06c0bd59b45ccf5697f84b130d2f3de426d) | `71bfb9bf4d865a4b49a737e926cda06c0bd59b45ccf5697f84b130d2f3de426d` |
+| [`v2.0.0`](https://github.com/zaifears/locreminder/releases/tag/v2.0.0) | `app-x86_64-release.apk` | 0 / 68 | [report](https://www.virustotal.com/gui/file/af7bef3927b9e49eea0866ebea92d0cb3b446230b3aff522ba57306febf1b5e1) | `af7bef3927b9e49eea0866ebea92d0cb3b446230b3aff522ba57306febf1b5e1` |
 | [`v2.0.0`](https://github.com/zaifears/locreminder/releases/tag/v2.0.0) | `app-release.apk` | 0 / 68 | [report](https://www.virustotal.com/gui/file/9845e85e21622ce1168720a538f0968c80095566fb4faec7bb332e58b7b99bd0) | `9845e85e21622ce1168720a538f0968c80095566fb4faec7bb332e58b7b99bd0` |
 | [`v2.0.0`](https://github.com/zaifears/locreminder/releases/tag/v2.0.0) | `app-armeabi-v7a-release.apk` | 0 / 0 | [report](https://www.virustotal.com/gui/file/4d183215af15be2738259988ecf9df5ea7e13619b0c797a8f9e41dce4767e180) | `4d183215af15be2738259988ecf9df5ea7e13619b0c797a8f9e41dce4767e180` |
 | [`v2.0.0`](https://github.com/zaifears/locreminder/releases/tag/v2.0.0) | `app-arm64-v8a-release.apk` | 0 / 67 | [report](https://www.virustotal.com/gui/file/71bfb9bf4d865a4b49a737e926cda06c0bd59b45ccf5697f84b130d2f3de426d) | `71bfb9bf4d865a4b49a737e926cda06c0bd59b45ccf5697f84b130d2f3de426d` |
