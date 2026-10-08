@@ -19,6 +19,10 @@
   <a href="https://github.com/zaifears/locreminder/releases/latest/download/app-release.apk">
     <img src="https://i.ibb.co.com/WNGyLFhY/Download-from-Github.png" alt="Download directly from GitHub" height="56"/>
   </a>
+  <div>or<br/><br/></div>
+  <a href="https://locreminder.en.uptodown.com/android" title="Download LocReminder">
+    <img src="https://stc.utdstc.com/img/mediakit/download-gio-big-b.png" alt="Download LocReminder" height="56"/>
+  </a>
 
   <br/><br/>
 
@@ -53,6 +57,7 @@
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 | **F-Droid** | [Get LocReminder on F-Droid](https://f-droid.org/packages/com.zaifears.locreminder) — install it through the F-Droid client for updates |
+| **Uptodown** | [Get LocReminder on Uptodown](https://locreminder.en.uptodown.com/android) — install or update via Uptodown |
 
 **What's new in v2.0.0.** Added full alarm editing support so you can adjust locations, change radii, notes, or schedules directly without recreating alarms. Fixed deletion confirmation notices appearing stuck behind the bottom sheet, and refined arrival tracking reset on geofence updates. (Suggested by @kiinami).
 
