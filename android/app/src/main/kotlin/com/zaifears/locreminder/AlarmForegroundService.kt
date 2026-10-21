@@ -105,6 +105,10 @@ class AlarmForegroundService : Service() {
         // AlarmActivity is opened by the notification's full-screen
         // PendingIntent. Direct background activity launches are restricted
         // by modern Android versions.
+        // Launch AlarmActivity explicitly in addition to the notification's
+        // fullScreenIntent so that devices like Xiaomi/Redmi (MIUI/HyperOS)
+        // and unlocked screens immediately display the full-screen alarm UI.
+        launchAlarmActivity(ringingLabel(), alarmId)
         playAlarmSound()
         startVibration()
         scheduleAutoStop()

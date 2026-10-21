@@ -52,4 +52,9 @@ void main() {
     expect(kilometresPerHour(10), 36);
     expect(kilometresPerHour(27.8), 100);
   });
+
+  test('milesPerHour converts for display', () {
+    expect(milesPerHour(10), 22);
+    expect(milesPerHour(26.8224), 60);
+  });
 }

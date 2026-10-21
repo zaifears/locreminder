@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../main.dart';
+import '../services/oem_service.dart';
 import '../services/permission_service.dart';
+import '../services/unit_controller.dart';
 import 'home_screen.dart';
 import 'reliability_screen.dart';
 
-/// Greets the user with a welcome introduction followed by four permission
-/// setup pages, each explaining *why* the permission is needed before asking
-/// for it. Android only ever shows its own dialog once, so an unexplained
-/// prompt that gets dismissed leaves the app permanently broken — the explanation
-/// has to come first.
+/// Greets the user with a clean, scannable introduction followed by four
+/// concise permission steps — including phone-specific full-screen alarm
+/// setup instructions for every phone brand.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -16,11 +17,14 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBindingObserver {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with WidgetsBindingObserver {
   final _permissionService = PermissionService();
+  final _oemService = OemService();
   final _pageController = PageController();
 
   PermissionStatusSummary? _status;
+  DeviceProfile? _device;
   int _pageIndex = 0;
 
   @override
@@ -39,14 +43,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Several of these are granted in system settings rather than a dialog,
-    // so re-check whenever the user comes back to the app.
     if (state == AppLifecycleState.resumed) _refresh();
   }
 
   Future<void> _refresh() async {
     final status = await _permissionService.currentStatus();
-    if (mounted) setState(() => _status = status);
+    final device = await _oemService.profile();
+    if (!mounted) return;
+    setState(() {
+      _status = status;
+      _device = device;
+    });
   }
 
   void _goToPage(int index) {
@@ -63,6 +70,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
     );
   }
 
+  Future<void> _advanceMissingStep(PermissionStatusSummary status) async {
+    if (!status.locationServiceEnabled || !status.foregroundLocationGranted) {
+      _goToPage(1);
+      return;
+    }
+    if (!status.backgroundLocationGranted) {
+      _goToPage(2);
+      return;
+    }
+    if (!status.notificationsGranted || !status.fullScreenIntentAllowed) {
+      _goToPage(3);
+      return;
+    }
+    if (!status.batteryOptimizationDisabled) {
+      await _permissionService.requestDisableBatteryOptimization();
+      await _refresh();
+    }
+  }
+
   Future<void> _openReliability() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ReliabilityScreen()),
@@ -73,21 +99,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
   @override
   Widget build(BuildContext context) {
     final status = _status;
+    final device = _device;
     if (status == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final permissionPages = <_PermissionPage>[
+    final permissionPages = <Widget>[
       _PermissionPage(
         icon: Icons.location_on_outlined,
-        title: 'Find where you are',
-        headline: 'LocReminder needs your location.',
-        body: "That's the whole trick: the app compares where you are against "
-            'where you want to be woken up, and rings when the two match.\n\n'
-            'Your location never leaves your phone. There is no account, no '
-            'server, and nothing is uploaded anywhere — this app has no '
-            'internet backend at all.',
-        granted: status.locationServiceEnabled && status.foregroundLocationGranted,
+        title: 'Location access',
+        headline: 'Know when you reach your stop.',
+        body:
+            'LocReminder compares your GPS position against your destination '
+            'and rings when you arrive. Your location never leaves your phone.',
+        granted:
+            status.locationServiceEnabled && status.foregroundLocationGranted,
         grantedLabel: 'Location access granted',
         actionLabel: status.locationServiceEnabled
             ? 'Allow location'
@@ -99,18 +125,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
       ),
       _PermissionPage(
         icon: Icons.nightlight_outlined,
-        title: 'Keep watch while you rest',
+        title: 'Background location',
         headline: 'Choose "Allow all the time" on the next screen.',
-        body: 'This is the most important one, and the easiest to get wrong.\n\n'
-            'The entire point of LocReminder is that you can put your phone in '
-            'your pocket and sleep through the ride. Android only lets the '
-            'alarm fire while the app is closed if you pick "Allow all the '
-            'time".\n\n'
-            'If you pick "Only while using the app", everything will look fine '
-            '— but the alarm will never go off once you lock your screen.',
+        body:
+            'So you can lock your phone and sleep through the ride. '
+            'If set to "Only while using the app", the alarm cannot ring once '
+            'your screen is off.',
         granted: status.backgroundLocationGranted,
         grantedLabel: 'Background location granted',
-        actionLabel: 'Open location settings',
+        actionLabel: 'Open location permission',
         onRequest: () async {
           await _permissionService.requestBackgroundLocation();
           await _refresh();
@@ -118,22 +141,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
       ),
       _PermissionPage(
         icon: Icons.notifications_active_outlined,
-        title: 'Show the alarm on screen',
-        headline: 'LocReminder needs to post notifications.',
-        body: 'When you arrive, the app takes over your screen with a '
-            'full-screen alarm and a Stop button — like a normal alarm clock, '
-            'even over the lock screen.\n\n'
-            'Android treats that as a notification. Without this permission '
-            'the alarm may make noise with no way to see or silence it.',
+        title: 'Full-screen alarm display',
+        headline: 'Wake and show the Stop button over your lock screen.',
+        body:
+            'Android uses notification and full-screen permissions to show the '
+            'alarm over a locked screen, just like a regular alarm clock.',
         granted: status.notificationsGranted && status.fullScreenIntentAllowed,
-        grantedLabel: 'Notifications granted',
-        actionLabel: status.notificationsGranted
-            ? 'Allow full-screen alarms'
-            : 'Allow notifications',
-        secondaryNote: status.notificationsGranted && !status.fullScreenIntentAllowed
-            ? 'One more step: Android 14 and newer ask separately for '
-                'permission to show full-screen alarms.'
-            : null,
+        grantedLabel: 'Full-screen alarms ready',
+        actionLabel: !status.notificationsGranted
+            ? 'Allow notifications'
+            : (device != null && device.isXiaomi
+                ? 'Allow Lock screen & Pop-ups'
+                : 'Allow full-screen alarms'),
         onRequest: () async {
           if (!status.notificationsGranted) {
             await _permissionService.requestNotifications();
@@ -142,38 +161,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
           }
           await _refresh();
         },
+        customSection: device == null
+            ? null
+            : _OnboardingFullScreenGuide(
+                device: device,
+                onBrowseAllPhones: () =>
+                    showAllPhonesFullScreenSheet(context, currentDevice: device),
+              ),
       ),
       _PermissionPage(
         icon: Icons.battery_saver_outlined,
-        title: "Don't let Android doze off",
-        headline: 'Turn off battery optimization for LocReminder.',
-        body: 'This one is not optional, and it is the reason most location '
-            'alarms fail.\n\n'
-            'With battery optimization on, Android puts the app to sleep once '
-            'your screen is off and postpones its location work. The alarm '
-            'then stays silent for the entire journey and only goes off when '
-            'you next unlock and open the app — by which point you have '
-            'already gone past your stop.\n\n'
-            'On the next screen choose LocReminder, then "Don\'t optimize" or '
-            '"Unrestricted".',
+        title: 'Unrestricted battery',
+        headline: 'Keep Android from putting the alarm to sleep.',
+        body:
+            'Choose "Unrestricted" or "Don\'t optimize" so Android does not '
+            'pause GPS tracking while your screen is locked.',
         granted: status.batteryOptimizationDisabled,
         grantedLabel: 'Battery optimization disabled',
-        actionLabel: 'Open battery settings',
-        secondaryNote: 'Phone makers like Xiaomi, Samsung, Oppo, Vivo and '
-            'OnePlus add their own app-killer on top of this one. After '
-            'finishing setup, open Alarm reliability from the menu — it shows '
-            'the exact steps for your model and lets you test the alarm.',
+        actionLabel: 'Allow unrestricted battery',
+        secondaryNote:
+            'Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei, and Transsion '
+            'phones have extra background settings. Tap below to check your '
+            'phone model and run a 15-second lock-screen test.',
         onRequest: () async {
           await _permissionService.requestDisableBatteryOptimization();
           await _refresh();
         },
         extraAction: _openReliability,
-        extraActionLabel: 'Device-specific setup',
+        extraActionLabel: 'Phone-specific setup & alarm test',
       ),
     ];
 
     final allPages = <Widget>[
-      _WelcomePage(onStart: () => _goToPage(1)),
+      const _WelcomePage(),
       ...permissionPages,
     ];
 
@@ -193,12 +213,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
                         duration: const Duration(milliseconds: 250),
                         height: 4,
                         margin: EdgeInsets.only(
-                            right: i == permissionPages.length - 1 ? 0 : 6),
+                          right: i == permissionPages.length - 1 ? 0 : 6,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(2),
                           color: i < _pageIndex
                               ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.surfaceContainerHighest,
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
                         ),
                       ),
                     ),
@@ -259,7 +282,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
                           )
                         : isLastPage
                             ? FilledButton(
-                                onPressed: status.isFullyReady ? _finish : null,
+                                onPressed: status.isFullyReady
+                                    ? _finish
+                                    : () => _advanceMissingStep(status),
                                 child: Text(
                                   status.isFullyReady
                                       ? 'Start using LocReminder'
@@ -282,174 +307,145 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
 }
 
 class _WelcomePage extends StatelessWidget {
-  const _WelcomePage({required this.onStart});
-
-  final VoidCallback onStart;
+  const _WelcomePage();
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // App Logo
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.22),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Image.asset(
-              'assets/images/app_logo.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'LocReminder',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Reminds you at the right place',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              'Sleep on the bus. Remember the errand. It goes off when you arrive.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.4,
-                  ),
-            ),
-          ),
-          const SizedBox(height: 22),
+    final unitController = LocReminderApp.unitOf(context);
 
-          // How to use it header
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'HOW TO USE IT',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                  ),
-            ),
-          ),
-          const SizedBox(height: 10),
+    return ValueListenableBuilder<DistanceUnit>(
+      valueListenable: unitController,
+      builder: (context, unit, _) {
+        final rangeText = unit == DistanceUnit.miles
+            ? '330 ft to 1.9 mi out.'
+            : '100 m to 3 km out.';
 
-          // Steps Card
-          Card(
-            elevation: 0,
-            color: scheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(
-                color: scheme.outlineVariant.withValues(alpha: 0.4),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.20),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset(
+                  'assets/images/app_logo.png',
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Column(
+              const SizedBox(height: 16),
+              Text(
+                'LocReminder',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Reminds you at the right place',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    children: [
+                      const _StepItem(
+                        icon: Icons.place_outlined,
+                        title: 'Pick your destination',
+                        body: 'Search by name, paste coordinates, or drag the map.',
+                      ),
+                      const SizedBox(height: 16),
+                      _StepItem(
+                        icon: Icons.radar_outlined,
+                        title: 'Set your distance',
+                        body: 'Choose how early to ring — $rangeText',
+                      ),
+                      const SizedBox(height: 16),
+                      const _StepItem(
+                        icon: Icons.lock_clock_outlined,
+                        title: 'Put your phone away',
+                        body: 'Works offline via GPS and wakes your lock screen.',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const _StepItem(
-                    number: '1',
-                    icon: Icons.search_rounded,
-                    title:
-                        'Search for where you are going or where do you want me to remind you',
-                    body:
-                        'Type a place name, paste coordinates, or drag the map under the pin. No account needed.',
+                  Text(
+                    'Distance unit:',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                  const SizedBox(width: 10),
+                  SegmentedButton<DistanceUnit>(
+                    segments: const [
+                      ButtonSegment(value: DistanceUnit.km, label: Text('KM')),
+                      ButtonSegment(
+                        value: DistanceUnit.miles,
+                        label: Text('Miles'),
+                      ),
+                    ],
+                    selected: {unit},
+                    showSelectedIcon: false,
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                  ),
-                  const _StepItem(
-                    number: '2',
-                    icon: Icons.adjust_rounded,
-                    title: 'Choose the radius you want to be notified',
-                    body:
-                        'Anywhere from 100 m to 3 km out. A bigger radius gives you more time to gather your things.',
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      color: scheme.outlineVariant.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  const _StepItem(
-                    number: '3',
-                    icon: Icons.alarm_on_rounded,
-                    title: 'Put your phone away',
-                    body: 'When you arrive, the alarm rings.',
+                    onSelectionChanged: (s) => unitController.setUnit(s.first),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.shield_outlined, size: 16, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    '100% offline & private · No account or tracking',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-
-          // Privacy badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.shield_outlined, size: 18, color: scheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  '100% offline & private. Zero data leaves your phone.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _StepItem extends StatelessWidget {
   const _StepItem({
-    required this.number,
     required this.icon,
     required this.title,
     required this.body,
   });
 
-  final String number;
   final IconData icon;
   final String title;
   final String body;
@@ -461,21 +457,14 @@ class _StepItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             color: scheme.primaryContainer,
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(10),
           ),
           alignment: Alignment.center,
-          child: Text(
-            number,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: scheme.onPrimaryContainer,
-            ),
-          ),
+          child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -486,21 +475,90 @@ class _StepItem extends StatelessWidget {
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      height: 1.3,
                     ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 body,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
-                      height: 1.4,
+                      height: 1.35,
                     ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _OnboardingFullScreenGuide extends StatelessWidget {
+  const _OnboardingFullScreenGuide({
+    required this.device,
+    required this.onBrowseAllPhones,
+  });
+
+  final DeviceProfile device;
+  final VoidCallback onBrowseAllPhones;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.smartphone, size: 18, color: scheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Full-screen setup for ${device.vendorName}',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (int i = 0; i < device.fullScreenSteps.length; i++) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                '${i + 1}. ${device.fullScreenSteps[i].title}\n'
+                '   ${device.fullScreenSteps[i].path}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.35,
+                    ),
+              ),
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: onBrowseAllPhones,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                visualDensity: VisualDensity.compact,
+              ),
+              icon: const Icon(Icons.list_alt_outlined, size: 16),
+              label: const Text('All phone brands (Samsung, Xiaomi, Pixel, Vivo…)'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -516,6 +574,7 @@ class _PermissionPage extends StatelessWidget {
     required this.actionLabel,
     required this.onRequest,
     this.secondaryNote,
+    this.customSection,
     this.extraAction,
     this.extraActionLabel,
   });
@@ -529,6 +588,7 @@ class _PermissionPage extends StatelessWidget {
   final String actionLabel;
   final VoidCallback onRequest;
   final String? secondaryNote;
+  final Widget? customSection;
   final VoidCallback? extraAction;
   final String? extraActionLabel;
 
@@ -536,26 +596,28 @@ class _PermissionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 88,
-            height: 88,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: granted ? scheme.primaryContainer : scheme.surfaceContainerHigh,
+              color: granted
+                  ? scheme.primaryContainer
+                  : scheme.surfaceContainerHigh,
               shape: BoxShape.circle,
             ),
             child: Icon(
               granted ? Icons.check_rounded : icon,
-              size: 44,
+              size: 36,
               color: granted ? scheme.onPrimaryContainer : scheme.primary,
             ),
           ),
-          const SizedBox(height: 28),
-          Text(title, style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+          Text(title, style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
           Text(
             headline,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -563,16 +625,20 @@ class _PermissionPage extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             body,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                   height: 1.5,
                 ),
           ),
+          if (customSection != null) ...[
+            const SizedBox(height: 14),
+            customSection!,
+          ],
           if (secondaryNote != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -582,13 +648,18 @@ class _PermissionPage extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 20, color: scheme.onTertiaryContainer),
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: scheme.onTertiaryContainer,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       secondaryNote!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.onTertiaryContainer,
+                            height: 1.4,
                           ),
                     ),
                   ),
@@ -596,7 +667,7 @@ class _PermissionPage extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 28),
+          const SizedBox(height: 22),
           SizedBox(
             width: double.infinity,
             child: granted
@@ -608,7 +679,7 @@ class _PermissionPage extends StatelessWidget {
                 : FilledButton(onPressed: onRequest, child: Text(actionLabel)),
           ),
           if (extraAction != null && extraActionLabel != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(

@@ -3,6 +3,21 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-10-21
+
+### Added
+- **Kilometres (KM) and Miles support.** You can now switch between **KM** (km / m) and **Miles** (mi / t) in **Settings → Distance units** or directly on the welcome screen. Every distance readout on the map, alarm cards, radius slider (330 ft to 1.9 mi), travel speed warning (mph), and ongoing status notification automatically updates to match your choice.
+- **Full-screen alarm setup guide for every phone brand.** Added a browsable **All phone brands** guide during setup and inside **Menu → Alarm reliability**, with clear step-by-step instructions for Xiaomi / Redmi / Poco (MIUI & HyperOS), Samsung (One UI), Oppo / Realme / OnePlus (ColorOS & OxygenOS), Vivo / iQOO (FuntouchOS & OriginOS), Huawei (EMUI / HarmonyOS), Honor (MagicOS), Tecno / Infinix / itel (HiOS & XOS), Asus (ROG UI & ZenUI), Google Pixel, Motorola, Sony, Nokia, Nothing, and other Android phones.
+
+### Changed
+- **Cleaner, simpler welcome and setup screens.** Decluttered the opening instruction pages into a compact 3-step summary and scannable setup cards so you can get started without a wall of text.
+
+### Fixed
+- **Full-screen lock-screen alarm on Redmi Note 12 4G (MIUI 14 / HyperOS) and Xiaomi phones.** Xiaomi blocks lock-screen alarms by default behind two extra settings in *Other permissions* (*Show on Lock screen* and *Display pop-up windows while running in the background*), even when standard Android permissions are allowed. LocReminder now detects when these Xiaomi permissions are off, adds a direct button that opens Xiaomi's *Other permissions* screen for LocReminder, and applies both modern and legacy lock-screen window flags so the alarm reliably wakes the screen.
+- **Opening phone-specific settings on Android 11–15.** Fixed a package-visibility issue where buttons for vendor battery, autostart, and lock-screen settings could fail to open on Android 11 and newer.
+- **Alarm notification channel available immediately.** Created the *Location alarms* notification channel on app startup rather than waiting for the first alarm to ring, so you can configure lock-screen and banner notification settings right away during setup.
+- **Instant status notification refresh.** Disarming, deleting, or rescheduling the nearest active alarm now updates the ongoing status-bar notification immediately instead of waiting for the next GPS fix.
+
 ## [2.0.0] - 2026-09-29
 
 ### Added

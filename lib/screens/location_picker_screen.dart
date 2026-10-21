@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../main.dart';
 import '../models/location_alarm.dart';
 import '../models/place_result.dart';
 import '../services/coordinate_input.dart';
 import '../services/geocoding_service.dart';
 import '../services/offline_maps.dart';
 import '../services/radius_advice.dart';
+import '../services/unit_controller.dart';
 import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
 
@@ -432,16 +434,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   ///
   /// Silent when standing still or walking, which is most of the time: a note
   /// that is always on screen is one nobody reads when it matters.
-  Widget _buildSpeedNote(BuildContext context) {
+  Widget _buildSpeedNote(BuildContext context, DistanceUnit unit) {
     final floor = _speedFloor;
     final speed = widget.travelSpeed;
     if (floor == null || speed == null) return const SizedBox.shrink();
 
     final scheme = Theme.of(context).colorScheme;
     final tooTight = _radius < floor;
-    final asText = floor >= 1000
-        ? '${(floor / 1000).toStringAsFixed(1)} km'
-        : '${floor.round()} m';
+    final asText = formatRadiusWithUnit(floor, unit);
+    final speedText = unit == DistanceUnit.miles
+        ? '${milesPerHour(speed)} mph'
+        : '${kilometresPerHour(speed)} km/h';
 
     return Padding(
       padding: const EdgeInsets.only(top: 4),
@@ -457,10 +460,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           Expanded(
             child: Text(
               tooTight
-                  ? "You're moving at ${kilometresPerHour(speed)} km/h. Below "
+                  ? "You're moving at $speedText. Below "
                       '$asText the alarm can pass your stop between location '
                       'checks.'
-                  : "You're moving at ${kilometresPerHour(speed)} km/h, so "
+                  : "You're moving at $speedText, so "
                       'this starts at $asText to give the alarm room to catch '
                       'you.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -706,32 +709,39 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 const SizedBox(height: 10),
                 _buildRepeatRow(context),
                 const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Text(
-                      'Remind me within',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const Spacer(),
-                    Text(
-                      _radius >= 1000
-                          ? '${(_radius / 1000).toStringAsFixed(1)} km'
-                          : '${_radius.round()} m',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: scheme.primary,
+                ValueListenableBuilder<DistanceUnit>(
+                  valueListenable: LocReminderApp.unitOf(context),
+                  builder: (context, unit, _) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Remind me within',
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
-                    ),
-                  ],
+                          const Spacer(),
+                          Text(
+                            formatRadiusWithUnit(_radius, unit),
+                            style:
+                                Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: scheme.primary,
+                                    ),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _radius,
+                        min: 100,
+                        max: 3000,
+                        divisions: 29,
+                        onChanged: (value) => setState(() => _radius = value),
+                      ),
+                      _buildSpeedNote(context, unit),
+                    ],
+                  ),
                 ),
-                Slider(
-                  value: _radius,
-                  min: 100,
-                  max: 3000,
-                  divisions: 29,
-                  onChanged: (value) => setState(() => _radius = value),
-                ),
-                _buildSpeedNote(context),
                 const SizedBox(height: 4),
                 SizedBox(
                   width: double.infinity,

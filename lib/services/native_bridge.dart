@@ -92,6 +92,26 @@ class NativeBridge {
     return result ?? false;
   }
 
+  /// Opens vendor lock-screen / background pop-up permission settings (e.g.
+  /// Xiaomi MIUI/HyperOS "Other permissions" for Show on Lock screen).
+  Future<bool> openLockScreenSettings() async {
+    final result = await _channel.invokeMethod<bool>('openLockScreenSettings');
+    return result ?? false;
+  }
+
+  /// Opens the Android system notification channel settings for the Location
+  /// Alarms channel (`locreminder_alarm_channel`).
+  Future<bool> openAlarmChannelSettings() async {
+    final result = await _channel.invokeMethod<bool>('openAlarmChannelSettings');
+    return result ?? false;
+  }
+
+  /// Syncs the user's KM / Miles preference to the native watch service so
+  /// the ongoing notification uses the chosen unit.
+  Future<void> setDistanceUnit({required bool miles}) {
+    return _channel.invokeMethod<void>('setDistanceUnit', {'miles': miles});
+  }
+
   /// Fires the real alarm after [delaySeconds] so the user can lock their
   /// screen and verify it breaks through from an idle, locked state.
   Future<void> triggerTestAlarm({int delaySeconds = 10}) {

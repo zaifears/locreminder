@@ -67,15 +67,19 @@ class AlarmActivity : Activity() {
             setTurnScreenOn(true)
             val keyguardManager = getSystemService(android.app.KeyguardManager::class.java)
             keyguardManager?.requestDismissKeyguard(this, null)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD,
-            )
         }
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Always set the window flags in addition to the API 27+ Activity methods.
+        // MIUI 14 / HyperOS (such as Redmi Note 12 4G) and several other vendor
+        // skins still inspect window.attributes.flags for FLAG_SHOW_WHEN_LOCKED
+        // and FLAG_TURN_SCREEN_ON in their custom lock-screen window managers.
+        @Suppress("DEPRECATION")
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON,
+        )
     }
 
     // The alarm must be dismissed deliberately via the Stop button, not by

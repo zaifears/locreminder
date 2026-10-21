@@ -52,14 +52,16 @@
 
 | | |
 |---|---|
-| **Latest version** | `v2.0.0`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v2.1.0`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 | **F-Droid** | [Get LocReminder on F-Droid](https://f-droid.org/packages/com.zaifears.locreminder) — install it through the F-Droid client for updates |
 | **Uptodown** | [Get LocReminder on Uptodown](https://locreminder.en.uptodown.com/android) — install or update via Uptodown |
 
-**What's new in v2.0.0.** Added full alarm editing support so you can adjust locations, change radii, notes, or schedules directly without recreating alarms. Fixed deletion confirmation notices appearing stuck behind the bottom sheet, and refined arrival tracking reset on geofence updates. (Suggested by @kiinami).
+**What's new in v2.1.0.** Added a **KM and Miles** option in Settings (and on the welcome screen) so you can view all distances, radii, and speeds in miles and feet or kilometres and metres. Simplified the opening instruction screens so they are clean and easy to scan, added step-by-step full-screen alarm instructions for every phone brand, and fixed full-screen lock-screen alarm issues on **Redmi Note 12 4G** and other Xiaomi MIUI/HyperOS phones.
+
+**What v2.0.0 brought.** Added full alarm editing support so you can adjust locations, change radii, notes, or schedules directly without recreating alarms. Fixed deletion confirmation notices appearing stuck behind the bottom sheet, and refined arrival tracking reset on geofence updates. (Suggested by @kiinami).
 
 **What v1.9.9 brought.** Hardened full-screen alarm delivery across Samsung One UI, Xiaomi MIUI/HyperOS, and Vivo devices. Fixes secure lock-screen keyguard dismissal, display cutout handling, predictive back gesture dismissals, and background test alarm reliability.
 
@@ -240,7 +242,7 @@ Android lets apps ask for permission to run in the background, but phone manufac
 
 | Your phone | What to allow |
 |---|---|
-| **Xiaomi, Redmi, Poco** | Autostart, and Battery saver set to No restrictions |
+| **Xiaomi, Redmi, Poco** | Autostart, Battery saver set to No restrictions, and in **Other permissions** allow **Show on Lock screen** & **Display pop-up windows while running in the background** |
 | **Samsung** | Battery, then Background usage limits, then **Never sleeping apps** |
 | **Oppo, Realme** | Allow Auto startup and Allow background running |
 | **Vivo, iQOO** | High background power consumption and Autostart |

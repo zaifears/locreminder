@@ -63,6 +63,8 @@ alarm:
   watch_location_off: "Turn on location — the alarm can't ring without it"
   watch_distance_km: "{distance} km from {place}"
   watch_distance_m: "{distance} m from {place}"
+  watch_distance_mi: "{distance} mi from {place}"
+  watch_distance_ft: "{distance} ft from {place}"
   watch_armed:
     one: "{count} alarm armed"
     other: "{count} alarms armed"
@@ -99,7 +101,7 @@ store:
     📝 Give each alarm a task in your own words — "Buy medicine" — or let it take the name of the place
     🔁 Repeat an alarm every day, or on the weekdays you choose, for a commute or a standing errand
     📋 Multiple alarms, each with its own trigger radius, and live distance to each
-    📏 Adjustable radius from 100 m to 3 km, so you get as much warning as you need
+    📏 Adjustable radius from 100 m to 3 km (or 330 ft to 1.9 mi in Miles mode), so you get as much warning as you need
     🌗 Light and dark themes
     📶 Works with no signal: the alarm runs on GPS alone and never needs a connection, and the map is kept on your phone so it still draws in a dead spot
     🔋 Battery-aware: checks rarely when you are far away, more often as you approach, and not at all on days none of your alarms are set for

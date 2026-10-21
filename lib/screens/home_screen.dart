@@ -5,11 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../main.dart';
 import '../models/location_alarm.dart';
 import '../services/alarm_repository.dart';
 import '../services/native_bridge.dart';
 import '../services/offline_maps.dart';
 import '../services/permission_service.dart';
+import '../services/unit_controller.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
@@ -17,12 +19,9 @@ import '../widgets/offline_notice.dart';
 import 'location_picker_screen.dart';
 import 'reliability_screen.dart';
 
-/// Formats a metre distance the way a person would say it.
-String formatDistance(double metres) {
-  if (metres < 1000) return '${metres.round()} m';
-  if (metres < 10000) return '${(metres / 1000).toStringAsFixed(1)} km';
-  return '${(metres / 1000).round()} km';
-}
+/// Formats a metre distance the way a person would say it, in the chosen unit.
+String formatDistance(double metres, [DistanceUnit unit = DistanceUnit.km]) =>
+    formatDistanceWithUnit(metres, unit);
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -594,11 +593,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showAlarmPreview(LocationAlarm alarm) {
+    final unit = LocReminderApp.unitOf(context).value;
     final distance = _distanceTo(alarm);
     _notify(
       distance == null
-          ? '${alarm.label} · rings within ${formatDistance(alarm.radiusMeters)}'
-          : '${alarm.label} · ${formatDistance(distance)} away',
+          ? '${alarm.label} · rings within ${formatRadiusWithUnit(alarm.radiusMeters, unit)}'
+          : '${alarm.label} · ${formatDistance(distance, unit)} away',
     );
   }
 
@@ -1022,19 +1022,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (_alarms.isNotEmpty)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList.builder(
-                    itemCount: _alarms.length,
-                    itemBuilder: (context, index) {
-                      final alarm = _alarms[index];
-                      return _AlarmCard(
-                        alarm: alarm,
-                        distanceMetres: _distanceTo(alarm),
-                        onTap: () => _focusAlarm(alarm),
-                        onToggle: () => _toggleAlarm(alarm),
-                        onEdit: () => _editAlarm(alarm),
-                        onDelete: () => _deleteAlarm(alarm),
-                      );
-                    },
+                  sliver: ValueListenableBuilder<DistanceUnit>(
+                    valueListenable: LocReminderApp.unitOf(context),
+                    builder: (context, unit, _) => SliverList.builder(
+                      itemCount: _alarms.length,
+                      itemBuilder: (context, index) {
+                        final alarm = _alarms[index];
+                        return _AlarmCard(
+                          alarm: alarm,
+                          distanceMetres: _distanceTo(alarm),
+                          unit: unit,
+                          onTap: () => _focusAlarm(alarm),
+                          onToggle: () => _toggleAlarm(alarm),
+                          onEdit: () => _editAlarm(alarm),
+                          onDelete: () => _deleteAlarm(alarm),
+                        );
+                      },
+                    ),
                   ),
                 ),
               if (_alarms.isNotEmpty)
@@ -1058,10 +1062,12 @@ class _AlarmCard extends StatelessWidget {
     required this.onToggle,
     required this.onEdit,
     required this.onDelete,
+    this.unit = DistanceUnit.km,
   });
 
   final LocationAlarm alarm;
   final double? distanceMetres;
+  final DistanceUnit unit;
   final VoidCallback onTap;
   final VoidCallback onToggle;
   final VoidCallback onEdit;
@@ -1070,7 +1076,7 @@ class _AlarmCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final radiusLabel = formatDistance(alarm.radiusMeters);
+    final radiusLabel = formatRadiusWithUnit(alarm.radiusMeters, unit);
     final distance = distanceMetres;
 
     // A repeating alarm outlives its ring, which is the opposite of what
@@ -1084,7 +1090,7 @@ class _AlarmCard extends StatelessWidget {
       subtitle = 'Rings within $radiusLabel$schedule';
     } else {
       subtitle =
-          '${formatDistance(distance)} away · rings within $radiusLabel$schedule';
+          '${formatDistance(distance, unit)} away · rings within $radiusLabel$schedule';
     }
 
     return Card(

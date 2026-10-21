@@ -5,11 +5,10 @@ import '../services/native_bridge.dart';
 import '../services/oem_service.dart';
 import '../services/permission_service.dart';
 
-/// Everything that governs whether an alarm will actually ring, in one place:
-/// the platform permissions, this phone's own vendor restrictions, and a test
-/// that proves the alarm can break through a locked screen.
-///
-/// The point is to surface failures at home rather than on a train.
+/// Everything that governs whether an alarm will actually ring and show over
+/// the lock screen, in one place: platform permissions, full-screen display
+/// setup for every phone brand, vendor background rules, and a 15-second test
+/// that proves the alarm breaks through a locked screen.
 class ReliabilityScreen extends StatefulWidget {
   const ReliabilityScreen({super.key});
 
@@ -17,7 +16,8 @@ class ReliabilityScreen extends StatefulWidget {
   State<ReliabilityScreen> createState() => _ReliabilityScreenState();
 }
 
-class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindingObserver {
+class _ReliabilityScreenState extends State<ReliabilityScreen>
+    with WidgetsBindingObserver {
   final _permissionService = PermissionService();
   final _oemService = OemService();
   final _nativeBridge = NativeBridge();
@@ -65,10 +65,10 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
         content: const Text(
           'The alarm will ring in 15 seconds.\n\n'
           'Lock your phone now and put it down. If the alarm sounds and its '
-          'screen appears over your lock screen, background alarms work on '
-          'this device.\n\n'
-          'If nothing happens, your phone is blocking the app. Follow '
-          'the steps on this page.',
+          'full-screen Stop button appears over your lock screen, background '
+          'alarms work on this device.\n\n'
+          'If you hear sound without the full-screen display, follow the '
+          'Full-screen display steps on this page.',
         ),
         actions: [
           TextButton(
@@ -85,10 +85,6 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
 
     if (confirmed != true || !mounted) return;
 
-    // Scheduling can be refused — an exact-alarm restriction, a vendor policy
-    // — and this is the one screen where a silent failure is the worst
-    // possible outcome: the user locks their phone, nothing rings, and they
-    // conclude the alarm is broken when it was the test that never started.
     try {
       await _nativeBridge.triggerTestAlarm(delaySeconds: 15);
     } on PlatformException catch (e) {
@@ -167,7 +163,10 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                       ),
                       const Divider(height: 1),
                       _CheckRow(
-                        title: 'Full-screen alarms',
+                        title: 'Full-screen & lock-screen alarms',
+                        subtitle: device.isXiaomi
+                            ? 'Requires "Show on Lock screen" & "Background pop-ups" on Xiaomi/Redmi'
+                            : 'Allows the alarm screen to wake and cover your lock screen',
                         granted: permissions.fullScreenIntentAllowed,
                         onFix: () async {
                           await _permissionService.requestFullScreenIntent();
@@ -179,7 +178,8 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                         title: 'Battery optimization off',
                         granted: permissions.batteryOptimizationDisabled,
                         onFix: () async {
-                          await _permissionService.requestDisableBatteryOptimization();
+                          await _permissionService
+                              .requestDisableBatteryOptimization();
                           await _refresh();
                         },
                       ),
@@ -187,7 +187,22 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                   ),
                 ),
                 const SizedBox(height: 24),
-                const _Section(label: 'Your device'),
+                const _Section(label: 'Full-screen display setup'),
+                _FullScreenSetupCard(
+                  device: device,
+                  onOpenFullScreenPermission: () async {
+                    await _permissionService.requestFullScreenIntent();
+                    await _refresh();
+                  },
+                  onOpenAlarmChannel: () async {
+                    await _oemService.openAlarmChannelSettings();
+                    await _refresh();
+                  },
+                  onBrowseAllPhones: () =>
+                      showAllPhonesFullScreenSheet(context, currentDevice: device),
+                ),
+                const SizedBox(height: 24),
+                const _Section(label: 'Background & battery setup'),
                 _DeviceCard(
                   device: device,
                   onOpenAutoStart: () async {
@@ -211,12 +226,15 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                         const SizedBox(height: 8),
                         Text(
                           'Rings the real alarm after 15 seconds so you can '
-                          'lock your phone and see whether it gets through. '
-                          'Much better to find out here than on the bus.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                height: 1.4,
-                              ),
+                          'lock your phone and see whether the full-screen '
+                          'Stop button appears over your lock screen.',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    height: 1.4,
+                                  ),
                         ),
                         const SizedBox(height: 16),
                         SizedBox(
@@ -224,7 +242,7 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
                           child: FilledButton.tonalIcon(
                             onPressed: _runTestAlarm,
                             icon: const Icon(Icons.play_arrow),
-                            label: const Text('Run alarm test'),
+                            label: const Text('Run 15-second alarm test'),
                           ),
                         ),
                       ],
@@ -235,6 +253,87 @@ class _ReliabilityScreenState extends State<ReliabilityScreen> with WidgetsBindi
             ),
     );
   }
+}
+
+/// Shows a modal bottom sheet with full-screen & lock-screen setup steps for
+/// every phone brand (Xiaomi/Redmi/Poco, Samsung, Pixel, Oppo/Realme, Vivo/iQOO,
+/// OnePlus, Motorola, Nothing, Huawei, Honor, Tecno/Infinix, Asus, Sony/Nokia, etc.).
+Future<void> showAllPhonesFullScreenSheet(
+  BuildContext context, {
+  DeviceProfile? currentDevice,
+}) {
+  final guides = OemService.allPhoneGuides;
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.78,
+        minChildSize: 0.45,
+        maxChildSize: 0.94,
+        builder: (context, scrollController) {
+          return ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+            children: [
+              Text(
+                'Full-screen display by phone brand',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Select your phone brand below to see the exact settings that allow the alarm screen to wake and appear over a locked screen.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              for (final guide in guides)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    initiallyExpanded: currentDevice != null &&
+                        guide.name == currentDevice.vendorName,
+                    leading: Icon(Icons.smartphone, color: scheme.primary),
+                    title: Text(
+                      guide.name,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    subtitle: Text(
+                      guide.modelsHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                    childrenPadding:
+                        const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                    children: [
+                      for (int i = 0; i < guide.fullScreenSteps.length; i++) ...[
+                        _StepTile(
+                          index: i + 1,
+                          step: guide.fullScreenSteps[i],
+                        ),
+                        if (i != guide.fullScreenSteps.length - 1)
+                          const SizedBox(height: 10),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }
 
 class _StatusHeader extends StatelessWidget {
@@ -269,7 +368,9 @@ class _StatusHeader extends StatelessWidget {
                 Text(
                   good ? 'Ready to wake you' : 'Alarms may not ring',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: good ? scheme.onPrimaryContainer : scheme.onErrorContainer,
+                        color: good
+                            ? scheme.onPrimaryContainer
+                            : scheme.onErrorContainer,
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -281,7 +382,9 @@ class _StatusHeader extends StatelessWidget {
                           : 'Everything is granted. Tracking starts when you arm an alarm.')
                       : 'Some required permissions are missing.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: good ? scheme.onPrimaryContainer : scheme.onErrorContainer,
+                        color: good
+                            ? scheme.onPrimaryContainer
+                            : scheme.onErrorContainer,
                       ),
                 ),
               ],
@@ -314,9 +417,15 @@ class _Section extends StatelessWidget {
 }
 
 class _CheckRow extends StatelessWidget {
-  const _CheckRow({required this.title, required this.granted, required this.onFix});
+  const _CheckRow({
+    required this.title,
+    required this.granted,
+    required this.onFix,
+    this.subtitle,
+  });
 
   final String title;
+  final String? subtitle;
   final bool granted;
   final Future<void> Function() onFix;
 
@@ -329,9 +438,109 @@ class _CheckRow extends StatelessWidget {
         color: granted ? Colors.green.shade600 : scheme.error,
       ),
       title: Text(title),
+      subtitle: subtitle == null ? null : Text(subtitle!),
       trailing: granted
           ? null
           : TextButton(onPressed: onFix, child: const Text('Fix')),
+    );
+  }
+}
+
+class _FullScreenSetupCard extends StatelessWidget {
+  const _FullScreenSetupCard({
+    required this.device,
+    required this.onOpenFullScreenPermission,
+    required this.onOpenAlarmChannel,
+    required this.onBrowseAllPhones,
+  });
+
+  final DeviceProfile device;
+  final VoidCallback onOpenFullScreenPermission;
+  final VoidCallback onOpenAlarmChannel;
+  final VoidCallback onBrowseAllPhones;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.fullscreen_rounded, color: scheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        device.model.isEmpty ? 'Full-screen alarm display' : device.model,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        device.vendorName,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              device.isXiaomi
+                  ? 'On Xiaomi, Redmi, and Poco phones (MIUI & HyperOS), Android\'s standard notification permission is not enough for the alarm screen to appear over the lock screen. Enable these settings:'
+                  : 'For the alarm and Stop button to wake and appear over your lock screen, verify these settings for your phone:',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+            ),
+            const SizedBox(height: 14),
+            for (int i = 0; i < device.fullScreenSteps.length; i++) ...[
+              _StepTile(index: i + 1, step: device.fullScreenSteps[i]),
+              if (i != device.fullScreenSteps.length - 1)
+                const SizedBox(height: 12),
+            ],
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onOpenFullScreenPermission,
+                icon: const Icon(Icons.lock_open_outlined),
+                label: Text(
+                  device.isXiaomi
+                      ? 'Open Lock screen & Pop-up permissions'
+                      : 'Open Full-screen alarm setting',
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onOpenAlarmChannel,
+                icon: const Icon(Icons.notifications_active_outlined),
+                label: const Text('Open Location alarms notification channel'),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.center,
+              child: TextButton.icon(
+                onPressed: onBrowseAllPhones,
+                icon: const Icon(Icons.phone_android, size: 18),
+                label: const Text('See instructions for all phone brands'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -354,78 +563,51 @@ class _DeviceCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.smartphone, color: scheme.primary),
+                Icon(Icons.battery_charging_full_rounded, color: scheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        device.model.isEmpty ? 'This device' : device.model,
+                        'Background tracking on ${device.vendorName}',
                         style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        device.vendorName,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            // device.note, not a fixed sentence. The hardcoded one told every
-            // unrecognised phone that it follows Android's standard rules,
-            // which is precisely what we do not know about it, and it buried
-            // the fallback advice, which is the only thing we have to offer
-            // someone on a brand this table has never heard of.
-            if (!device.needsExtraSetup)
-              Text(
-                device.note,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.4,
-                    ),
-              )
-            else ...[
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: scheme.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline, size: 20, color: scheme.onTertiaryContainer),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        device.note,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onTertiaryContainer,
-                              height: 1.4,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: scheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Recommended settings',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'These settings must be changed manually.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: scheme.onTertiaryContainer,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      device.note,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onTertiaryContainer,
+                            height: 1.4,
+                          ),
                     ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
+            ),
+            if (device.steps.isNotEmpty) ...[
+              const SizedBox(height: 14),
               for (int i = 0; i < device.steps.length; i++) ...[
                 _StepTile(index: i + 1, step: device.steps[i]),
                 if (i != device.steps.length - 1) const SizedBox(height: 12),
@@ -433,10 +615,14 @@ class _DeviceCard extends StatelessWidget {
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: onOpenAutoStart,
                   icon: const Icon(Icons.open_in_new),
-                  label: const Text('Open these settings'),
+                  label: Text(
+                    device.needsExtraSetup
+                        ? 'Open Autostart / background settings'
+                        : 'Open app battery settings',
+                  ),
                 ),
               ),
             ],
@@ -481,7 +667,12 @@ class _StepTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(step.title, style: Theme.of(context).textTheme.bodyLarge),
+              Text(
+                step.title,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
               const SizedBox(height: 2),
               Text(
                 step.path,

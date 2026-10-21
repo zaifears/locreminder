@@ -37,6 +37,12 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        // Create notification channels up front so "Location Alarms" is
+        // immediately visible in system notification settings during onboarding,
+        // before any alarm has rung.
+        NotificationHelper.ensureAlarmChannel(this)
+        NotificationHelper.ensureWatchChannel(this)
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
             when (call.method) {
                 "addAlarm" -> {
@@ -132,32 +138,20 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 // Android 14+ gates full-screen intents behind a separate
-                // capability that is only auto-granted to some app categories,
-                // so the alarm screen can silently fail to appear without it.
+                // capability, and Xiaomi (MIUI / HyperOS, e.g. Redmi Note 12 4G)
+                // additionally gates lock-screen and background pop-up display
+                // behind custom AppOps (10020 & 10021) in com.miui.securitycenter.
                 "canUseFullScreenIntent" -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        val manager = getSystemService(NotificationManager::class.java)
-                        result.success(manager?.canUseFullScreenIntent() ?: false)
-                    } else {
-                        result.success(true)
-                    }
+                    result.success(OemHelper.canUseFullScreenAlarm(this))
                 }
                 "requestFullScreenIntentPermission" -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        try {
-                            startActivity(
-                                Intent(
-                                    Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
-                                    Uri.parse("package:$packageName"),
-                                ),
-                            )
-                            result.success(true)
-                        } catch (e: Exception) {
-                            result.success(false)
-                        }
-                    } else {
-                        result.success(true)
-                    }
+                    result.success(OemHelper.openFullScreenIntentSettings(this))
+                }
+                "openLockScreenSettings" -> {
+                    result.success(OemHelper.openLockScreenPermissionSettings(this))
+                }
+                "openAlarmChannelSettings" -> {
+                    result.success(OemHelper.openAlarmChannelSettings(this))
                 }
                 // The watch service is what makes triggering dependable; the
                 // Dart layer keeps it running exactly while alarms are armed.
@@ -184,6 +178,7 @@ class MainActivity : FlutterActivity() {
                 "getDeviceInfo" -> result.success(
                     mapOf(
                         "manufacturer" to (android.os.Build.MANUFACTURER ?: ""),
+                        "brand" to (android.os.Build.BRAND ?: ""),
                         "model" to (android.os.Build.MODEL ?: ""),
                         "sdkInt" to android.os.Build.VERSION.SDK_INT,
                         "needsExtraSetup" to OemHelper.needsExtraSetup(),
@@ -252,6 +247,19 @@ class MainActivity : FlutterActivity() {
                 }
                 "stopAlarmSoundPreview" -> {
                     stopPreview()
+                    result.success(true)
+                }
+                "setDistanceUnit" -> {
+                    val miles = call.argument<Boolean>("miles") ?: false
+                    AlarmSettings(this).setUseMiles(miles)
+                    if (LocationWatchService.isWatching) {
+                        runCatching {
+                            ContextCompat.startForegroundService(
+                                this,
+                                Intent(this, LocationWatchService::class.java),
+                            )
+                        }
+                    }
                     result.success(true)
                 }
                 "isAlarmRinging" -> result.success(AlarmForegroundService.isRinging)

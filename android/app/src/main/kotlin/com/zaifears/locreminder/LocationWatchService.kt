@@ -173,9 +173,10 @@ class LocationWatchService : Service() {
     private fun applyTodaysSchedule() {
         val weekday = todayIsoWeekday()
         val todayStr = today()
-        val ringsToday = AlarmStore(this).loadAll().any {
+        val activeToday = AlarmStore(this).loadAll().filter {
             it.ringsOn(weekday) && !(it.repeats && arrivalState.hasRungToday(it.id, todayStr))
         }
+        val ringsToday = activeToday.isNotEmpty()
 
         if (ringsToday) {
             if (isDormant) {
@@ -185,12 +186,21 @@ class LocationWatchService : Service() {
                 // fix lands.
                 nearestLabel = null
                 nearestDistance = null
-            } else if (isReceivingUpdates) {
-                // Already watching, and watching correctly. The armed count
-                // may have changed, which the notification says when it has
-                // no distance to show yet; nothing else here has.
-                updateNotification()
-                return
+            } else {
+                // If the alarm that was previously nearest was disarmed, deleted,
+                // or edited so it no longer rings today, clear its cached label
+                // so the ongoing notification updates immediately.
+                if (nearestLabel != null && activeToday.none { it.label == nearestLabel }) {
+                    nearestLabel = null
+                    nearestDistance = null
+                }
+                if (isReceivingUpdates) {
+                    // Already watching, and watching correctly. The armed count
+                    // may have changed, which the notification says when it has
+                    // no distance to show yet; nothing else here has.
+                    updateNotification()
+                    return
+                }
             }
             requestUpdates(currentIntervalMillis)
             return
@@ -737,6 +747,15 @@ class LocationWatchService : Service() {
             label == null || distance == null -> {
                 val armedCount = AlarmStore(this).loadAll().size
                 resources.getQuantityString(R.plurals.watch_armed, armedCount, armedCount)
+            }
+            AlarmSettings(this).useMiles() -> {
+                val miles = distance / 1609.344
+                if (miles >= 0.1) {
+                    getString(R.string.watch_distance_mi, "%.1f".format(miles), label)
+                } else {
+                    val feet = ((distance * 3.28084) / 10).toInt() * 10
+                    getString(R.string.watch_distance_ft, maxOf(feet, 10).toString(), label)
+                }
             }
             distance >= 1000 ->
                 getString(R.string.watch_distance_km, "%.1f".format(distance / 1000), label)

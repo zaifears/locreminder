@@ -4,6 +4,7 @@ import '../main.dart';
 import '../services/app_version.dart';
 import '../services/offline_maps.dart';
 import '../services/permission_service.dart';
+import '../services/unit_controller.dart';
 import '../widgets/alarm_sound_section.dart';
 import 'reliability_screen.dart';
 
@@ -48,6 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     final controller = LocReminderApp.themeOf(context);
+    final unitController = LocReminderApp.unitOf(context);
     final status = _status;
 
     return Scaffold(
@@ -106,6 +108,54 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             ),
           ),
           const SizedBox(height: 24),
+          const _SectionHeader(label: 'Distance units'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ValueListenableBuilder<DistanceUnit>(
+                valueListenable: unitController,
+                builder: (context, unit, _) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<DistanceUnit>(
+                          segments: const [
+                            ButtonSegment(
+                              value: DistanceUnit.km,
+                              label: Text('KM'),
+                            ),
+                            ButtonSegment(
+                              value: DistanceUnit.miles,
+                              label: Text('Miles'),
+                            ),
+                          ],
+                          selected: {unit},
+                          showSelectedIcon: false,
+                          onSelectionChanged: (selection) =>
+                              unitController.setUnit(selection.first),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        switch (unit) {
+                          DistanceUnit.km =>
+                            'Distances and alarm radius shown in metres and kilometres (m / km).',
+                          DistanceUnit.miles =>
+                            'Distances and alarm radius shown in feet and miles (ft / mi).',
+                        },
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
           const _SectionHeader(label: 'Alarm sound'),
           const AlarmSoundSection(),
           const SizedBox(height: 24),
@@ -151,8 +201,8 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                   ),
                   const Divider(height: 1),
                   _PermissionRow(
-                    title: 'Full-screen alarms',
-                    subtitle: 'Needed on Android 14 and newer',
+                    title: 'Full-screen & lock-screen alarms',
+                    subtitle: 'Shows the alarm and Stop button over your lock screen',
                     granted: status.fullScreenIntentAllowed,
                     onFix: () async {
                       await _permissionService.requestFullScreenIntent();
@@ -180,9 +230,9 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 Icons.health_and_safety_outlined,
                 color: Theme.of(context).colorScheme.onSecondaryContainer,
               ),
-              title: const Text('Alarm reliability'),
+              title: const Text('Alarm reliability & phone setup'),
               subtitle: const Text(
-                'Device-specific setup and a test that proves alarms get through',
+                'Full-screen display & background steps for every phone brand, plus a 15-second lock-screen test',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(

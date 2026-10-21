@@ -295,6 +295,16 @@ jobs:
           echo "permalink=$url"                             >> "$GITHUB_OUTPUT"
           note="**VirusTotal:** $flags of $total engines flagged this build — [full report]($url) · \`SHA-256: $sha\`"
           echo "release_note=$note"                         >> "$GITHUB_OUTPUT"
+          build_num=$(grep '^version:' "$GITHUB_WORKSPACE/pubspec.yaml" | head -1 | awk '{print $2}' | cut -d'+' -f2)
+          changelog_file="$GITHUB_WORKSPACE/fastlane/metadata/android/en-US/changelogs/${build_num}.txt"
+          {
+            if [ -f "$changelog_file" ]; then
+              echo "### What's New"
+              cat "$changelog_file"
+              echo ""
+            fi
+            echo "$note"
+          } > "$GITHUB_WORKSPACE/release-body.md"
 
           # Also export all per-APK values for the SECURITY-SCAN recording step.
           for tag in universal armeabi_v7a arm64_v8a x86_64; do
@@ -331,7 +341,7 @@ jobs:
           # Carries the hash as well as the verdict: the hash is what lets a
           # reader confirm the file they downloaded is the file that was
           # scanned, which the result alone does not establish.
-          body: ${{ steps.virustotal.outputs.release_note }}
+          body_path: release-body.md
 
       # A tiny JSON the README badge reads, plus a page recording every scan.
       # A few hundred bytes each, so unlike the APK they cost nothing to keep.

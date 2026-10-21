@@ -1,0 +1,4 @@
+• Added KM and Miles option: switch between kilometres (km/m) and miles (mi/ft) anytime in Settings or on the welcome screen.
+• Simpler welcome & setup screen: decluttered first-time instructions so getting started is quick and easy to read.
+• Full-screen alarm guide for all phones: step-by-step setup for Xiaomi/Redmi/Poco, Samsung, Oppo/Realme, Vivo, OnePlus, Huawei, Pixel, Motorola, Tecno/Infinix, and more.
+• Fixed lock-screen alarm display on Redmi Note 12 4G and MIUI/HyperOS.

@@ -42,3 +42,6 @@ double? minimumRadiusForSpeed(double? speedMetresPerSecond) {
 
 /// The speed itself, in km/h, for telling the user what was measured.
 int kilometresPerHour(double metresPerSecond) => (metresPerSecond * 3.6).round();
+
+/// The speed itself, in mph, for users who selected Miles in Settings.
+int milesPerHour(double metresPerSecond) => (metresPerSecond * 2.23693629).round();

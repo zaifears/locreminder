@@ -6,6 +6,7 @@ import 'screens/onboarding_screen.dart';
 import 'services/offline_maps.dart';
 import 'services/permission_service.dart';
 import 'services/theme_controller.dart';
+import 'services/unit_controller.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -18,20 +19,40 @@ Future<void> main() async {
   await OfflineMaps.initialise();
   final themeController = ThemeController();
   await themeController.load();
-  runApp(LocReminderApp(themeController: themeController));
+  final unitController = UnitController();
+  await unitController.load();
+  runApp(
+    LocReminderApp(
+      themeController: themeController,
+      unitController: unitController,
+    ),
+  );
 }
 
 class LocReminderApp extends StatefulWidget {
-  const LocReminderApp({super.key, required this.themeController});
+  const LocReminderApp({
+    super.key,
+    required this.themeController,
+    this.unitController,
+  });
 
   final ThemeController themeController;
+  final UnitController? unitController;
+
+  static final UnitController _fallbackUnitController = UnitController();
 
   /// Lets any screen read the app-wide theme controller without pulling in a
   /// state-management dependency for a single setting.
   static ThemeController themeOf(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<_ThemeScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<_AppScope>();
     assert(scope != null, 'No LocReminderApp found in context');
-    return scope!.controller;
+    return scope!.themeController;
+  }
+
+  /// Lets any screen read or change the app-wide distance unit (KM vs Miles).
+  static UnitController unitOf(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_AppScope>();
+    return scope?.unitController ?? _fallbackUnitController;
   }
 
   @override
@@ -39,10 +60,14 @@ class LocReminderApp extends StatefulWidget {
 }
 
 class _LocReminderAppState extends State<LocReminderApp> {
+  late final UnitController _unitController =
+      widget.unitController ?? LocReminderApp._fallbackUnitController;
+
   @override
   Widget build(BuildContext context) {
-    return _ThemeScope(
-      controller: widget.themeController,
+    return _AppScope(
+      themeController: widget.themeController,
+      unitController: _unitController,
       child: ValueListenableBuilder<ThemeMode>(
         valueListenable: widget.themeController,
         builder: (context, mode, _) {
@@ -65,13 +90,20 @@ class _LocReminderAppState extends State<LocReminderApp> {
   }
 }
 
-class _ThemeScope extends InheritedWidget {
-  const _ThemeScope({required this.controller, required super.child});
+class _AppScope extends InheritedWidget {
+  const _AppScope({
+    required this.themeController,
+    required this.unitController,
+    required super.child,
+  });
 
-  final ThemeController controller;
+  final ThemeController themeController;
+  final UnitController unitController;
 
   @override
-  bool updateShouldNotify(_ThemeScope oldWidget) => controller != oldWidget.controller;
+  bool updateShouldNotify(_AppScope oldWidget) =>
+      themeController != oldWidget.themeController ||
+      unitController != oldWidget.unitController;
 }
 
 /// Routes to onboarding until every permission LocReminder needs to work

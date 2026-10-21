@@ -7,11 +7,12 @@ import android.provider.OpenableColumns
 import android.util.Log
 
 /**
- * The user's alarm sound and vibration choices.
+ * The user's alarm sound, vibration, and distance unit choices.
  *
- * Kept in its own SharedPreferences file, read directly by the alarm
- * service, so the sound is available without the Flutter engine being
- * alive — the alarm has to ring correctly when the app is long gone.
+ * Kept in its own SharedPreferences file, read directly by the alarm and
+ * watch services, so settings are available without the Flutter engine being
+ * alive — the alarm has to ring and report distance correctly when the app is
+ * long gone.
  */
 class AlarmSettings(private val context: Context) {
 
@@ -32,6 +33,8 @@ class AlarmSettings(private val context: Context) {
 
     fun vibrationEnabled(): Boolean = prefs.getBoolean(KEY_VIBRATE, true)
 
+    fun useMiles(): Boolean = prefs.getBoolean(KEY_USE_MILES, false)
+
     fun setSound(uri: Uri?, name: String?) {
         prefs.edit().apply {
             if (uri == null) {
@@ -46,6 +49,10 @@ class AlarmSettings(private val context: Context) {
 
     fun setVibrationEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_VIBRATE, enabled).apply()
+    }
+
+    fun setUseMiles(miles: Boolean) {
+        prefs.edit().putBoolean(KEY_USE_MILES, miles).apply()
     }
 
     /**
@@ -79,6 +86,7 @@ class AlarmSettings(private val context: Context) {
         private const val KEY_SOUND_URI = "sound_uri"
         private const val KEY_SOUND_NAME = "sound_name"
         private const val KEY_VIBRATE = "vibrate"
+        private const val KEY_USE_MILES = "use_miles"
 
         /** Best-effort human-readable name for a sound URI. */
         fun displayNameFor(context: Context, uri: Uri): String {
