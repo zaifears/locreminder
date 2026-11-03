@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../main.dart';
 import '../services/oem_service.dart';
@@ -7,9 +8,14 @@ import '../services/unit_controller.dart';
 import 'home_screen.dart';
 import 'reliability_screen.dart';
 
-/// Greets the user with a clean, scannable introduction followed by four
-/// concise permission steps — including phone-specific full-screen alarm
-/// setup instructions for every phone brand.
+/// First run: a short welcome, then a single checklist that walks through
+/// every permission with one button.
+///
+/// Earlier versions gave each permission its own page of explanation, plus
+/// phone-specific menu paths up front. People skimmed, got bored, and gave
+/// up. Now each permission gets one line of "why", the longer explanation
+/// sits behind a help icon, and phone-specific advice only appears for the
+/// step it belongs to, on the phones that need it.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -17,15 +23,18 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
+/// The four things the alarm needs, in the order Android lets us ask.
+enum _Step { location, background, lockScreen, battery }
+
 class _OnboardingScreenState extends State<OnboardingScreen>
     with WidgetsBindingObserver {
   final _permissionService = PermissionService();
   final _oemService = OemService();
-  final _pageController = PageController();
 
   PermissionStatusSummary? _status;
   DeviceProfile? _device;
-  int _pageIndex = 0;
+  bool _showChecklist = false;
+  bool _requesting = false;
 
   @override
   void initState() {
@@ -37,7 +46,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -56,37 +64,56 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     });
   }
 
-  void _goToPage(int index) {
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
   void _finish() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
-  Future<void> _advanceMissingStep(PermissionStatusSummary status) async {
-    if (!status.locationServiceEnabled || !status.foregroundLocationGranted) {
-      _goToPage(1);
-      return;
+  bool _isDone(_Step step, PermissionStatusSummary s) => switch (step) {
+        _Step.location =>
+          s.locationServiceEnabled && s.foregroundLocationGranted,
+        _Step.background => s.backgroundLocationGranted,
+        _Step.lockScreen => s.notificationsGranted && s.fullScreenIntentAllowed,
+        _Step.battery => s.batteryOptimizationDisabled,
+      };
+
+  /// The first step still missing. Android requires foreground location
+  /// before background, so the order is not cosmetic.
+  _Step? _nextStep(PermissionStatusSummary s) {
+    for (final step in _Step.values) {
+      if (!_isDone(step, s)) return step;
     }
-    if (!status.backgroundLocationGranted) {
-      _goToPage(2);
-      return;
+    return null;
+  }
+
+  Future<void> _request(_Step step, PermissionStatusSummary s) async {
+    if (_requesting) return;
+    setState(() => _requesting = true);
+    try {
+      switch (step) {
+        case _Step.location:
+          await _permissionService.requestForegroundLocation();
+        case _Step.background:
+          await _permissionService.requestBackgroundLocation();
+        case _Step.lockScreen:
+          if (!s.notificationsGranted) {
+            await _permissionService.requestNotifications();
+          } else {
+            await _permissionService.requestFullScreenIntent();
+          }
+        case _Step.battery:
+          await _permissionService.requestDisableBatteryOptimization();
+      }
+    } on PlatformException {
+      // A settings screen that will not open must not leave the button
+      // disabled; the re-check below shows the true state either way.
+    } on MissingPluginException {
+      // Same as above.
+    } finally {
+      if (mounted) setState(() => _requesting = false);
     }
-    if (!status.notificationsGranted || !status.fullScreenIntentAllowed) {
-      _goToPage(3);
-      return;
-    }
-    if (!status.batteryOptimizationDisabled) {
-      await _permissionService.requestDisableBatteryOptimization();
-      await _refresh();
-    }
+    await _refresh();
   }
 
   Future<void> _openReliability() async {
@@ -99,207 +126,403 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   Widget build(BuildContext context) {
     final status = _status;
-    final device = _device;
     if (status == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final permissionPages = <Widget>[
-      _PermissionPage(
-        icon: Icons.location_on_outlined,
-        title: 'Location access',
-        headline: 'Know when you reach your stop.',
-        body:
-            'LocReminder compares your GPS position against your destination '
-            'and rings when you arrive. Your location never leaves your phone.',
-        granted:
-            status.locationServiceEnabled && status.foregroundLocationGranted,
-        grantedLabel: 'Location access granted',
-        actionLabel: status.locationServiceEnabled
-            ? 'Allow location'
-            : 'Turn on location services',
-        onRequest: () async {
-          await _permissionService.requestForegroundLocation();
-          await _refresh();
-        },
-      ),
-      _PermissionPage(
-        icon: Icons.nightlight_outlined,
-        title: 'Background location',
-        headline: 'Choose "Allow all the time" on the next screen.',
-        body:
-            'So you can lock your phone and sleep through the ride. '
-            'If set to "Only while using the app", the alarm cannot ring once '
-            'your screen is off.',
-        granted: status.backgroundLocationGranted,
-        grantedLabel: 'Background location granted',
-        actionLabel: 'Open location permission',
-        onRequest: () async {
-          await _permissionService.requestBackgroundLocation();
-          await _refresh();
-        },
-      ),
-      _PermissionPage(
-        icon: Icons.notifications_active_outlined,
-        title: 'Full-screen alarm display',
-        headline: 'Wake and show the Stop button over your lock screen.',
-        body:
-            'Android uses notification and full-screen permissions to show the '
-            'alarm over a locked screen, just like a regular alarm clock.',
-        granted: status.notificationsGranted && status.fullScreenIntentAllowed,
-        grantedLabel: 'Full-screen alarms ready',
-        actionLabel: !status.notificationsGranted
-            ? 'Allow notifications'
-            : (device != null && device.isXiaomi
-                ? 'Allow Lock screen & Pop-ups'
-                : 'Allow full-screen alarms'),
-        onRequest: () async {
-          if (!status.notificationsGranted) {
-            await _permissionService.requestNotifications();
-          } else {
-            await _permissionService.requestFullScreenIntent();
-          }
-          await _refresh();
-        },
-        customSection: device == null
-            ? null
-            : _OnboardingFullScreenGuide(
-                device: device,
-                onBrowseAllPhones: () =>
-                    showAllPhonesFullScreenSheet(context, currentDevice: device),
-              ),
-      ),
-      _PermissionPage(
-        icon: Icons.battery_saver_outlined,
-        title: 'Unrestricted battery',
-        headline: 'Keep Android from putting the alarm to sleep.',
-        body:
-            'Choose "Unrestricted" or "Don\'t optimize" so Android does not '
-            'pause GPS tracking while your screen is locked.',
-        granted: status.batteryOptimizationDisabled,
-        grantedLabel: 'Battery optimization disabled',
-        actionLabel: 'Allow unrestricted battery',
-        secondaryNote:
-            'Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei, and Transsion '
-            'phones have extra background settings. Tap below to check your '
-            'phone model and run a 15-second lock-screen test.',
-        onRequest: () async {
-          await _permissionService.requestDisableBatteryOptimization();
-          await _refresh();
-        },
-        extraAction: _openReliability,
-        extraActionLabel: 'Phone-specific setup & alarm test',
-      ),
-    ];
-
-    final allPages = <Widget>[
-      const _WelcomePage(),
-      ...permissionPages,
-    ];
-
-    final isLastPage = _pageIndex == allPages.length - 1;
-
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 280),
+          child: _showChecklist
+              ? _buildChecklist(context, status)
+              : _WelcomePage(
+                  key: const ValueKey('welcome'),
+                  onStart: () => setState(() => _showChecklist = true),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChecklist(BuildContext context, PermissionStatusSummary status) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final device = _device;
+    final next = _nextStep(status);
+    final doneCount = _Step.values.where((s) => _isDone(s, status)).length;
+
+    return Column(
+      key: const ValueKey('checklist'),
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+            children: [
+              Row(
                 children: [
-                  for (int i = 0; i < permissionPages.length; i++)
-                    Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        height: 4,
-                        margin: EdgeInsets.only(
-                          right: i == permissionPages.length - 1 ? 0 : 6,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
-                          color: i < _pageIndex
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    _pageIndex == 0
-                        ? 'Welcome'
-                        : 'Step $_pageIndex of ${permissionPages.length}',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                  IconButton(
+                    onPressed: () => setState(() => _showChecklist = false),
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: 'Back',
+                    visualDensity: VisualDensity.compact,
                   ),
                   const Spacer(),
-                  if (!isLastPage && _pageIndex > 0)
-                    TextButton(
-                      onPressed: () => _goToPage(allPages.length - 1),
-                      child: const Text('Skip'),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) => setState(() => _pageIndex = index),
-                children: allPages,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: Row(
-                children: [
-                  if (_pageIndex > 0)
-                    IconButton.filledTonal(
-                      onPressed: () => _goToPage(_pageIndex - 1),
-                      icon: const Icon(Icons.arrow_back),
-                    ),
-                  if (_pageIndex > 0) const SizedBox(width: 12),
-                  Expanded(
-                    child: _pageIndex == 0
-                        ? FilledButton(
-                            onPressed: () => _goToPage(1),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Start setup'),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward, size: 20),
-                              ],
-                            ),
-                          )
-                        : isLastPage
-                            ? FilledButton(
-                                onPressed: status.isFullyReady
-                                    ? _finish
-                                    : () => _advanceMissingStep(status),
-                                child: Text(
-                                  status.isFullyReady
-                                      ? 'Start using LocReminder'
-                                      : 'Grant the required permissions',
-                                ),
-                              )
-                            : FilledButton(
-                                onPressed: () => _goToPage(_pageIndex + 1),
-                                child: const Text('Next'),
-                              ),
+                  Text(
+                    '$doneCount of ${_Step.values.length} done',
+                    style: textTheme.labelMedium
+                        ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              Text(
+                next == null ? 'All set' : 'A few permissions',
+                style: textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                next == null
+                    ? 'Your alarm can ring with the app closed and the screen off.'
+                    : 'So the alarm rings even when your phone is locked.',
+                style: textTheme.bodyMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: doneCount / _Step.values.length,
+                  minHeight: 4,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                ),
+              ),
+              const SizedBox(height: 20),
+              for (final step in _Step.values)
+                _ChecklistRow(
+                  info: _infoFor(step, status, device),
+                  done: _isDone(step, status),
+                  current: step == next,
+                  onTap: step == next && !_requesting
+                      ? () => _request(step, status)
+                      : null,
+                  // Shown whether or not the row is ticked: on Xiaomi and
+                  // similar phones Android can report the full-screen
+                  // permission as granted while the maker's own "Show on
+                  // Lock screen" switch is still off, and no app can read it.
+                  onExtra: step == _Step.lockScreen &&
+                          device != null &&
+                          device.needsExtraSetup
+                      ? () => showAllPhonesFullScreenSheet(
+                            context,
+                            currentDevice: device,
+                          )
+                      : null,
+                  extraLabel: device == null
+                      ? null
+                      : 'Extra step on ${device.vendorName}',
+                ),
+              if (next == null) ...[
+                const SizedBox(height: 8),
+                _VendorTip(device: device, onTap: _openReliability),
+              ],
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _requesting
+                  ? null
+                  : next == null
+                      ? _finish
+                      : () => _request(next, status),
+              child: Text(
+                next == null
+                    ? 'Start using LocReminder'
+                    : _infoFor(next, status, device).action,
+              ),
             ),
-          ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  _StepInfo _infoFor(
+    _Step step,
+    PermissionStatusSummary status,
+    DeviceProfile? device,
+  ) {
+    switch (step) {
+      case _Step.location:
+        return _StepInfo(
+          icon: Icons.location_on_outlined,
+          title: 'Location',
+          why: 'To know when you reach your stop.',
+          action: status.locationServiceEnabled
+              ? 'Allow location'
+              : 'Turn on location',
+          details:
+              'LocReminder compares your GPS position with your destination '
+              'and rings when you arrive. Your location never leaves your '
+              'phone: there is no account, server, or tracking.',
+        );
+      case _Step.background:
+        return const _StepInfo(
+          icon: Icons.nightlight_outlined,
+          title: 'Location all the time',
+          why: 'So it works with the screen off.',
+          hint: 'Pick "Allow all the time" on the next screen.',
+          action: 'Allow all the time',
+          details:
+              'With "Only while using the app", Android stops location '
+              'updates as soon as you lock the phone, so the alarm could '
+              'never ring while you sleep through the ride.',
+        );
+      case _Step.lockScreen:
+        return _StepInfo(
+          icon: Icons.notifications_active_outlined,
+          title: 'Alarm on lock screen',
+          why: 'To wake the screen and show a Stop button.',
+          action: !status.notificationsGranted
+              ? 'Allow notifications'
+              : (device != null && device.isXiaomi
+                  ? 'Allow Lock screen & Pop-ups'
+                  : 'Allow full-screen alarm'),
+          details:
+              'Android uses notification and full-screen permissions to show '
+              'the alarm over a locked screen, just like a regular alarm '
+              'clock.',
+        );
+      case _Step.battery:
+        return const _StepInfo(
+          icon: Icons.battery_saver_outlined,
+          title: 'No battery limits',
+          why: 'So Android does not pause the alarm.',
+          hint: 'Choose "Allow" or "Unrestricted".',
+          action: 'Remove battery limits',
+          details:
+              'With battery optimisation on, Android delays location work '
+              'until you next open the app. In testing that meant the alarm '
+              'stayed silent for the whole journey. LocReminder only uses '
+              'GPS while an alarm is active.',
+        );
+    }
+  }
+}
+
+class _StepInfo {
+  const _StepInfo({
+    required this.icon,
+    required this.title,
+    required this.why,
+    required this.action,
+    required this.details,
+    this.hint,
+  });
+
+  final IconData icon;
+  final String title;
+
+  /// One line, always visible.
+  final String why;
+
+  /// Shown only while this is the current step: what to tap on the system
+  /// screen that follows.
+  final String? hint;
+
+  final String action;
+
+  /// The longer explanation, behind the help icon.
+  final String details;
+}
+
+class _ChecklistRow extends StatelessWidget {
+  const _ChecklistRow({
+    required this.info,
+    required this.done,
+    required this.current,
+    required this.onTap,
+    this.onExtra,
+    this.extraLabel,
+  });
+
+  final _StepInfo info;
+  final bool done;
+  final bool current;
+  final VoidCallback? onTap;
+  final VoidCallback? onExtra;
+  final String? extraLabel;
+
+  void _showDetails(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(info.title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 10),
+              Text(
+                info.details,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      height: 1.5,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final muted = !done && !current;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: current
+            ? scheme.primaryContainer.withValues(alpha: 0.35)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: done
+                            ? scheme.primary
+                            : scheme.surfaceContainerHigh,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        done ? Icons.check_rounded : info.icon,
+                        size: 22,
+                        color: done
+                            ? scheme.onPrimary
+                            : (muted ? scheme.onSurfaceVariant : scheme.primary),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            info.title,
+                            style: textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: muted ? scheme.onSurfaceVariant : null,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            info.why,
+                            style: textTheme.bodySmall
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => _showDetails(context),
+                      icon: const Icon(Icons.help_outline, size: 20),
+                      color: scheme.onSurfaceVariant,
+                      tooltip: 'Why?',
+                    ),
+                  ],
+                ),
+                if (current && info.hint != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 54, top: 6, right: 10),
+                    child: Text(
+                      info.hint!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                if (onExtra != null && extraLabel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 46),
+                    child: TextButton.icon(
+                      onPressed: onExtra,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      icon: const Icon(Icons.smartphone, size: 16),
+                      label: Text(extraLabel!),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown once everything is granted: an optional lock-screen test, worded
+/// more strongly on phones whose maker adds its own background limits.
+class _VendorTip extends StatelessWidget {
+  const _VendorTip({required this.device, required this.onTap});
+
+  final DeviceProfile? device;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.tertiaryContainer,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(Icons.tips_and_updates_outlined,
+                  color: scheme.onTertiaryContainer),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  device != null && device!.needsExtraSetup
+                      ? '${device!.vendorName} phones can still stop alarms. '
+                          'Check its settings and run a 15-second test.'
+                      : 'Optional: run a 15-second lock-screen test.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onTertiaryContainer,
+                        height: 1.4,
+                      ),
+                ),
+              ),
+              Icon(Icons.chevron_right, color: scheme.onTertiaryContainer),
+            ],
+          ),
         ),
       ),
     );
@@ -307,390 +530,116 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 }
 
 class _WelcomePage extends StatelessWidget {
-  const _WelcomePage();
+  const _WelcomePage({super.key, required this.onStart});
+
+  final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final unitController = LocReminderApp.unitOf(context);
 
-    return ValueListenableBuilder<DistanceUnit>(
-      valueListenable: unitController,
-      builder: (context, unit, _) {
-        final rangeText = unit == DistanceUnit.miles
-            ? '330 ft to 1.9 mi out.'
-            : '100 m to 3 km out.';
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.20),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                children: [
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: scheme.primary.withValues(alpha: 0.20),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Image.asset(
-                  'assets/images/app_logo.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'LocReminder',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'LocReminder',
+                    style: textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.5,
                     ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Reminds you at the right place',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              const SizedBox(height: 24),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    children: [
-                      const _StepItem(
-                        icon: Icons.place_outlined,
-                        title: 'Pick your destination',
-                        body: 'Search by name, paste coordinates, or drag the map.',
-                      ),
-                      const SizedBox(height: 16),
-                      _StepItem(
-                        icon: Icons.radar_outlined,
-                        title: 'Set your distance',
-                        body: 'Choose how early to ring — $rangeText',
-                      ),
-                      const SizedBox(height: 16),
-                      const _StepItem(
-                        icon: Icons.lock_clock_outlined,
-                        title: 'Put your phone away',
-                        body: 'Works offline via GPS and wakes your lock screen.',
-                      ),
-                    ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                  const SizedBox(height: 10),
                   Text(
-                    'Distance unit:',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(width: 10),
-                  SegmentedButton<DistanceUnit>(
-                    segments: const [
-                      ButtonSegment(value: DistanceUnit.km, label: Text('KM')),
-                      ButtonSegment(
-                        value: DistanceUnit.miles,
-                        label: Text('Miles'),
-                      ),
-                    ],
-                    selected: {unit},
-                    showSelectedIcon: false,
-                    style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    'Pick a place. Put your phone away.\n'
+                    'It rings when you arrive.',
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.4,
                     ),
-                    onSelectionChanged: (s) => unitController.setUnit(s.first),
+                  ),
+                  const SizedBox(height: 28),
+                  ValueListenableBuilder<DistanceUnit>(
+                    valueListenable: unitController,
+                    builder: (context, unit, _) =>
+                        SegmentedButton<DistanceUnit>(
+                      segments: const [
+                        ButtonSegment(value: DistanceUnit.km, label: Text('KM')),
+                        ButtonSegment(
+                          value: DistanceUnit.miles,
+                          label: Text('Miles'),
+                        ),
+                      ],
+                      selected: {unit},
+                      showSelectedIcon: false,
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onSelectionChanged: (s) =>
+                          unitController.setUnit(s.first),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+          child: Column(
+            children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.shield_outlined, size: 16, color: scheme.primary),
                   const SizedBox(width: 6),
                   Text(
-                    '100% offline & private · No account or tracking',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                    'Offline & private · No account',
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
                 ],
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _StepItem extends StatelessWidget {
-  const _StepItem({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: scheme.primaryContainer,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          alignment: Alignment.center,
-          child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                body,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.35,
-                    ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onStart,
+                  child: const Text('Get started'),
+                ),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _OnboardingFullScreenGuide extends StatelessWidget {
-  const _OnboardingFullScreenGuide({
-    required this.device,
-    required this.onBrowseAllPhones,
-  });
-
-  final DeviceProfile device;
-  final VoidCallback onBrowseAllPhones;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.smartphone, size: 18, color: scheme.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Full-screen setup for ${device.vendorName}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (int i = 0; i < device.fullScreenSteps.length; i++) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                '${i + 1}. ${device.fullScreenSteps[i].title}\n'
-                '   ${device.fullScreenSteps[i].path}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.35,
-                    ),
-              ),
-            ),
-          ],
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: onBrowseAllPhones,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                visualDensity: VisualDensity.compact,
-              ),
-              icon: const Icon(Icons.list_alt_outlined, size: 16),
-              label: const Text('All phone brands (Samsung, Xiaomi, Pixel, Vivo…)'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PermissionPage extends StatelessWidget {
-  const _PermissionPage({
-    required this.icon,
-    required this.title,
-    required this.headline,
-    required this.body,
-    required this.granted,
-    required this.grantedLabel,
-    required this.actionLabel,
-    required this.onRequest,
-    this.secondaryNote,
-    this.customSection,
-    this.extraAction,
-    this.extraActionLabel,
-  });
-
-  final IconData icon;
-  final String title;
-  final String headline;
-  final String body;
-  final bool granted;
-  final String grantedLabel;
-  final String actionLabel;
-  final VoidCallback onRequest;
-  final String? secondaryNote;
-  final Widget? customSection;
-  final VoidCallback? extraAction;
-  final String? extraActionLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: granted
-                  ? scheme.primaryContainer
-                  : scheme.surfaceContainerHigh,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              granted ? Icons.check_rounded : icon,
-              size: 36,
-              color: granted ? scheme.onPrimaryContainer : scheme.primary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text(
-            headline,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            body,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  height: 1.5,
-                ),
-          ),
-          if (customSection != null) ...[
-            const SizedBox(height: 14),
-            customSection!,
-          ],
-          if (secondaryNote != null) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: scheme.tertiaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: scheme.onTertiaryContainer,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      secondaryNote!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onTertiaryContainer,
-                            height: 1.4,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 22),
-          SizedBox(
-            width: double.infinity,
-            child: granted
-                ? OutlinedButton.icon(
-                    onPressed: null,
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: Text(grantedLabel),
-                  )
-                : FilledButton(onPressed: onRequest, child: Text(actionLabel)),
-          ),
-          if (extraAction != null && extraActionLabel != null) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: extraAction,
-                icon: const Icon(Icons.smartphone),
-                label: Text(extraActionLabel!),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }
