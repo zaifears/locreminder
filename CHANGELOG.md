@@ -3,6 +3,16 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.1] - 2026-11-04
+
+### Changed
+- **New opening screen.** First-time setup is now a short welcome (logo, one line, KM/Miles toggle) followed by a single permission checklist, replacing four pages of explanation. Each permission shows one line on why it is needed, with the full explanation behind a **?** icon, and one button always asks for the next missing permission in the order Android requires.
+- **Phone-specific tips only where they apply.** Hints such as *Pick "Allow all the time"* or Xiaomi's *Show on Lock screen* appear only on the step they belong to. Phones with stricter background limits (Xiaomi, Samsung, Oppo, Vivo, OnePlus, Huawei, Honor, Tecno/Infinix and others) keep a link to their lock-screen guide, and every phone is offered the optional 15-second alarm test once setup is done.
+
+### Fixed
+- **Back during setup.** The system Back gesture on the permission checklist now returns to the welcome screen instead of closing the app.
+- **Setup button stuck after a settings error.** If a phone refuses to open a settings screen, the setup button no longer stays disabled.
+
 ## [2.1.0] - 2026-10-21
 
 ### Added

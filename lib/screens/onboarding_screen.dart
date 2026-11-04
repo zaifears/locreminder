@@ -130,16 +130,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 280),
-          child: _showChecklist
-              ? _buildChecklist(context, status)
-              : _WelcomePage(
-                  key: const ValueKey('welcome'),
-                  onStart: () => setState(() => _showChecklist = true),
-                ),
+    // The system Back gesture on the checklist returns to the welcome page
+    // instead of closing the app halfway through setup.
+    return PopScope(
+      canPop: !_showChecklist,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _showChecklist = false);
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            child: _showChecklist
+                ? _buildChecklist(context, status)
+                : _WelcomePage(
+                    key: const ValueKey('welcome'),
+                    onStart: () => setState(() => _showChecklist = true),
+                  ),
+          ),
         ),
       ),
     );
@@ -206,13 +214,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   onTap: step == next && !_requesting
                       ? () => _request(step, status)
                       : null,
-                  // Shown whether or not the row is ticked: on Xiaomi and
-                  // similar phones Android can report the full-screen
-                  // permission as granted while the maker's own "Show on
-                  // Lock screen" switch is still off, and no app can read it.
+                  // On strict brands this stays visible even once ticked:
+                  // Xiaomi's lock-screen switches are read natively, but
+                  // Samsung, Oppo, Vivo and others have pop-up and lock-screen
+                  // toggles no app can read, so a tick there is not proof.
                   onExtra: step == _Step.lockScreen &&
                           device != null &&
-                          device.needsExtraSetup
+                          (device.needsExtraSetup || step == next)
                       ? () => showAllPhonesFullScreenSheet(
                             context,
                             currentDevice: device,
@@ -220,7 +228,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       : null,
                   extraLabel: device == null
                       ? null
-                      : 'Extra step on ${device.vendorName}',
+                      : device.needsExtraSetup
+                          ? 'Extra step on ${_shortBrand(device.vendorName)}'
+                          : 'Lock-screen help',
                 ),
               if (next == null) ...[
                 const SizedBox(height: 8),
@@ -287,6 +297,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           icon: Icons.notifications_active_outlined,
           title: 'Alarm on lock screen',
           why: 'To wake the screen and show a Stop button.',
+          hint: status.notificationsGranted && device != null && device.isXiaomi
+              ? 'Turn on "Show on Lock screen" and "Display pop-up windows".'
+              : null,
           action: !status.notificationsGranted
               ? 'Allow notifications'
               : (device != null && device.isXiaomi
@@ -312,6 +325,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         );
     }
   }
+}
+
+/// "Xiaomi / Redmi / Poco (MIUI & HyperOS)" becomes "Xiaomi": the guide
+/// names are written for a list of every brand, too long for one line here.
+String _shortBrand(String vendorName) {
+  final name = vendorName.split('(').first.split('/').first.trim();
+  return name.isEmpty ? vendorName : name;
 }
 
 class _StepInfo {
@@ -511,8 +531,9 @@ class _VendorTip extends StatelessWidget {
               Expanded(
                 child: Text(
                   device != null && device!.needsExtraSetup
-                      ? '${device!.vendorName} phones can still stop alarms. '
-                          'Check its settings and run a 15-second test.'
+                      ? '${_shortBrand(device!.vendorName)} phones can still '
+                          'stop alarms. '
+                          "Check your phone's settings and run a 15-second test."
                       : 'Optional: run a 15-second lock-screen test.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onTertiaryContainer,

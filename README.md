@@ -52,14 +52,14 @@
 
 | | |
 |---|---|
-| **Latest version** | `v2.1.0`, see [what changed](CHANGELOG.md) |
+| **Latest version** | `v2.1.1`, see [what changed](CHANGELOG.md) |
 | **Works on** | Android 6.0 or newer |
 | **Size** | 53 MB (universal), or about 16-20 MB if you pick a device-matched build (see below) |
 | **Price** | Free. No ads, no accounts, no in-app purchases. |
 | **F-Droid** | [Get LocReminder on F-Droid](https://f-droid.org/packages/com.zaifears.locreminder) — install it through the F-Droid client for updates |
 | **Uptodown** | [Get LocReminder on Uptodown](https://locreminder.en.uptodown.com/android) — install or update via Uptodown |
 
-**What's new in v2.1.0.** Added a **KM and Miles** option in Settings (and on the welcome screen) so you can view all distances, radii, and speeds in miles and feet or kilometres and metres. Simplified the opening instruction screens so they are clean and easy to scan, added step-by-step full-screen alarm instructions for every phone brand, and fixed full-screen lock-screen alarm issues on **Redmi Note 12 4G** and other Xiaomi MIUI/HyperOS phones.
+**What's new in v2.1.1.** A cleaner opening screen: a short welcome, then one permission checklist where each item says in a line why it is needed and a single button walks you through them in order. Phone-specific tips (Xiaomi, Samsung, Oppo, Vivo and more) now appear only where your phone needs them.
 
 **What v2.0.0 brought.** Added full alarm editing support so you can adjust locations, change radii, notes, or schedules directly without recreating alarms. Fixed deletion confirmation notices appearing stuck behind the bottom sheet, and refined arrival tracking reset on geofence updates. (Suggested by @kiinami).
 

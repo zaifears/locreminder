@@ -1,0 +1,5 @@
+• New opening screen: a clean welcome, then one short checklist for setup.
+• Every permission now says in one line why it is needed. Tap ? for details.
+• One button walks you through each permission in the right order.
+• Phone-specific tips (Xiaomi, Samsung, Oppo, Vivo and more) appear only where your phone needs them.
+• Back no longer closes the app halfway through setup.
