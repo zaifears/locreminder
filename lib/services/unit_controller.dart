@@ -10,8 +10,8 @@ enum DistanceUnit {
   miles;
 
   String get shortLabel => switch (this) {
-        DistanceUnit.km => 'KM',
-        DistanceUnit.miles => 'Miles',
+        DistanceUnit.km => 'km',
+        DistanceUnit.miles => 'miles',
       };
 }
 

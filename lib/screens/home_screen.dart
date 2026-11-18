@@ -12,6 +12,7 @@ import '../services/native_bridge.dart';
 import '../services/offline_maps.dart';
 import '../services/permission_service.dart';
 import '../services/unit_controller.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/map_pin.dart';
 import '../widgets/map_tiles.dart';
@@ -231,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _initialPosition = located;
         });
       }
-      if (recenter) _mapController.move(located, 15);
+      if (recenter) _moveToVisibleCentre(located, 15);
     } catch (_) {
       // Keep the default position; the user can still pan and search.
       if (recenter && mounted) await _reportLocateFailure();
@@ -326,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _repository.saveAll(_alarms);
     await _syncLocationWatch();
     unawaited(_saveOfflineArea(alarm));
-    _mapController.move(LatLng(alarm.latitude, alarm.longitude), 14);
+    _moveToVisibleCentre(LatLng(alarm.latitude, alarm.longitude), 14);
     if (!mounted) return;
 
     // Arrival means crossing into the radius, so an alarm set for somewhere
@@ -481,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       unawaited(_saveOfflineArea(updated));
     }
 
-    _mapController.move(LatLng(updated.latitude, updated.longitude), 14);
+    _moveToVisibleCentre(LatLng(updated.latitude, updated.longitude), 14);
     if (!mounted) return;
 
     final here = _userLocation;
@@ -534,7 +535,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _focusAlarm(LocationAlarm alarm) {
-    _mapController.move(LatLng(alarm.latitude, alarm.longitude), 15);
+    _moveToVisibleCentre(LatLng(alarm.latitude, alarm.longitude), 15);
+  }
+
+  /// Height of the floating top bar: 12 padding, a 48 button, 12 padding.
+  static const _topBarHeight = 72.0;
+
+  /// Centres [point] in the part of the map the user can actually see: below
+  /// the top bar and above the alarm sheet, at whatever height the sheet is.
+  ///
+  /// A plain `move` centres on the middle of the whole screen. With the
+  /// sheet open to 62% that is behind the sheet, so tapping an alarm in the
+  /// list moved the map to it and left its pin hidden.
+  void _moveToVisibleCentre(LatLng point, double zoom) {
+    if (!mounted) return;
+    final media = MediaQuery.of(context);
+    final height = media.size.height;
+    final visibleTop = media.padding.top + _topBarHeight;
+    final visibleBottom = height * (1 - _sheetExtent);
+    final visibleCentre = (visibleTop + visibleBottom) / 2;
+    // flutter_map puts the target at (screen centre + offset): a negative dy
+    // lifts it above the middle of the screen into the visible area.
+    _mapController.move(
+      point,
+      zoom,
+      offset: Offset(0, visibleCentre - height / 2),
+    );
   }
 
   double? _distanceTo(LocationAlarm alarm) {
@@ -551,10 +577,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             point: LatLng(alarm.latitude, alarm.longitude),
             width: 44,
             height: 44,
-            // Puts the pin's tip on the coordinate rather than its middle.
-            alignment: Alignment.bottomCenter,
+            // Puts the pin's tip on the coordinate. flutter_map's alignment
+            // says where the widget sits *relative to the point*:
+            // topCenter places the whole pin above it, so its bottom edge
+            // (the tip) lands on the coordinate. bottomCenter, which this
+            // used to be, hung the pin below the point with its head on the
+            // coordinate, so the tip drifted 44 px off the spot and appeared
+            // to slide across the map on every zoom.
+            alignment: Alignment.topCenter,
             // Counter-rotate against the map so two-finger rotation doesn't
-            // spin the pins — they stay upright like real map pins.
+            // spin the pins — they stay upright like real map pins. The
+            // rotation origin is opposite the alignment, i.e. the tip.
             rotate: true,
             child: GestureDetector(
               onTap: () => _showAlarmPreview(alarm),
@@ -581,8 +614,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.blueAccent,
-              border: Border.all(color: Colors.white, width: 3),
+              color: AppTheme.userPosition,
+              border: Border.all(color: AppTheme.userPositionRing, width: 3),
               boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
             ),
           ),
@@ -630,8 +663,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           point: here,
           radius: accuracy,
           useRadiusInMeter: true,
-          color: Colors.blueAccent.withValues(alpha: 0.10),
-          borderColor: Colors.blueAccent.withValues(alpha: 0.35),
+          color: AppTheme.userPosition.withValues(alpha: 0.10),
+          borderColor: AppTheme.userPosition.withValues(alpha: 0.35),
           borderStrokeWidth: 1,
         ),
       );

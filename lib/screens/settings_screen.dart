@@ -124,11 +124,11 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                           segments: const [
                             ButtonSegment(
                               value: DistanceUnit.km,
-                              label: Text('KM'),
+                              label: Text('km'),
                             ),
                             ButtonSegment(
                               value: DistanceUnit.miles,
-                              label: Text('Miles'),
+                              label: Text('miles'),
                             ),
                           ],
                           selected: {unit},
@@ -377,11 +377,10 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: Text(
-        label.toUpperCase(),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        label,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 0.8,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
       ),
     );

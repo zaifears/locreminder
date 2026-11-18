@@ -1,0 +1,5 @@
+• Map pins now point exactly at the alarm's location, at every zoom.
+• Zooming in the location picker keeps the pin on the place you chose.
+• The picker's pin sits in the middle of the visible map, not behind the panel.
+• Tapping an alarm in the list shows it above the list.
+• Simpler setup screens and calmer labels.

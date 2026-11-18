@@ -32,6 +32,17 @@ class AppTheme {
   /// Signal Blue, straight off the launcher icon. The app's only accent.
   static const seed = Color(0xFF2563EB);
 
+  /// Position Blue: the user's own location dot and its accuracy circle.
+  /// Deliberately a different blue from [seed], so "where I am" never reads
+  /// as "where the alarm is" (DESIGN.md, the One Accent Rule's one exception).
+  /// The same in light and dark themes, because it sits on map tiles, not on
+  /// the app's surfaces.
+  static const userPosition = Color(0xFF448AFF);
+
+  /// The ring around [userPosition]. Always white, never a theme surface:
+  /// on dark map tiles a dark-theme surface ring would vanish into the map.
+  static const userPositionRing = Colors.white;
+
   // Quiet blue-grey for the informational callouts that must read as an aside
   // rather than an action. Material's generated tertiary lands in the pinks
   // for this seed, which is a second hue the design system does not want.

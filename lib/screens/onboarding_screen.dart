@@ -140,7 +140,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       child: Scaffold(
         body: SafeArea(
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 280),
+            // Honour the system "Remove animations" setting: the swap
+            // between welcome and checklist is instant there.
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 280),
             child: _showChecklist
                 ? _buildChecklist(context, status)
                 : _WelcomePage(
@@ -167,32 +171,27 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => setState(() => _showChecklist = false),
-                    icon: const Icon(Icons.arrow_back),
-                    tooltip: 'Back',
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  const Spacer(),
-                  Text(
-                    '$doneCount of ${_Step.values.length} done',
-                    style: textTheme.labelMedium
-                        ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                ],
+              // Progress is the bar below, on its own: a "2 of 4 done" count
+              // beside it said the same thing twice.
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: IconButton(
+                  onPressed: () => setState(() => _showChecklist = false),
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Back',
+                  visualDensity: VisualDensity.compact,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
-                next == null ? 'All set' : 'A few permissions',
+                next == null ? 'All set' : 'Let it ring through a locked phone',
                 style: textTheme.headlineSmall,
               ),
               const SizedBox(height: 6),
               Text(
                 next == null
                     ? 'Your alarm can ring with the app closed and the screen off.'
-                    : 'So the alarm rings even when your phone is locked.',
+                    : 'Four permissions, one tap each.',
                 style: textTheme.bodyMedium
                     ?.copyWith(color: scheme.onSurfaceVariant),
               ),
@@ -236,6 +235,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 const SizedBox(height: 8),
                 _VendorTip(device: device, onTap: _openReliability),
               ],
+              const SizedBox(height: 20),
+              const _UnitPicker(alignment: WrapAlignment.start),
             ],
           ),
         ),
@@ -451,7 +452,7 @@ class _ChecklistRow extends StatelessWidget {
                           Text(
                             info.title,
                             style: textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: muted ? scheme.onSurfaceVariant : null,
                             ),
                           ),
@@ -477,7 +478,9 @@ class _ChecklistRow extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 54, top: 6, right: 10),
                     child: Text(
                       info.hint!,
-                      style: textTheme.bodySmall?.copyWith(
+                      // Body size, not small: this is the one line that says
+                      // what to tap on the system screen that follows.
+                      style: textTheme.bodyMedium?.copyWith(
                         color: scheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
@@ -559,7 +562,10 @@ class _WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final unitController = LocReminderApp.unitOf(context);
+    final taglineStyle = textTheme.titleMedium?.copyWith(
+      color: scheme.onSurfaceVariant,
+      height: 1.4,
+    );
 
     return Column(
       children: [
@@ -569,22 +575,13 @@ class _WelcomePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
                 children: [
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: scheme.primary.withValues(alpha: 0.20),
-                          blurRadius: 18,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
+                  // The logo on its own, with no coloured glow behind it.
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
                     child: Image.asset(
                       'assets/images/app_logo.png',
+                      width: 88,
+                      height: 88,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -597,36 +594,26 @@ class _WelcomePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    'Pick a place. Put your phone away.\n'
-                    'It rings when you arrive.',
-                    textAlign: TextAlign.center,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  ValueListenableBuilder<DistanceUnit>(
-                    valueListenable: unitController,
-                    builder: (context, unit, _) =>
-                        SegmentedButton<DistanceUnit>(
-                      segments: const [
-                        ButtonSegment(value: DistanceUnit.km, label: Text('KM')),
-                        ButtonSegment(
-                          value: DistanceUnit.miles,
-                          label: Text('Miles'),
-                        ),
-                      ],
-                      selected: {unit},
-                      showSelectedIcon: false,
-                      style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  // Each sentence wraps as a unit instead of at a forced
+                  // line break. On most phones that gives the same two lines
+                  // the old "\n" did; on a wide screen they sit side by side;
+                  // on a small phone or with large text each sentence wraps
+                  // inside itself rather than splitting the pair mid-phrase.
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 5,
+                    children: [
+                      Text(
+                        'Pick a place. Put your phone away.',
+                        textAlign: TextAlign.center,
+                        style: taglineStyle,
                       ),
-                      onSelectionChanged: (s) =>
-                          unitController.setUnit(s.first),
-                    ),
+                      Text(
+                        'It rings when you arrive.',
+                        textAlign: TextAlign.center,
+                        style: taglineStyle,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -637,15 +624,21 @@ class _WelcomePage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
           child: Column(
             children: [
+              // Down here, labelled, rather than mid-screen where it competed
+              // with the setup button. It is also at the end of the checklist.
+              const _UnitPicker(alignment: WrapAlignment.center),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.shield_outlined, size: 16, color: scheme.primary),
                   const SizedBox(width: 6),
-                  Text(
-                    'Offline & private · No account',
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                  Flexible(
+                    child: Text(
+                      'Offline & private · No account',
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
                   ),
                 ],
               ),
@@ -654,10 +647,65 @@ class _WelcomePage extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: onStart,
-                  child: const Text('Get started'),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Set up'),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward, size: 20),
+                    ],
+                  ),
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// km or miles, with a label. Shown at the bottom of the welcome page and
+/// again at the end of the checklist.
+///
+/// A Wrap rather than a Row so the label drops above the switch on a narrow
+/// phone or at a large text size instead of overflowing.
+class _UnitPicker extends StatelessWidget {
+  const _UnitPicker({required this.alignment});
+
+  final WrapAlignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final unitController = LocReminderApp.unitOf(context);
+
+    return Wrap(
+      alignment: alignment,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        Text(
+          'Distances in',
+          style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+        ValueListenableBuilder<DistanceUnit>(
+          valueListenable: unitController,
+          builder: (context, unit, _) => SegmentedButton<DistanceUnit>(
+            segments: const [
+              // Lowercase: "km" is the unit symbol; capitals read as a label.
+              ButtonSegment(value: DistanceUnit.km, label: Text('km')),
+              ButtonSegment(value: DistanceUnit.miles, label: Text('miles')),
+            ],
+            selected: {unit},
+            showSelectedIcon: false,
+            style: const ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onSelectionChanged: (s) => unitController.setUnit(s.first),
           ),
         ),
       ],

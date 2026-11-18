@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -67,8 +68,25 @@ class LocationPickerScreen extends StatefulWidget {
   State<LocationPickerScreen> createState() => _LocationPickerScreenState();
 }
 
-class _LocationPickerScreenState extends State<LocationPickerScreen> {
+class _LocationPickerScreenState extends State<LocationPickerScreen>
+    with SingleTickerProviderStateMixin {
   final _mapController = MapController();
+
+  /// Drives double-tap zoom, which this screen does itself so it can zoom
+  /// around the pin. See [_zoomAroundPin].
+  late final AnimationController _zoomAnimation;
+  double _zoomFrom = 0;
+  double _zoomTo = 0;
+
+  // Raw pointer bookkeeping for double-tap zoom. A Listener sees pointers
+  // without joining the gesture arena, so the map's own drag and pinch
+  // handling is untouched by any of this.
+  int _activePointers = 0;
+  bool _touchWasMultiFinger = false;
+  Offset? _pointerDownAt;
+  Duration? _pointerDownTime;
+  Offset? _lastTapAt;
+  Duration? _lastTapTime;
   final _geocoder = GeocodingService();
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
@@ -135,6 +153,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   @override
   void initState() {
     super.initState();
+    _zoomAnimation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    )..addListener(_onZoomTick);
     final alarm = widget.editingAlarm;
     if (alarm != null) {
       _center = LatLng(alarm.latitude, alarm.longitude);
@@ -199,6 +221,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   @override
   void dispose() {
     _detachFocusListener();
+    _zoomAnimation.dispose();
     _searchDebounce?.cancel();
     _addressDebounce?.cancel();
     _searchController.dispose();
@@ -289,13 +312,114 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   }
 
   void _onMapMoved(MapCamera camera, bool hasGesture) {
+    final previous = _center;
     _center = camera.center;
     if (!hasGesture) return;
+    // A pinch zooms around the pin now, so it reports a gesture without the
+    // spot moving. Keep the name search gave the place rather than trading
+    // it for a reverse-geocoded street address just because the user zoomed
+    // in to check it. ~1 cm, far below one pixel at any zoom the map allows.
+    if ((previous.latitude - camera.center.latitude).abs() < 1e-7 &&
+        (previous.longitude - camera.center.longitude).abs() < 1e-7) {
+      return;
+    }
     // The user dragged the map, so whatever name came from search no longer
     // describes the pin — fall back to reverse geocoding the new centre.
     _chosenName = null;
     _addressDebounce?.cancel();
     _addressDebounce = Timer(const Duration(milliseconds: 700), _resolveAddress);
+  }
+
+  /// Zooms by [delta] levels around the pin, never around the finger or the
+  /// cursor.
+  ///
+  /// flutter_map's own double-tap and scroll-wheel zoom keep the point under
+  /// the finger still, which on an ordinary map is right. Here the pin is
+  /// fixed and the map moves under it, so zooming around anything but the
+  /// pin quietly moves the place the alarm will be set at: search for a
+  /// station, double-tap to look closer, and the pin is on the next street.
+  void _zoomAroundPin(double delta, {required bool animate}) {
+    final camera = _mapController.camera;
+    final target = (camera.zoom + delta).clamp(mapMinZoom, mapMaxZoom);
+    if (!target.isFinite || target == camera.zoom) return;
+    if (!animate || MediaQuery.disableAnimationsOf(context)) {
+      _zoomAnimation.stop();
+      _mapController.move(camera.center, target);
+      return;
+    }
+    _zoomFrom = camera.zoom;
+    _zoomTo = target;
+    _zoomAnimation.forward(from: 0);
+  }
+
+  void _onZoomTick() {
+    final t = Curves.fastOutSlowIn.transform(_zoomAnimation.value);
+    _mapController.move(
+      _mapController.camera.center,
+      _zoomFrom + (_zoomTo - _zoomFrom) * t,
+    );
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    // A finger on the map takes over from any zoom still animating.
+    if (_zoomAnimation.isAnimating) _zoomAnimation.stop();
+    _activePointers++;
+    if (_activePointers > 1) {
+      _touchWasMultiFinger = true;
+      return;
+    }
+    _touchWasMultiFinger = false;
+    _pointerDownAt = event.position;
+    _pointerDownTime = event.timeStamp;
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (_activePointers > 0) _activePointers--;
+    final downAt = _pointerDownAt;
+    final downTime = _pointerDownTime;
+    if (_activePointers > 0 ||
+        _touchWasMultiFinger ||
+        downAt == null ||
+        downTime == null) {
+      return;
+    }
+
+    final isTap = (event.position - downAt).distance < kTouchSlop &&
+        event.timeStamp - downTime < kLongPressTimeout;
+    if (!isTap) {
+      // A drag, or the drag half of a double-tap-drag zoom, which
+      // flutter_map handles (around the centre) by itself.
+      _lastTapTime = null;
+      _lastTapAt = null;
+      return;
+    }
+
+    final lastTime = _lastTapTime;
+    final lastAt = _lastTapAt;
+    if (lastTime != null &&
+        lastAt != null &&
+        downTime - lastTime < kDoubleTapTimeout &&
+        (downAt - lastAt).distance < kDoubleTapSlop) {
+      _lastTapTime = null;
+      _lastTapAt = null;
+      _zoomAroundPin(1, animate: true);
+      return;
+    }
+    _lastTapTime = event.timeStamp;
+    _lastTapAt = event.position;
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (_activePointers > 0) _activePointers--;
+    _lastTapTime = null;
+    _lastTapAt = null;
+  }
+
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is PointerScrollEvent) {
+      // The same rate flutter_map's own wheel zoom uses.
+      _zoomAroundPin(-event.scrollDelta.dy * 0.005, animate: false);
+    }
   }
 
   /// Names the spot under the pin, when there is anything to name it with.
@@ -357,73 +481,86 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: Stack(
+      // Not a plain Stack: [_PickerLayout] sizes the map from the panel's
+      // measured height so the pin lands in the middle of the visible map.
+      body: CustomMultiChildLayout(
+        delegate: _PickerLayout(),
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: widget.initialCenter,
-              initialZoom: 15,
-              // See [mapMinZoom]: unbounded zoom is what lets a fast pinch
-              // put a non-finite value into the camera.
-              minZoom: mapMinZoom,
-              maxZoom: mapMaxZoom,
-              onPositionChanged: _onMapMoved,
-              onTap: (_, __) => _searchFocus.unfocus(),
-            ),
-            children: [
-              buildTileLayer(context, style: _mapStyle),
-              _RadiusCircle(radius: _radius, color: scheme.primary),
-            ],
-          ),
-
-          // Fixed centre crosshair: the map moves under it, so the pin is
-          // always exactly where the alarm will be placed.
-          IgnorePointer(
-            child: Center(
-              child: Padding(
-                // Lifts the pin by its own height so its tip — not its middle
-                // — rests exactly on the map centre, matching the circle.
-                padding: const EdgeInsets.only(bottom: 52),
-                child: Semantics(
-                  label:
-                      'Destination pin at map center. Pan the map to adjust location.',
-                  child: MapPin(
-                      size: 52,
-                      color: scheme.primary,
-                      borderColor: scheme.surface),
-                ),
-              ),
-            ),
-          ),
-
-          _buildSearchBar(context),
-          if (_showResults) _buildResultsOverlay(context),
-
-          // The credit rides directly on top of the panel rather than at a
-          // measured offset from the bottom of the screen. It used to sit at
-          // a hard-coded 232, which was the panel's height at the time; adding
-          // the task field and the repeat row to that panel would have slid it
-          // underneath, and covering the OpenStreetMap credit is a licence
-          // problem, not a layout one. Stacked, it cannot happen again.
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          LayoutId(
+            id: _PickerSlot.map,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 8, bottom: 6),
-                  child: MapAttribution(style: _mapStyle),
+                Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _onPointerDown,
+                  onPointerUp: _onPointerUp,
+                  onPointerCancel: _onPointerCancel,
+                  onPointerSignal: _onPointerSignal,
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: widget.initialCenter,
+                      initialZoom: 15,
+                      // See [mapMinZoom]: unbounded zoom is what lets a fast
+                      // pinch put a non-finite value into the camera.
+                      minZoom: mapMinZoom,
+                      maxZoom: mapMaxZoom,
+                      interactionOptions:
+                          const InteractionOptions(flags: _pickerGestures),
+                      onPositionChanged: _onMapMoved,
+                      onTap: (_, __) => _searchFocus.unfocus(),
+                    ),
+                    children: [
+                      buildTileLayer(context, style: _mapStyle),
+                      _RadiusCircle(radius: _radius, color: scheme.primary),
+                    ],
+                  ),
                 ),
-                // Flexible, not a bare child: the Column hands an unbounded
-                // height to a non-flex child, which a SingleChildScrollView
-                // would happily grow into and overflow. Loose flex caps it at
-                // whatever the stack has left, and the panel scrolls inside.
-                Flexible(child: _buildBottomPanel(context)),
+
+                // Fixed centre crosshair: the map moves under it, so the pin
+                // is always exactly where the alarm will be placed. It shares
+                // the map's box, so "centre" means the same point to both.
+                IgnorePointer(
+                  child: Center(
+                    child: Padding(
+                      // Lifts the pin by its own height so its tip — not its
+                      // middle — rests exactly on the map centre, matching
+                      // the circle.
+                      padding: const EdgeInsets.only(bottom: _pinSize),
+                      child: Semantics(
+                        label: 'Destination pin at map center. '
+                            'Pan the map to adjust location.',
+                        child: MapPin(
+                          size: _pinSize,
+                          color: scheme.primary,
+                          borderColor: scheme.surface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
+          LayoutId(id: _PickerSlot.search, child: _buildSearchBar(context)),
+          if (_showResults)
+            LayoutId(
+              id: _PickerSlot.results,
+              child: _buildResultsOverlay(context),
+            ),
+          // The credit rides directly on top of the panel rather than at a
+          // fixed offset from the bottom of the screen, so a taller panel can
+          // never slide over it: covering the OpenStreetMap credit is a
+          // licence problem, not a layout one.
+          LayoutId(
+            id: _PickerSlot.attribution,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 6),
+              child: MapAttribution(style: _mapStyle),
+            ),
+          ),
+          LayoutId(id: _PickerSlot.panel, child: _buildBottomPanel(context)),
         ],
       ),
     );
@@ -809,6 +946,88 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 /// here rebuilds one layer instead — and fixes the circle drifting off the
 /// crosshair mid-drag and snapping back once the address lookup settled,
 /// which made the pin look like it was not where the alarm would go.
+/// The centre pin's height, which is also how far it is lifted so its tip,
+/// not its middle, sits on the map centre. One value so the two cannot drift.
+const double _pinSize = 52;
+
+/// The gestures the picker's map handles itself. Each one either moves the
+/// map on purpose (dragging, flinging) or zooms around the map centre, which
+/// is the pin (pinching, double-tap-and-drag).
+///
+/// Left out, because flutter_map does them around the fingers or the cursor
+/// and that silently moves the spot under the pin:
+/// - two-finger panning while pinching ([InteractiveFlag.pinchMove]);
+/// - rotating, which turns the map around the fingers' midpoint;
+/// - double-tap and scroll-wheel zoom, which this screen re-implements
+///   around the pin in [_LocationPickerScreenState._zoomAroundPin].
+const int _pickerGestures = InteractiveFlag.drag |
+    InteractiveFlag.flingAnimation |
+    InteractiveFlag.pinchZoom |
+    InteractiveFlag.doubleTapDragZoom;
+
+enum _PickerSlot { map, search, results, attribution, panel }
+
+/// Lays the picker out so the pin sits in the middle of the map the user can
+/// actually see, not the middle of the screen.
+///
+/// The pin is drawn at the centre of the map widget, because that centre is
+/// the coordinate the alarm is saved at. When the map filled the whole
+/// screen, that centre was the middle of the screen, and the bottom panel
+/// covers roughly the lower 40% of it. The pin therefore sat low, pressed
+/// against the panel with the lower half of its radius circle hidden, and on
+/// shorter phones it was behind the panel entirely. Choosing a search result
+/// moved the place to that same spot.
+///
+/// So the map is sized rather than shifted. It still starts at the top of
+/// the screen, under the search bar, and is made exactly tall enough that its
+/// centre falls halfway between the bottom of the search bar and the top of
+/// the panel. The extra height runs under the opaque panel, where it is never
+/// seen. The pin shares the map's box, so its tip is still exactly the camera
+/// centre, and every gesture and every `move` stays in the map's own terms.
+class _PickerLayout extends MultiChildLayoutDelegate {
+  /// The bottom panel's top corner radius: the map must reach this far under
+  /// the panel so it, and not blank background, shows behind the corners.
+  static const double _panelCorner = 24;
+
+  @override
+  void performLayout(Size size) {
+    final loose = BoxConstraints.loose(size);
+
+    final searchHeight = layoutChild(_PickerSlot.search, loose).height;
+    positionChild(_PickerSlot.search, Offset.zero);
+
+    // The credit is measured before the panel so the panel is capped short
+    // of it and can never push it off screen.
+    final credit = layoutChild(_PickerSlot.attribution, loose);
+    final panelMax = (size.height - credit.height).clamp(0.0, size.height);
+    final panelHeight = layoutChild(
+      _PickerSlot.panel,
+      BoxConstraints(maxWidth: size.width, maxHeight: panelMax),
+    ).height;
+    final panelTop = size.height - panelHeight;
+    positionChild(_PickerSlot.panel, Offset(0, panelTop));
+    positionChild(_PickerSlot.attribution, Offset(0, panelTop - credit.height));
+
+    // A box from y = 0 whose centre is (searchHeight + panelTop) / 2.
+    final mapHeight = searchHeight > _panelCorner
+        ? searchHeight + panelTop
+        : panelTop + _panelCorner;
+    layoutChild(
+      _PickerSlot.map,
+      BoxConstraints.tightFor(width: size.width, height: mapHeight),
+    );
+    positionChild(_PickerSlot.map, Offset.zero);
+
+    if (hasChild(_PickerSlot.results)) {
+      layoutChild(_PickerSlot.results, loose);
+      positionChild(_PickerSlot.results, Offset.zero);
+    }
+  }
+
+  @override
+  bool shouldRelayout(_PickerLayout oldDelegate) => false;
+}
+
 class _RadiusCircle extends StatelessWidget {
   const _RadiusCircle({required this.radius, required this.color});
 
@@ -908,10 +1127,9 @@ class _RepeatSheetState extends State<_RepeatSheet> {
               const Divider(height: 24),
               Text(
                 'Or pick the days',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.primary,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
               ),
               const SizedBox(height: 10),

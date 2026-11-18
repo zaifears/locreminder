@@ -43,11 +43,18 @@ class _PinPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final width = size.width;
     final height = size.height;
+    final strokeWidth = width * 0.055;
 
     // Circular head sized so the tangent lines from the tip meet it cleanly.
     final headRadius = width * 0.32;
     final headCentre = Offset(width / 2, headRadius + height * 0.04);
-    final tip = Offset(width / 2, height);
+    // The white outline is centred on the path, so half of it lies outside
+    // the shape. Pulling the tip up by that half, and rounding the outline's
+    // corner there (below), makes the outermost painted pixel of the tip
+    // land exactly on the bottom edge of the box, which is the coordinate.
+    // With the tip on the edge and the default mitre join, the outline's
+    // point overshot the coordinate by a full stroke width (~2.4 px).
+    final tip = Offset(width / 2, height - strokeWidth / 2);
 
     // Angle from the head's centre to the tip, used to find the two points
     // where the body's straight edges leave the circle tangentially.
@@ -99,7 +106,8 @@ class _PinPainter extends CustomPainter {
       Paint()
         ..color = borderColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = width * 0.055,
+        ..strokeJoin = StrokeJoin.round
+        ..strokeWidth = strokeWidth,
     );
 
     // Hollow centre, the way a conventional map pin reads.

@@ -405,11 +405,10 @@ class _Section extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
       child: Text(
-        label.toUpperCase(),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        label,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 0.9,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
       ),
     );

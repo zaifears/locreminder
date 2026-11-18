@@ -25,9 +25,8 @@ typography:
     lineHeight: 1.5
   label:
     fontFamily: "Roboto, sans-serif"
-    fontWeight: 700
-    fontSize: "12px"
-    letterSpacing: "0.8px"
+    fontWeight: 600
+    fontSize: "14px"
   button:
     fontFamily: "Roboto, sans-serif"
     fontSize: "16px"
@@ -174,8 +173,9 @@ doing the hierarchy work rather than family.
   them as structural.
 - **Body** (400, 1.5 line-height): explanatory prose. The reliability screen
   carries the longest passages and sets the measure.
-- **Label** (700, 12px, 0.8px tracking, uppercase): section markers such as
-  DEVELOPER and CREDITS, tinted Signal Blue. The only uppercase in the system.
+- **Label** (600, 14px, sentence case, no tracking): section markers such as
+  "Developer" and "Credits", tinted Signal Blue. The body face a step smaller,
+  never spaced-out capitals.
 - **Button** (600, 16px; 15px outlined): heavier than body so actions read as
   actions.
 

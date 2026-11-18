@@ -115,11 +115,10 @@ class _AboutScreenState extends State<AboutScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'DEVELOPER',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            'Developer',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.primary,
-                  letterSpacing: 0.8,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
           ),
           const SizedBox(height: 8),
@@ -160,11 +159,10 @@ class _AboutScreenState extends State<AboutScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'CREDITS',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            'Credits',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.primary,
-                  letterSpacing: 0.8,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
           ),
           const SizedBox(height: 8),

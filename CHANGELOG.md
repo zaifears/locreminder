@@ -3,6 +3,19 @@
 All notable changes to LocReminder are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.2] - 2026-11-18
+
+### Fixed
+- **Map pins point at the right spot.** Saved alarms were drawn with the top of the pin on the location instead of its tip, so the tip sat below the real place and seemed to slide across the map when zooming. The tip now sits exactly on the alarm's location and the centre of its radius circle, at every zoom, and stays there when the map is rotated. (Reported by users.)
+- **Zooming the location picker no longer moves your place.** Pinching, double-tapping or scrolling to zoom now zooms around the pin, so a place you searched for stays under it, and keeps its name. Two-finger rotation and panning are turned off on this screen, since they also shifted the spot.
+- **The picker's pin sits in the middle of the map you can see.** It used to be centred on the whole screen, so it sat low against the bottom panel, or behind it on shorter phones, with half its radius circle hidden.
+- **Tapping an alarm in the list shows it above the list.** With the list open, the map used to centre the alarm behind it.
+
+### Changed
+- **Simpler setup screens.** The welcome screen's button now says **Set up**, the tagline wraps cleanly on small phones and with large text, and the unit switch is labelled ("Distances in km / miles") and also appears at the end of the checklist. The checklist drops the duplicate "x of 4 done" count, has a clearer heading, and shows the "what to tap next" hint at a readable size.
+- **Calmer labels.** Section headings in Settings, Reliability and About use normal sentence case instead of spaced-out capitals, and units read "km" and "miles".
+- **Respects "Remove animations".** The switch between the welcome screen and the checklist is instant when the phone's animations are turned off.
+
 ## [2.1.1] - 2026-11-04
 
 ### Changed
